@@ -1,0 +1,77 @@
+# 合并视图（自动生成，请勿直接编辑）
+# 请改 flow-sql-map/flows/<flow_id>.yaml，再执行：cd _tools && npm run merge
+version: 1
+flows:
+  - flow_id: op_return_old_wire_take_new_wire
+    title: OP存废焊丝取新焊丝
+    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+    description: OP 归还废旧焊丝并领取新焊丝的主流程。
+    nodes:
+      - node_id: queryOPId
+        node_text: 查询MES数据库该操作人员
+        sql_ids:
+          - mes.operator.get_by_id
+        business_meaning: 校验 OP 身份是否存在。
+        outcome_routing:
+          single:
+            next: showOPName
+          empty:
+            next: showOPIdWrong
+          multiple:
+            next: showOPIdWrong
+            note: 复用不存在提示；如需区分可单独加“数据异常”节点
+          error:
+            next: showOPIdWrong
+            note: 如需区分可单独加“系统异常”节点
+      - node_id: queryWireType
+        node_text: 查询MES数据库该批号对应的焊丝类型
+        sql_ids:
+          - mes.wire_lot.get_by_lot_no
+        business_meaning: 获取旧焊丝批号对应的焊丝类型，用于匹配柜内同类型新焊丝。
+        outcome_routing:
+          single:
+            next: queryWireInSlots
+          empty:
+            next: showBatchNumberWrongHint
+          error:
+            next: showBatchNumberWrongHint
+            note: 如需区分可单独加“系统异常”节点
+      - node_id: queryMachineNo
+        node_text: 查询MES数据库该机台号
+        sql_ids:
+          - mes.eqp.get_by_wire_bonding_eqp_no
+        on_success_next: checkMachineNoExists
+        on_empty_or_error: showNoMachineNoExists
+        business_meaning: 校验机台号是否存在。
+      - node_id: queryLastProductLotNo
+        node_text: 查询MES数据库该机台最近生产的工单批次号
+        sql_ids:
+          - mes.product.get_latest_product_lot_by_eqp
+        on_success_next: checkQueryLastProductLotNoExists
+        on_empty_or_error: showNoLastProductLotNoExistsHint
+        business_meaning: 找到该机台最近工单批次号，作为焊线用量核对依据。
+      - node_id: queryWireQuotaCheck
+        node_text: 查询MES数据库焊线用量
+        sql_ids:
+          - mes.wire_usage.check_quota
+        on_success_next: CheckWireQuotaLE500
+        on_empty_or_error: showRemainingQtyWrongHint
+        business_meaning: 校验真实用量和预计用量差值是否满足退还条件。
+  - flow_id: mh_store_wire
+    title: 物料员存焊丝
+    file: 焊丝发放流程图/物料员MH存放焊丝.md
+    description: 物料员扫码或录入焊丝批号后，将焊丝存入发货柜格口。
+    nodes:
+      - node_id: queryWireType
+        node_text: 查询MES数据库该批号对应的焊丝类型
+        sql_ids:
+          - mes.wire_lot.get_by_lot_no
+        business_meaning: 校验焊丝批号是否存在，并取得焊丝类型。
+        outcome_routing:
+          single:
+            next: checkWireLotNoExists
+          empty:
+            next: showWireNotFoundHint
+          error:
+            next: showWireNotFoundHint
+            note: 如需区分可单独加“系统异常”节点

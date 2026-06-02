@@ -1,0 +1,161 @@
+id: mes.mat_trans.submit_return
+title: 提交退料（调用存储函数 FUN_MAT_TRANS_NEW）
+system: MES
+operation: write
+dialect: oracle
+risk_level: high
+status: draft
+datasource: mes.oracle.main
+flow_refs:
+  - flow_id: op_return_old_wire_take_new_wire
+    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+    node_id: TODO_确认提交退料节点ID
+    node_text: 提交退料
+purpose: 调用 MES 存储函数 FWMES.FUN_MAT_TRANS_NEW 提交退料事务，写入退料记录并返回执行结果。
+inputs:
+  - name: V_Step
+    type: string
+    required: true
+    source: 工序/步骤（待确认）
+  - name: v_Task
+    type: string
+    required: true
+    source: 任务类型，如 退料/完工（待确认）
+  - name: v_Eqp
+    type: string
+    required: true
+    source: 机台号（待确认）
+  - name: v_Code
+    type: string
+    required: true
+    source: 物料编码（待确认）
+  - name: v_Matlot
+    type: string
+    required: true
+    source: 物料批号（待确认）
+  - name: v_MatFromLot
+    type: string
+    required: true
+    source: 来源物料批号（待确认）
+  - name: v_Qty
+    type: integer
+    required: true
+    source: 数量（待确认：是否可能为小数）
+  - name: v_Count
+    type: integer
+    required: true
+    source: 件数/计数（待确认）
+  - name: v_PrdLot
+    type: string
+    required: true
+    source: 产品批号（待确认）
+  - name: v_PrdQty
+    type: integer
+    required: true
+    source: 产品数量（待确认）
+  - name: V_ShelfLife
+    type: datetime
+    required: true
+    source: 保质期；SQL 中用 TO_DATE(:V_ShelfLife,'YYYY-MM-DD HH24:MI:SS') 转换，应用层须按此格式传字符串（待确认）
+  - name: V_Opr
+    type: string
+    required: true
+    source: 操作员（待确认）
+  - name: V_Remark
+    type: string
+    required: false
+    source: 备注（待确认）
+  - name: V_Workgroup
+    type: string
+    required: true
+    source: 班组（待确认）
+  - name: V_Shift
+    type: string
+    required: true
+    source: 班次（待确认）
+  - name: v_Writer
+    type: string
+    required: true
+    source: 记录人/登记人（待确认）
+  - name: V_SESSION
+    type: string
+    required: true
+    source: 会话标识（待确认）
+outputs:
+  - name: result
+    type: string
+    meaning: FUN_MAT_TRANS_NEW 返回的执行结果（VARCHAR2，最长 4000；具体是成功标志、消息文本还是新单号待确认）
+sql: |
+  DECLARE
+    v_result VARCHAR2(4000);
+  BEGIN
+    v_result := FWMES.FUN_MAT_TRANS_NEW(
+      :V_Step, :v_Task, :v_Eqp, :v_Code,
+      :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
+      :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
+      :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
+    );
+    :result := v_result;
+  END;
+result_cardinality: 1
+outcomes:
+  single:
+    means: 取得存储函数返回的执行结果 result。
+    action: 按 result 判断退料是否成功（成功判定口径待确认），成功则提交事务，失败则回滚并提示。
+  error:
+    means: 数据库异常、存储函数报错或事务失败。
+    action: 回滚事务，提示“提交退料失败，请重试或联系管理员”，记录日志。
+    severity: error
+transaction:
+  required: true
+  idempotent: false
+  affected_rows: 待确认
+  rollback_on: 存储函数返回失败或抛出异常
+business_rule: |
+  result 的成功/失败判定口径待与 MES 确认（例如返回 'OK'/'1' 视为成功，其余为失败消息）。
+tables:
+  - name: FWMES.FUN_MAT_TRANS_NEW
+    type: function
+    usage: MES 退料事务提交存储函数
+interface:
+  function_name: submitMatReturn
+  params:
+    - name: V_Step
+      type: string
+    - name: v_Task
+      type: string
+    - name: v_Eqp
+      type: string
+    - name: v_Code
+      type: string
+    - name: v_Matlot
+      type: string
+    - name: v_MatFromLot
+      type: string
+    - name: v_Qty
+      type: integer
+    - name: v_Count
+      type: integer
+    - name: v_PrdLot
+      type: string
+    - name: v_PrdQty
+      type: integer
+    - name: V_ShelfLife
+      type: datetime
+    - name: V_Opr
+      type: string
+    - name: V_Remark
+      type: string
+    - name: V_Workgroup
+      type: string
+    - name: V_Shift
+      type: string
+    - name: v_Writer
+      type: string
+    - name: V_SESSION
+      type: string
+  returns: result (string) — 存储函数执行结果（含义待确认）
+notes: |
+  - 写操作：调用存储函数的 PL/SQL 匿名块，:result 为输出（OUT）绑定变量（VARCHAR2(4000)）。
+  - V_ShelfLife 在 SQL 内用 TO_DATE 转换，应用层须传 'YYYY-MM-DD HH24:MI:SS' 格式的字符串。
+  - 多数入参 meaning、result 含义、成功判定口径、事务字段均为推测，待与 MES 确认后修订。

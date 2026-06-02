@@ -1,0 +1,67 @@
+id: mes.product.get_latest_product_lot_by_eqp
+title: 查询机台最近生产的产品批次号
+system: MES
+operation: read
+dialect: oracle
+risk_level: low
+status: verified
+datasource: mes.oracle.main
+flow_refs:
+  - flow_id: op_return_old_wire_take_new_wire
+    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+    node_id: queryLastProductLotNo
+    node_text: 查询MES数据库该机台最近生产的工单批次号
+purpose: 根据机台号查询最近生产工单批次号，用于后续焊线用量核对。
+inputs:
+  - name: eqp_no
+    type: string
+    required: true
+    source: 已校验存在的机台号
+    example: 1QH029
+outputs:
+  - name: lot
+    type: string
+    meaning: 产品批号
+sql: |
+  SELECT 
+    NVL(MAX(lot), 'N/A') As Lot
+  FROM (
+    SELECT lot
+    FROM fw_wip_trans
+    WHERE eqp = :eqp_no
+      AND (
+        step LIKE '焊线%'
+        OR step LIKE '键合%'
+      )
+      AND task = '完工'
+      AND NVL(remark, 'NA') NOT LIKE '取消%'
+    ORDER BY dates DESC
+  )
+  WHERE ROWNUM = 1;
+empty_result_means: 未查询到该机台最近生产工单批次号。
+error_handling: 提示“找不到该机台对应的最后工单批次号，请到物料间人工归还”。
+notes: “最近”的排序字段需要和 MES 业务确认，可能是完工时间、过站时间或更新时间。
+result_cardinality: 1
+outcomes:
+  single:
+    means: 产品批号
+    action: 可能为产品批号也有可能为N/A
+  error:
+    means: 数据库异常或查询超时。
+    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    severity: error
+tables:
+  - name: fw_wip_trans
+    type: table
+    usage: 查询焊丝信息
+interface:
+  function_name: getLatestProductLotByEqp
+  params:
+    - name: eqp_no
+      type: string
+  returns: lot (string)（最近产品批号；查不到时返回 'N/A'，不会为 null）
+sample_result:
+  - lot: 123
+meta:
+  last_updated: 2026-06-01
+  author: ZhengyuShao

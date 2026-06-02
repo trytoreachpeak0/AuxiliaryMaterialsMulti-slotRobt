@@ -1,0 +1,18 @@
+flow_id: mh_store_wire
+title: 物料员存焊丝
+file: 焊丝发放流程图/物料员MH存放焊丝.md
+description: 物料员扫码或录入焊丝批号后，将焊丝存入发货柜格口。
+nodes:
+  - node_id: queryWireType
+    node_text: 查询MES数据库该批号对应的焊丝类型
+    sql_ids:
+      - mes.wire_lot.get_by_lot_no
+    business_meaning: 校验焊丝批号是否存在，并取得焊丝类型。
+    outcome_routing:
+      single:
+        next: checkWireLotNoExists
+      empty:
+        next: showWireNotFoundHint
+      error:
+        next: showWireNotFoundHint
+        note: 如需区分可单独加“系统异常”节点

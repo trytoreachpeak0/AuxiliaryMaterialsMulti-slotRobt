@@ -1,0 +1,543 @@
+# 合并视图（自动生成，请勿直接编辑）
+# 请改 mes-sql-catalog/items/<id>.yaml，再执行：cd _tools && npm run merge
+version: 1
+owner: MES/业务系统接口
+description: 焊丝发放相关 MES 访问 SQL 清单，供 AI、开发和测试理解业务查询含义。
+sql_items:
+  - id: mes.operator.get_by_id
+    title: 查询 MES 操作员
+    system: MES
+    operation: read
+    dialect: oracle
+    risk_level: low
+    status: verified
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: queryOPId
+        node_text: 查询MES数据库该操作人员
+    purpose: 根据 OP 输入的操作人员 ID，校验该人员是否存在并返回基础信息。
+    inputs:
+      - name: user_code
+        type: string
+        required: true
+        source: OP输入操作人员ID
+        example: S0017655
+    outputs:
+      - name: username
+        type: string
+        meaning: 操作人员姓名
+    sql: |+
+      SELECT
+        username
+      FROM
+        mv_fw_username
+      WHERE
+        usercode = :user_code;
+        
+    result_cardinality: 0..1
+    outcomes:
+      empty:
+        means: 操作员不存在或已停用。
+        action: 提示“不存在该操作人员”，返回重新输入操作人员 ID。
+      single:
+        means: 命中唯一操作员。
+        action: 显示操作人员姓名，继续流程。
+      multiple:
+        means: 同一工号查到多条记录，属于数据异常。
+        action: 提示“该工号存在多条记录，请联系管理员”，禁止放行。
+        severity: error
+      error:
+        means: 数据库异常或查询超时。
+        action: 提示“系统繁忙，请稍后重试”，记录日志。
+        severity: error
+    notes: |
+      - 表名和字段名为示例，需要替换成 MES 实际表结构。
+      - 多行不在 SQL 层用 ROWNUM 掩盖，保持暴露以便发现数据问题（方案 3-A）。
+      - 若经业务确认 usercode 唯一、多行仅为视图 JOIN 重复，可改用 SELECT DISTINCT 或在此说明取舍。
+    tables:
+      - name: mv_fw_username
+        type: view
+        usage: 操作员工号与姓名映射
+    interface:
+      function_name: getOperatorNameByUserCode
+      params:
+        - name: user_code
+          type: string
+      returns: operator_name (string) | null
+    sample_result:
+      - operator_name: 张三
+    meta:
+      last_updated: 2026-06-01
+      author: ZhengyuShao
+  - id: mes.wire_lot.get_by_lot_no
+    title: 查询焊丝批号对应的焊丝信息
+    system: MES
+    operation: read
+    dialect: oracle
+    risk_level: low
+    status: verified
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: queryWireType
+        node_text: 查询MES数据库该批号对应的焊丝类型
+      - flow_id: mh_store_wire
+        file: 焊丝发放流程图/物料员MH存放焊丝.md
+        node_id: queryWireType
+        node_text: 查询MES数据库该批号对应的焊丝类型
+    purpose: 根据焊丝批号查询 MES 中登记的焊丝类型，用于匹配发货柜库存和存放规则。
+    inputs:
+      - name: wire_lot_no
+        type: string
+        required: true
+        source: OP或物料员扫码/录入焊丝批号
+        example: 14Z1888-0160
+    outputs:
+      - name: spec
+        type: string
+        meaning: 焊丝规格
+      - name: code
+        type: string
+        meaning: 焊丝编码
+      - name: shelflife
+        type: datetime
+        meaning: 焊丝保质期
+      - name: matlot
+        type: string
+        meaning: 主批次
+      - name: qty
+        type: integer
+        meaning: 焊丝数量
+      - name: state
+        type: string
+        meaning: 焊丝状态
+    sql: |
+      SELECT
+        spec,
+        code,
+        shelflife,
+        matlot,
+        qty,
+        state
+      FROM v_fw_material_indetail
+      WHERE sublot = :wire_lot_no
+      AND type = '焊丝'
+    result_cardinality: 0..1
+    outcomes:
+      empty:
+        means: MES 中不存在该焊丝批号
+        action: 提示“不存在该焊丝批号”，返回重新输入焊丝批号。
+      single:
+        means: 命中唯一焊丝。
+        action: 获取该焊丝信息，再按 business_rule 校验 state 是否为“归还”。
+      multiple:
+        means: 同一焊丝批号查到多条记录，属于数据异常。
+        action: 提示“该焊丝批号存在多条记录，请联系管理员”，禁止放行。
+        severity: error
+      error:
+        means: 数据库异常或查询超时。
+        action: 提示“系统繁忙，请稍后重试”，记录日志。
+        severity: error
+    business_rule: |
+      命中焊丝后需校验 state：仅当 state 为“归还”时才允许继续后续流程；
+      若 state 不是“归还”，提示“焊丝状态不正确”，禁止放行。
+    notes: |
+      - 如果 MES 中焊丝类型来自物料主数据，请在 SQL 中补充 JOIN 关系。
+      - state 的全部取值（如 归还/在用/报废 等）建议在 mes-schema.yaml 的 enums 中补充字典。
+    tables:
+      - name: v_fw_material_indetail
+        type: view
+        usage: 查询焊丝信息
+    interface:
+      function_name: getWireInfoByLotNo
+      params:
+        - name: wire_lot_no
+          type: string
+      returns: WireLotInfo { spec, code, shelflife, matlot, qty, state } | null
+    sample_result:
+      - spec: φ42(MAXSOFT)
+        code: 121010600007C1-033
+        shelflife: null
+        matlot: 14Z1888-0160
+        qty: 0
+        state: 归还
+    meta:
+      last_updated: 2026-06-01
+      author: ZhengyuShao
+  - id: mes.eqp.get_by_wire_bonding_eqp_no
+    title: 查询 MES 焊线机台
+    system: MES
+    operation: read
+    dialect: oracle
+    risk_level: low
+    status: verified
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: queryMachineNo
+        node_text: 查询MES数据库该机台号
+    purpose: 校验 OP 输入的焊线机台号是否存在，作为后续查询最近工单批次号的前置条件。
+    inputs:
+      - name: eqp_no
+        type: string
+        required: true
+        source: OP输入焊线机台号
+        example: 1QH029
+    sql: |
+      SELECT * 
+      FROM fw_eqpres_eqpinformation 
+      WHERE eqpno=:eqp_no 
+        and step='焊线'
+    result_cardinality: 0..1
+    outcomes:
+      empty:
+        means: MES 中不存在该焊线机台号
+        action: 提示“不存在该焊线机台号”，返回重新输入焊线机台号。
+      single:
+        means: 命中唯一焊线机台号。
+        action: 说明机台存在，继续流程
+      multiple:
+        means: 同一焊线机台号查到多条记录，属于数据异常。
+        action: 提示“该焊线机台号存在多条记录，请联系管理员”，禁止放行。
+        severity: error
+      error:
+        means: 数据库异常或查询超时。
+        action: 提示“系统繁忙，请稍后重试”，记录日志。
+        severity: error
+    tables:
+      - name: fw_eqpres_eqpinformation
+        type: table
+        usage: 查询焊丝信息
+    interface:
+      function_name: existsWireBondingEqp
+      params:
+        - name: eqp_no
+          type: string
+      returns: boolean（查到有效行返回 true，否则 false）
+    meta:
+      last_updated: 2026-06-01
+      author: ZhengyuShao
+    notes: |
+      - 只查询，不考虑返回列，只要返回存在有效行即可
+  - id: mes.product.get_latest_product_lot_by_eqp
+    title: 查询机台最近生产的产品批次号
+    system: MES
+    operation: read
+    dialect: oracle
+    risk_level: low
+    status: verified
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: queryLastProductLotNo
+        node_text: 查询MES数据库该机台最近生产的工单批次号
+    purpose: 根据机台号查询最近生产工单批次号，用于后续焊线用量核对。
+    inputs:
+      - name: eqp_no
+        type: string
+        required: true
+        source: 已校验存在的机台号
+        example: 1QH029
+    outputs:
+      - name: lot
+        type: string
+        meaning: 产品批号
+    sql: |
+      SELECT 
+        NVL(MAX(lot), 'N/A') As Lot
+      FROM (
+        SELECT lot
+        FROM fw_wip_trans
+        WHERE eqp = :eqp_no
+          AND (
+            step LIKE '焊线%'
+            OR step LIKE '键合%'
+          )
+          AND task = '完工'
+          AND NVL(remark, 'NA') NOT LIKE '取消%'
+        ORDER BY dates DESC
+      )
+      WHERE ROWNUM = 1;
+    empty_result_means: 未查询到该机台最近生产工单批次号。
+    error_handling: 提示“找不到该机台对应的最后工单批次号，请到物料间人工归还”。
+    notes: “最近”的排序字段需要和 MES 业务确认，可能是完工时间、过站时间或更新时间。
+    result_cardinality: 1
+    outcomes:
+      single:
+        means: 产品批号
+        action: 可能为产品批号也有可能为N/A
+      error:
+        means: 数据库异常或查询超时。
+        action: 提示“系统繁忙，请稍后重试”，记录日志。
+        severity: error
+    tables:
+      - name: fw_wip_trans
+        type: table
+        usage: 查询焊丝信息
+    interface:
+      function_name: getLatestProductLotByEqp
+      params:
+        - name: eqp_no
+          type: string
+      returns: lot (string)（最近产品批号；查不到时返回 'N/A'，不会为 null）
+    sample_result:
+      - lot: 123
+    meta:
+      last_updated: 2026-06-01
+      author: ZhengyuShao
+  - id: mes.wire_usage.check_quota
+    title: 查询 MES 焊线用量并核对差值
+    system: MES
+    operation: read
+    dialect: oracle
+    risk_level: medium
+    status: draft
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: queryWireQuotaCheck
+        node_text: 查询MES数据库焊线用量
+    purpose: 调用 MES 存储函数 Get_Mat_QuotaCheck 进行焊线用量配额核对，返回核对结果码，供业务判断是否允许提交焊丝退还请求。
+    inputs:
+      - name: V_STEP
+        type: string
+        required: true
+        source: 工序/步骤（如 焊线）
+      - name: V_MatLot
+        type: string
+        required: true
+        source: 物料批号（焊丝批号）
+      - name: V_thzl
+        type: string
+        required: true
+        source: 退还重量
+      - name: V_thph
+        type: string
+        required: true
+        source: 退还批号
+      - name: V_sycl
+        type: integer
+        required: true
+        source: 剩余待焊芯片数量
+      - name: V_eqp
+        type: string
+        required: true
+        source: 机台号
+    outputs:
+      - name: result
+        type: integer
+        meaning: 真实用量与预计用量的差值（恒 >= 0），由存储函数 Get_Mat_QuotaCheck 计算返回
+    sql: |
+      DECLARE
+        v_result NUMBER;
+      BEGIN
+        v_result := Get_Mat_QuotaCheck(
+          :V_STEP, :V_MatLot, :V_thzl,
+          :V_thph, :V_sycl, :V_eqp
+        );
+        :result := v_result;
+      END;
+    result_cardinality: 1
+    outcomes:
+      single:
+        means: 取得真实用量与预计用量的差值 result。
+        action: 按 business_rule 比较 result 与阈值，决定是否允许提交焊丝退还请求。
+      error:
+        means: 数据库异常、存储函数报错或查询超时。
+        action: 提示“系统繁忙，请稍后重试”，记录日志。
+        severity: error
+    business_rule: |
+      result 为真实用量与预计用量的差值（integer，恒 >= 0）。
+      result < 500 时允许继续提交焊丝退还请求；result >= 500 说明用量偏差过大，禁止放行，转人工处理。
+      差值由存储函数 Get_Mat_QuotaCheck 计算返回，应用侧只负责与阈值 500 比较。
+    tables:
+      - name: Get_Mat_QuotaCheck
+        type: function
+        usage: MES 焊线用量配额核对存储函数
+    interface:
+      function_name: checkMatQuota
+      params:
+        - name: V_STEP
+          type: string
+        - name: V_MatLot
+          type: string
+        - name: V_thzl
+          type: string
+        - name: V_thph
+          type: string
+        - name: V_sycl
+          type: string
+        - name: V_eqp
+          type: string
+      returns: result (integer) — 真实用量与预计用量的差值（恒 >= 0）
+    notes: |
+      - 这是调用 Oracle 存储函数的 PL/SQL 匿名块，:result 为输出（OUT）绑定变量，需在应用层注册为输出参数。
+      - 入参 V_thzl / V_thph / V_sycl 的业务含义待与 MES 确认后补全各自的 meaning。
+      - result 是 integer（用量差值），不是枚举，无需登记到 mes-schema.yaml 的 enums。
+  - id: mes.mat_trans.submit_return
+    title: 提交退料（调用存储函数 FUN_MAT_TRANS_NEW）
+    system: MES
+    operation: write
+    dialect: oracle
+    risk_level: high
+    status: draft
+    datasource: mes.oracle.main
+    flow_refs:
+      - flow_id: op_return_old_wire_take_new_wire
+        file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+        node_id: TODO_确认提交退料节点ID
+        node_text: 提交退料
+    purpose: 调用 MES 存储函数 FWMES.FUN_MAT_TRANS_NEW 提交退料事务，写入退料记录并返回执行结果。
+    inputs:
+      - name: V_Step
+        type: string
+        required: true
+        source: 工序/步骤（待确认）
+      - name: v_Task
+        type: string
+        required: true
+        source: 任务类型，如 退料/完工（待确认）
+      - name: v_Eqp
+        type: string
+        required: true
+        source: 机台号（待确认）
+      - name: v_Code
+        type: string
+        required: true
+        source: 物料编码（待确认）
+      - name: v_Matlot
+        type: string
+        required: true
+        source: 物料批号（待确认）
+      - name: v_MatFromLot
+        type: string
+        required: true
+        source: 来源物料批号（待确认）
+      - name: v_Qty
+        type: integer
+        required: true
+        source: 数量（待确认：是否可能为小数）
+      - name: v_Count
+        type: integer
+        required: true
+        source: 件数/计数（待确认）
+      - name: v_PrdLot
+        type: string
+        required: true
+        source: 产品批号（待确认）
+      - name: v_PrdQty
+        type: integer
+        required: true
+        source: 产品数量（待确认）
+      - name: V_ShelfLife
+        type: datetime
+        required: true
+        source: 保质期；SQL 中用 TO_DATE(:V_ShelfLife,'YYYY-MM-DD HH24:MI:SS') 转换，应用层须按此格式传字符串（待确认）
+      - name: V_Opr
+        type: string
+        required: true
+        source: 操作员（待确认）
+      - name: V_Remark
+        type: string
+        required: false
+        source: 备注（待确认）
+      - name: V_Workgroup
+        type: string
+        required: true
+        source: 班组（待确认）
+      - name: V_Shift
+        type: string
+        required: true
+        source: 班次（待确认）
+      - name: v_Writer
+        type: string
+        required: true
+        source: 记录人/登记人（待确认）
+      - name: V_SESSION
+        type: string
+        required: true
+        source: 会话标识（待确认）
+    outputs:
+      - name: result
+        type: string
+        meaning: FUN_MAT_TRANS_NEW 返回的执行结果（VARCHAR2，最长 4000；具体是成功标志、消息文本还是新单号待确认）
+    sql: |
+      DECLARE
+        v_result VARCHAR2(4000);
+      BEGIN
+        v_result := FWMES.FUN_MAT_TRANS_NEW(
+          :V_Step, :v_Task, :v_Eqp, :v_Code,
+          :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
+          :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
+          :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
+        );
+        :result := v_result;
+      END;
+    result_cardinality: 1
+    outcomes:
+      single:
+        means: 取得存储函数返回的执行结果 result。
+        action: 按 result 判断退料是否成功（成功判定口径待确认），成功则提交事务，失败则回滚并提示。
+      error:
+        means: 数据库异常、存储函数报错或事务失败。
+        action: 回滚事务，提示“提交退料失败，请重试或联系管理员”，记录日志。
+        severity: error
+    transaction:
+      required: true
+      idempotent: false
+      affected_rows: 待确认
+      rollback_on: 存储函数返回失败或抛出异常
+    business_rule: |
+      result 的成功/失败判定口径待与 MES 确认（例如返回 'OK'/'1' 视为成功，其余为失败消息）。
+    tables:
+      - name: FWMES.FUN_MAT_TRANS_NEW
+        type: function
+        usage: MES 退料事务提交存储函数
+    interface:
+      function_name: submitMatReturn
+      params:
+        - name: V_Step
+          type: string
+        - name: v_Task
+          type: string
+        - name: v_Eqp
+          type: string
+        - name: v_Code
+          type: string
+        - name: v_Matlot
+          type: string
+        - name: v_MatFromLot
+          type: string
+        - name: v_Qty
+          type: integer
+        - name: v_Count
+          type: integer
+        - name: v_PrdLot
+          type: string
+        - name: v_PrdQty
+          type: integer
+        - name: V_ShelfLife
+          type: datetime
+        - name: V_Opr
+          type: string
+        - name: V_Remark
+          type: string
+        - name: V_Workgroup
+          type: string
+        - name: V_Shift
+          type: string
+        - name: v_Writer
+          type: string
+        - name: V_SESSION
+          type: string
+      returns: result (string) — 存储函数执行结果（含义待确认）
+    notes: |
+      - 写操作：调用存储函数的 PL/SQL 匿名块，:result 为输出（OUT）绑定变量（VARCHAR2(4000)）。
+      - V_ShelfLife 在 SQL 内用 TO_DATE 转换，应用层须传 'YYYY-MM-DD HH24:MI:SS' 格式的字符串。
+      - 多数入参 meaning、result 含义、成功判定口径、事务字段均为推测，待与 MES 确认后修订。

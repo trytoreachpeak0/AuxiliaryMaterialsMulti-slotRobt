@@ -1,0 +1,26 @@
+# 表结构与数据字典（拆分目录）
+
+## 目录结构
+
+| 路径 | 内容 |
+|------|------|
+| [index.yaml](index.yaml) | 版本与索引 |
+| [datasources.yaml](datasources.yaml) | 数据源列表 |
+| [tables/](tables/) | 每张表/视图一个文件 |
+| [enums/](enums/) | 每个枚举字段一个文件 |
+
+## 当前表
+
+| 文件 | 对象 |
+|------|------|
+| [tables/mv_fw_username.yaml](tables/mv_fw_username.yaml) | 操作员视图 |
+| [tables/v_fw_material_indetail.yaml](tables/v_fw_material_indetail.yaml) | 物料批号明细 |
+| [tables/fw_eqpres_eqpinformation.yaml](tables/fw_eqpres_eqpinformation.yaml) | 机台信息 |
+
+## 枚举
+
+| 文件 | 字段 |
+|------|------|
+| [enums/state.yaml](enums/state.yaml) | `v_fw_material_indetail.state` |
+
+维护与合并方式同 [mes-sql-catalog/README.md](../mes-sql-catalog/README.md)。

@@ -1,0 +1,16 @@
+version: 1
+owner: MES/业务系统接口
+description: 焊丝发放相关 MES 访问 SQL 清单，供 AI、开发和测试理解业务查询含义。
+sql_items_index:
+  - id: mes.operator.get_by_id
+    path: items/mes.operator.get_by_id.yaml
+  - id: mes.wire_lot.get_by_lot_no
+    path: items/mes.wire_lot.get_by_lot_no.yaml
+  - id: mes.eqp.get_by_wire_bonding_eqp_no
+    path: items/mes.eqp.get_by_wire_bonding_eqp_no.yaml
+  - id: mes.product.get_latest_product_lot_by_eqp
+    path: items/mes.product.get_latest_product_lot_by_eqp.yaml
+  - id: mes.wire_usage.check_quota
+    path: items/mes.wire_usage.check_quota.yaml
+  - id: mes.mat_trans.submit_return
+    path: items/mes.mat_trans.submit_return.yaml

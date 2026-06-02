@@ -1,0 +1,51 @@
+name: v_fw_material_indetail
+datasource: mes.oracle.main
+type: view
+comment: 物料批号与物料数据映射
+columns:
+  - name: sublot
+    type: VARCHAR2
+    length: 45
+    nullable: false
+    is_key: true
+    comment: 物料子批号
+  - name: spec
+    type: VARCHAR2
+    length: 100
+    nullable: true
+    is_key: false
+    comment: 物料规格
+  - name: type
+    type: VARCHAR2
+    length: 50
+    nullable: true
+    is_key: false
+    comment: 物料类型
+  - name: code
+    type: VARCHAR2
+    length: 50
+    nullable: true
+    is_key: false
+    comment: 物料类型
+  - name: shelflife
+    type: DATE
+    nullable: true
+    is_key: false
+    comment: 保质期
+  - name: matlot
+    type: VARCHAR2
+    length: 45
+    nullable: true
+    is_key: true
+    comment: 物料主批号
+  - name: qty
+    type: NUMBER
+    nullable: false
+    is_key: false
+    comment: 物料数量
+  - name: state
+    type: VARCHAR2
+    length: 45
+    nullable: true
+    is_key: false
+    comment: 物料状态

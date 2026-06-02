@@ -1,0 +1,18 @@
+name: mv_fw_username
+datasource: mes.oracle.main
+type: view
+comment: 操作员工号与姓名映射
+columns:
+  - name: usercode
+    type: VARCHAR2
+    length: 50
+    nullable: true
+    is_key: true
+    comment: 操作人员工号
+  - name: username
+    type: VARCHAR2
+    length: 200
+    nullable: true
+    is_key: false
+    comment: 操作人员姓名
+notes: 需与 MES 确认 usercode 是否唯一；若底层多表 JOIN，可能出现同工号多行。

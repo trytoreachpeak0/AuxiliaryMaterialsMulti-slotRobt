@@ -1,0 +1,17 @@
+name: fw_eqpres_eqpinformation
+datasource: mes.oracle.main
+type: table
+comment: 查询机台信息
+columns:
+  - name: eqpno
+    type: VARCHAR2
+    length: 30 Byte
+    nullable: false
+    is_key: true
+    comment: 机台号
+  - name: step
+    type: VARCHAR2
+    length: 20 Byte
+    nullable: false
+    is_key: false
+    comment: 所处工艺的步骤

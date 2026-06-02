@@ -1,0 +1,56 @@
+id: mes.eqp.get_by_wire_bonding_eqp_no
+title: 查询 MES 焊线机台
+system: MES
+operation: read
+dialect: oracle
+risk_level: low
+status: verified
+datasource: mes.oracle.main
+flow_refs:
+  - flow_id: op_return_old_wire_take_new_wire
+    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
+    node_id: queryMachineNo
+    node_text: 查询MES数据库该机台号
+purpose: 校验 OP 输入的焊线机台号是否存在，作为后续查询最近工单批次号的前置条件。
+inputs:
+  - name: eqp_no
+    type: string
+    required: true
+    source: OP输入焊线机台号
+    example: 1QH029
+sql: |
+  SELECT * 
+  FROM fw_eqpres_eqpinformation 
+  WHERE eqpno=:eqp_no 
+    and step='焊线'
+result_cardinality: 0..1
+outcomes:
+  empty:
+    means: MES 中不存在该焊线机台号
+    action: 提示“不存在该焊线机台号”，返回重新输入焊线机台号。
+  single:
+    means: 命中唯一焊线机台号。
+    action: 说明机台存在，继续流程
+  multiple:
+    means: 同一焊线机台号查到多条记录，属于数据异常。
+    action: 提示“该焊线机台号存在多条记录，请联系管理员”，禁止放行。
+    severity: error
+  error:
+    means: 数据库异常或查询超时。
+    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    severity: error
+tables:
+  - name: fw_eqpres_eqpinformation
+    type: table
+    usage: 查询焊丝信息
+interface:
+  function_name: existsWireBondingEqp
+  params:
+    - name: eqp_no
+      type: string
+  returns: boolean（查到有效行返回 true，否则 false）
+meta:
+  last_updated: 2026-06-01
+  author: ZhengyuShao
+notes: |
+  - 只查询，不考虑返回列，只要返回存在有效行即可

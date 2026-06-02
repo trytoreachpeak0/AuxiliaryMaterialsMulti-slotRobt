@@ -1,0 +1,13 @@
+version: 1
+description: 焊丝发放相关表/视图结构与数据字典。
+datasources_path: datasources.yaml
+tables_index:
+  - name: mv_fw_username
+    path: tables/mv_fw_username.yaml
+  - name: v_fw_material_indetail
+    path: tables/v_fw_material_indetail.yaml
+  - name: fw_eqpres_eqpinformation
+    path: tables/fw_eqpres_eqpinformation.yaml
+enums_index:
+  - field: state
+    path: enums/state.yaml

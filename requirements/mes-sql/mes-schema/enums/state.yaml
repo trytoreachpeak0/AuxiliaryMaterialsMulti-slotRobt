@@ -1,0 +1,11 @@
+field: state
+applies_to:
+  - v_fw_material_indetail.state
+db_type: VARCHAR2(45)
+values:
+  - value: 上机
+  - value: 关闭
+  - value: 归还
+  - value: 冷藏
+  - value: 报废
+  - value: 可用

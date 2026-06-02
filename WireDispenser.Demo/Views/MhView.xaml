@@ -1,0 +1,417 @@
+<UserControl x:Class="WireDispenser.Demo.Views.MhView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource UiFont}">
+
+    <UserControl.Resources>
+        <!-- 紧凑卡片 -->
+        <Style x:Key="TightCard" TargetType="Border" BasedOn="{StaticResource CardPanel}">
+            <Setter Property="Padding" Value="12,10"/>
+        </Style>
+
+        <!-- 格口编号字号 -->
+        <Style x:Key="SlotNoText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="26"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SlotTypeText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+        <Style x:Key="SlotStatusText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ============ 左侧：操作面板 ============ -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 存放焊丝 -->
+            <Border Grid.Row="0" Style="{StaticResource TightCard}">
+                <StackPanel>
+                    <TextBlock Text="存放焊丝" Style="{StaticResource SectionTitle}"/>
+                    <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="焊丝批号（扫码 / 手动）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <TextBox Style="{StaticResource IndustrialTextBox}" Text="WB-2026-05-28-009"/>
+
+                    <Border Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1" Padding="10,6" Margin="0,8,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="类型：" Style="{StaticResource LabelText}" Width="58"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="分配：" Style="{StaticResource LabelText}" Width="58"/>
+                                <TextBlock Text="B02（空闲）" Style="{StaticResource ValueText}" Foreground="{StaticResource SuccessBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="打开格口 B02 并存放" Style="{StaticResource PrimaryButton}" Margin="0,10,0,0" Height="46"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 仓门批量控制 -->
+            <Border Grid.Row="2" Style="{StaticResource TightCard}">
+                <StackPanel>
+                    <TextBlock Text="仓门批量控制" Style="{StaticResource SectionTitle}"/>
+                    <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,0,0,10"/>
+
+                    <Button Content="打开所有有料仓门" Style="{StaticResource PrimaryButton}" Height="46" Margin="0,0,0,6"/>
+                    <Button Content="打开所有废料仓门" Style="{StaticResource WarningButton}" Height="46" Margin="0,0,0,6"/>
+                    <Button Content="打开所有仓门" Style="{StaticResource SecondaryButton}" Height="46" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="打开指定仓门" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Style="{StaticResource IndustrialTextBox}" Text="A03"/>
+                        <Button Grid.Column="1" Content="打开" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Width="84"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 柜体状态 + 图例 合并 -->
+            <Border Grid.Row="4" Style="{StaticResource TightCard}">
+                <StackPanel>
+                    <TextBlock Text="柜体状态 / 图例" Style="{StaticResource SectionTitle}"/>
+                    <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,0,0,10"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="总数" Style="{StaticResource LabelText}" Width="44"/>
+                            <TextBlock Text="30" Style="{StaticResource ValueText}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="空闲" Style="{StaticResource LabelText}" Width="44"/>
+                            <TextBlock Text="13" Style="{StaticResource ValueText}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="有料" Style="{StaticResource LabelText}" Width="44"/>
+                            <TextBlock Text="14" Style="{StaticResource ValueText}" Foreground="{StaticResource SuccessBrush}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Text="退回" Style="{StaticResource LabelText}" Width="44"/>
+                            <TextBlock Text="3" Style="{StaticResource ValueText}" Foreground="{StaticResource DangerBrush}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,10"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,6">
+                            <Border Width="16" Height="16" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" VerticalAlignment="Center"/>
+                            <TextBlock Text="空闲" Style="{StaticResource LabelText}" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,6">
+                            <Border Width="16" Height="16" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1" VerticalAlignment="Center"/>
+                            <TextBlock Text="有料" Style="{StaticResource LabelText}" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                            <Border Width="16" Height="16" Background="{StaticResource SlotReturnedBrush}" BorderBrush="{StaticResource SlotReturnedBorderBrush}" BorderThickness="1" VerticalAlignment="Center"/>
+                            <TextBlock Text="退回" Style="{StaticResource LabelText}" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Border Width="16" Height="16" Background="{StaticResource SlotOpenBrush}" BorderBrush="{StaticResource SlotOpenBorderBrush}" BorderThickness="1" VerticalAlignment="Center"/>
+                            <TextBlock Text="已打开" Style="{StaticResource LabelText}" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ============ 右侧：格口状态网格 ============ -->
+        <Border Grid.Column="2" Style="{StaticResource TightCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <TextBlock Text="发货柜格口状态" Style="{StaticResource SectionTitle}" HorizontalAlignment="Left"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="刷新时间：14:30:12" Style="{StaticResource LabelText}" Margin="0,0,10,0"/>
+                        <Button Content="刷新" Style="{StaticResource SecondaryButton}" Padding="14,6" MinHeight="0" Height="36"/>
+                    </StackPanel>
+                </Grid>
+
+                <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource DividerBrush}" Margin="0,0,0,8"/>
+
+                <!-- 5x6 格口网格 -->
+                <Viewbox Grid.Row="2" Stretch="Uniform">
+                    <UniformGrid Columns="5" Rows="6" Width="660" Height="510">
+                        <!-- A01 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="A01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- A02 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="A02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- A03 (open) -->
+                        <Border Margin="5" Background="{StaticResource SlotOpenBrush}" BorderBrush="{StaticResource SlotOpenBorderBrush}" BorderThickness="2.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="A03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="● 仓门已开" Style="{StaticResource SlotStatusText}" FontWeight="Bold" Foreground="{StaticResource SlotOpenBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- A04 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="A04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Au-30um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- A05 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="A05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- B01 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="B01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- B02 (待存放高亮) -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="B02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Text="待存放" Style="{StaticResource SlotStatusText}" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- B03 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="B03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Cu-32um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- B04 -->
+                        <Border Margin="5" Background="{StaticResource SlotReturnedBrush}" BorderBrush="{StaticResource SlotReturnedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="B04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="退回" Style="{StaticResource SlotStatusText}" FontWeight="Bold" Foreground="{StaticResource SlotReturnedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- B05 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="B05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- C01 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="C01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Au-30um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- C02 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="C02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- C03 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="C03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- C04 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="C04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Cu-32um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- C05 -->
+                        <Border Margin="5" Background="{StaticResource SlotReturnedBrush}" BorderBrush="{StaticResource SlotReturnedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="C05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Au-30um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="退回" Style="{StaticResource SlotStatusText}" FontWeight="Bold" Foreground="{StaticResource SlotReturnedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- D01 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="D01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- D02 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="D02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- D03 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="D03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- D04 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="D04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Au-30um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- D05 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="D05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- E01 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="E01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- E02 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="E02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- E03 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="E03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Cu-32um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- E04 -->
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="E04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="空闲" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- E05 -->
+                        <Border Margin="5" Background="{StaticResource SlotLoadedBrush}" BorderBrush="{StaticResource SlotLoadedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="E05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Au-30um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="待发放" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource SlotLoadedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- R01 ~ R05 回收专用区 -->
+                        <Border Margin="5" Background="{StaticResource SlotReturnedBrush}" BorderBrush="{StaticResource SlotReturnedBorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="R01" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock Text="AlSi-25um" Style="{StaticResource SlotTypeText}"/>
+                                <TextBlock Text="退回" Style="{StaticResource SlotStatusText}" FontWeight="Bold" Foreground="{StaticResource SlotReturnedBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="R02" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="回收预留" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="R03" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="回收预留" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="R04" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="回收预留" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="5" Background="{StaticResource SlotEmptyBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1.5">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="R05" Style="{StaticResource SlotNoText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="回收预留" Style="{StaticResource SlotStatusText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </Viewbox>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

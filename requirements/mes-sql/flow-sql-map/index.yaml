@@ -1,0 +1,6 @@
+version: 1
+flows_index:
+  - flow_id: op_return_old_wire_take_new_wire
+    path: flows/op_return_old_wire_take_new_wire.yaml
+  - flow_id: mh_store_wire
+    path: flows/mh_store_wire.yaml
