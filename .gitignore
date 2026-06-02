@@ -1,0 +1,56 @@
+# ============================================================
+# .NET / Visual Studio
+# ============================================================
+
+# 编译输出
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 临时/缓存文件
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+
+# 构建结果与中间产物
+*.dll
+*.exe
+*.pdb
+*.cache
+*.baml
+*.g.cs
+*.g.i.cs
+*.AssemblyInfo.cs
+*.assets.cache
+*.nuget.cache
+*.nuget.g.props
+*.nuget.g.targets
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# 测试/覆盖率
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+
+# 其它常见临时文件
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+.DS_Store

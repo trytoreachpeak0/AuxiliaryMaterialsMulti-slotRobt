@@ -78,7 +78,7 @@
                     <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,0,0,10"/>
 
                     <Button Content="打开所有有料仓门" Style="{StaticResource PrimaryButton}" Height="46" Margin="0,0,0,6"/>
-                    <Button Content="打开所有废料仓门" Style="{StaticResource WarningButton}" Height="46" Margin="0,0,0,6"/>
+                    <Button Content="打开所有归还焊丝仓门" Style="{StaticResource WarningButton}" Height="46" Margin="0,0,0,6"/>
                     <Button Content="打开所有仓门" Style="{StaticResource SecondaryButton}" Height="46" Margin="0,0,0,10"/>
 
                     <TextBlock Text="打开指定仓门" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>

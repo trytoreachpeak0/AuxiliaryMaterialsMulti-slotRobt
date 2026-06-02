@@ -42,7 +42,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="52"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="24"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
         <!-- 顶部标题栏 + 角色切换 -->
@@ -51,7 +51,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
@@ -72,14 +71,7 @@
                                  Checked="RbMh_Checked"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0">
-                    <TextBlock Text="设备" Foreground="#FF8FA3B5" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <Ellipse Width="9" Height="9" Fill="#FF35D17F" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBlock Text="在线" Foreground="White" FontSize="14" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <TextBlock Text="2026-05-28 14:30:00" Foreground="#FFB6C2CF" FontSize="14" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Content="—" Style="{StaticResource HeaderIconButton}" Click="MinimizeBtn_Click"/>
                     <Button Content="×" Style="{StaticResource HeaderIconButton}" Click="CloseBtn_Click" FontSize="22"/>
                 </StackPanel>
@@ -92,12 +84,27 @@
         <!-- 底部状态栏 -->
         <Border Grid.Row="2" Background="#FFE6E9ED" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0">
-                <TextBlock x:Name="StatusText" Text="就绪" FontSize="12"
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左：当前角色 / 操作状态提示 -->
+                <TextBlock Grid.Column="0" x:Name="StatusText" Text="就绪" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBlock Text="© 焊丝发放系统 v0.1 演示 · 1024×768 工业一体机" FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                <!-- 右：设备在线状态 + 时间 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="设备" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <Ellipse Width="9" Height="9" Fill="#FF35D17F" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="在线" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center" Margin="0,0,14,0"/>
+                    <Rectangle Width="1" Height="14" Fill="{StaticResource BorderBrush}" Margin="0,0,14,0"/>
+                    <TextBlock Text="2026-05-28 14:30:00" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

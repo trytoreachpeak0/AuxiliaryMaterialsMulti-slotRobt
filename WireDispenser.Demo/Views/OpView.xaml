@@ -135,8 +135,8 @@
                                 <TextBlock Text="AlSi-25um (铝硅25微米)" Style="{StaticResource ValueText}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="发货柜匹配：" Style="{StaticResource LabelText}" Width="92"/>
-                                <TextBlock Text="2 个（A03, A07）" Style="{StaticResource ValueText}" Foreground="{StaticResource SuccessBrush}"/>
+                                <TextBlock Text="匹配可用焊丝：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock Text="同规格 2 个（A03, A07）" Style="{StaticResource ValueText}" Foreground="{StaticResource SuccessBrush}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="归还重量：" Style="{StaticResource LabelText}" Width="92"/>
@@ -182,11 +182,11 @@
                                 <TextBlock Text="LOT-2026-0528-0007" Style="{StaticResource ValueText}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="发货格口：" Style="{StaticResource LabelText}" Width="98"/>
+                                <TextBlock Text="领用格口：" Style="{StaticResource LabelText}" Width="98"/>
                                 <TextBlock Text="A03（首选）" Style="{StaticResource ValueText}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="回收格口：" Style="{StaticResource LabelText}" Width="98"/>
+                                <TextBlock Text="归还格口：" Style="{StaticResource LabelText}" Width="98"/>
                                 <TextBlock Text="R05（系统预留）" Style="{StaticResource ValueText}"/>
                             </StackPanel>
                         </StackPanel>
@@ -236,50 +236,75 @@
             </Grid>
         </Border>
 
-        <!-- ============ Row 6: 提示 + 提交 ============ -->
-        <Border Grid.Row="6" Style="{StaticResource CardPanel}" Padding="14,10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <!-- ============ Row 6: 二、归还焊丝(存入) | 三、领用焊丝(取出) ============ -->
+        <Grid Grid.Row="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <!-- 提示一行 inline 标签 -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                    <Border Background="#FFEEF8F0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1" Padding="8,4" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="操作员校验通过：张三 / A组 / 白班" Style="{StaticResource HintText}" Foreground="{StaticResource TextPrimaryBrush}" Margin="6,0,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Background="#FFEEF8F0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1" Padding="8,4" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="发货柜匹配 A03 / A07" Style="{StaticResource HintText}" Foreground="{StaticResource TextPrimaryBrush}" Margin="6,0,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Background="#FFFFF7E5" BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" Padding="8,4">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Fill="{StaticResource WarningBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="用量差值 &gt; 500 颗需重新核对剩余数量" Style="{StaticResource HintText}" Foreground="{StaticResource TextPrimaryBrush}" Margin="6,0,0,0"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <!-- 提交按钮行 -->
-                <Grid Grid.Row="1">
+            <!-- 二、归还焊丝：提交归还 → 打开归还格口 → 存入并关门 -->
+            <Border Grid.Column="0" Style="{StaticResource CardPanel}" Padding="14,10">
+                <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="14"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="提交后，发货柜将自动打开匹配格口，请按提示放入旧焊丝、取出新焊丝。"
-                               Style="{StaticResource HintText}" VerticalAlignment="Center"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="重置" Style="{StaticResource SecondaryButton}" Width="110" Margin="0,0,10,0"/>
-                        <Button Content="提交退 / 取焊丝" Style="{StaticResource PrimaryButton}" Width="180"/>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="5" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="存入归还焊丝" Style="{StaticResource StepTitleText}"/>
                     </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="归还格口：" Style="{StaticResource LabelText}" Width="74"/>
+                            <TextBlock Text="R05" Style="{StaticResource ValueText}"/>
+                        </StackPanel>
+                        <TextBlock Text="发货柜将打开归还格口，请放入归还焊丝并关闭格口门。" Style="{StaticResource HintText}"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="4" Content="提交归还焊丝" Style="{StaticResource PrimaryButton}"
+                            Width="150" VerticalAlignment="Center"/>
                 </Grid>
-            </Grid>
-        </Border>
+            </Border>
+
+            <!-- 三、领用焊丝：提交领用 → 打开领用格口 → 取出并关门 -->
+            <Border Grid.Column="2" Style="{StaticResource CardPanel}" Padding="14,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="6" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="取出可用焊丝" Style="{StaticResource StepTitleText}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="领用格口：" Style="{StaticResource LabelText}" Width="74"/>
+                            <TextBlock Text="A03" Style="{StaticResource ValueText}"/>
+                        </StackPanel>
+                        <TextBlock Text="发货柜将打开领用格口，请取出可用焊丝并关闭格口门。" Style="{StaticResource HintText}"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="4" Content="提交领用焊丝" Style="{StaticResource PrimaryButton}"
+                            Width="150" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
