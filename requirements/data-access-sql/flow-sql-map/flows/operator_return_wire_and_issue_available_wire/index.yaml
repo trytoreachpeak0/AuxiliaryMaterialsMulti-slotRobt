@@ -1,0 +1,61 @@
+flow_id: operator_return_wire_and_issue_available_wire
+title: 操作员存入归还焊丝并取出可用焊丝
+file: requirements/flows/diagrams/操作员存入归还焊丝取出可用焊丝.md
+description: 操作员先归还旧焊丝，再从发货柜取出匹配规格的可用焊丝。
+nodes_dir: nodes
+node_order:
+  - inputOperatorWorkInfo
+  - queryOPById
+  - checkOPIdExists
+  - inputReturnedWireLotNo
+  - queryWireSpecByLotNo
+  - checkWireLotNoExists
+  - checkWireSpecExists
+  - queryMatchedAvailableWire
+  - checkMatchedWireExists
+  - queryWireReturnedWeightBySpec
+  - checkReturnedWeightExists
+  - inputEqpNo
+  - queryEqpByEqpNo
+  - checkEqpNoExists
+  - queryLastProductLotNo
+  - checkLastProductLotNoExists
+  - inputRemainingQty
+  - queryWireQuotaCheck
+  - checkWireQuotaLE500
+  - submitWireReturn
+  - checkSubmitWireReturnSuccess
+  - queryWireByLotNo
+  - checkWireInfoExists
+  - queryProductByLotNo
+  - checkProductInfoExists
+  - submitWireIssue
+  - checkSubmitWireIssueSuccess
+node_files:
+  inputOperatorWorkInfo: nodes/inputOperatorWorkInfo.yaml
+  queryOPById: nodes/queryOPById.yaml
+  checkOPIdExists: nodes/checkOPIdExists.yaml
+  inputReturnedWireLotNo: nodes/inputReturnedWireLotNo.yaml
+  queryWireSpecByLotNo: nodes/queryWireSpecByLotNo.yaml
+  checkWireLotNoExists: nodes/checkWireLotNoExists.yaml
+  checkWireSpecExists: nodes/checkWireSpecExists.yaml
+  queryMatchedAvailableWire: nodes/queryMatchedAvailableWire.yaml
+  checkMatchedWireExists: nodes/checkMatchedWireExists.yaml
+  queryWireReturnedWeightBySpec: nodes/queryWireReturnedWeightBySpec.yaml
+  checkReturnedWeightExists: nodes/checkReturnedWeightExists.yaml
+  inputEqpNo: nodes/inputEqpNo.yaml
+  queryEqpByEqpNo: nodes/queryEqpByEqpNo.yaml
+  checkEqpNoExists: nodes/checkEqpNoExists.yaml
+  queryLastProductLotNo: nodes/queryLastProductLotNo.yaml
+  checkLastProductLotNoExists: nodes/checkLastProductLotNoExists.yaml
+  inputRemainingQty: nodes/inputRemainingQty.yaml
+  queryWireQuotaCheck: nodes/queryWireQuotaCheck.yaml
+  checkWireQuotaLE500: nodes/checkWireQuotaLE500.yaml
+  submitWireReturn: nodes/submitWireReturn.yaml
+  checkSubmitWireReturnSuccess: nodes/checkSubmitWireReturnSuccess.yaml
+  queryWireByLotNo: nodes/queryWireByLotNo.yaml
+  checkWireInfoExists: nodes/checkWireInfoExists.yaml
+  queryProductByLotNo: nodes/queryProductByLotNo.yaml
+  checkProductInfoExists: nodes/checkProductInfoExists.yaml
+  submitWireIssue: nodes/submitWireIssue.yaml
+  checkSubmitWireIssueSuccess: nodes/checkSubmitWireIssueSuccess.yaml

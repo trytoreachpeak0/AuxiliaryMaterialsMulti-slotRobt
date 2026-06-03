@@ -1,0 +1,17 @@
+id: app.returned_weight.get_by_spec
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: 按焊丝规格查询配置的归还重量（queryWireReturnedWeightBySpec），无配置则走人工归还分支。
+sql: |
+  SELECT return_weight
+  FROM app_returned_weight
+  WHERE wire_spec = :returned_wire_spec;
+params:
+  - name: returned_wire_spec
+    source: queryWireSpecByLotNo.spec
+outputs:
+  - return_weight
+result_cardinality: 0..1
+sample_result:
+  - return_weight: 120.5

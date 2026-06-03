@@ -1,0 +1,33 @@
+version: 1
+dialect: sqlite
+description: 焊丝发放流程验证（SQLite）表结构。app_* 为应用数据库表；其余为 MES mock 表（镜像 Oracle）。
+tables_index:
+  # 应用数据库
+  - name: app_slot
+    path: tables/app_slot.yaml
+  - name: app_returned_weight
+    path: tables/app_returned_weight.yaml
+  - name: app_operation_log
+    path: tables/app_operation_log.yaml
+  # MES mock
+  - name: mv_fw_username
+    path: tables/mv_fw_username.yaml
+  - name: v_fw_material_indetail
+    path: tables/v_fw_material_indetail.yaml
+  - name: fw_eqpres_eqpinformation
+    path: tables/fw_eqpres_eqpinformation.yaml
+  - name: fw_wip_trans
+    path: tables/fw_wip_trans.yaml
+  - name: v_fw_wip_sublot
+    path: tables/v_fw_wip_sublot.yaml
+  - name: mes_mock_function_result
+    path: tables/mes_mock_function_result.yaml
+enums_index:
+  - field: usage_type
+    path: enums/usage_type.yaml
+  - field: biz_state
+    path: enums/biz_state.yaml
+  - field: door_state
+    path: enums/door_state.yaml
+  - field: state
+    path: enums/state.yaml

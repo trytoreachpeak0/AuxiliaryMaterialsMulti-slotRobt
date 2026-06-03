@@ -1,0 +1,71 @@
+flow_id: material_handler_open_single_slot
+title: 物料员打开单个格口
+diagram: requirements/flows/diagrams/物料员打开单个格口.md
+start: inputSelectedSlot
+node_order:
+  - inputSelectedSlot
+  - openSingleSlot
+  - updateCorrespondingSlot
+  - isAllSlotDoorsClosed
+  - closeSingleSlotDoor
+  - updateSlot
+
+nodes:
+  inputSelectedSlot:
+    text: 物料员选择要打开的格口
+    type: user_input
+    outputs:
+      - { name: selected_slot_id, label: 格口ID, default: "1", numeric: true }
+    routing: { success: openSingleSlot }
+
+  openSingleSlot:
+    text: 打开单个格口
+    type: slot_open
+    data_source: app
+    sql_id: app.slot.open
+    slot_ref: inputSelectedSlot.selected_slot_id
+    inputs:
+      - { name: slot_id, from: node:inputSelectedSlot.selected_slot_id }
+    routing: { success: updateCorrespondingSlot, error: endFail }
+
+  updateCorrespondingSlot:
+    text: 更新对应格口为开门/解锁（待关闭）
+    type: write
+    data_source: app
+    sql_id: app.slot.update_state
+    outputs:
+      - { name: opened_slot_id, from: node:inputSelectedSlot.selected_slot_id }
+    inputs:
+      - { name: slot_id, from: node:inputSelectedSlot.selected_slot_id }
+      - { name: door_state, from: const:open }
+      - { name: lock_state, from: const:unlocked }
+      - { name: biz_state, from: const:"" }
+    routing: { success: isAllSlotDoorsClosed }
+
+  isAllSlotDoorsClosed:
+    text: 所有格口门是否已关闭
+    type: decision
+    data_source: app
+    sql_id: app.slot.are_all_doors_closed
+    check: { kind: all_doors_closed, ref: all_closed }
+    routing: { yes: endSuccess, no: closeSingleSlotDoor }
+
+  closeSingleSlotDoor:
+    text: 物料员关闭一个格口门
+    type: slot_close
+    routing: { success: updateSlot }
+
+  updateSlot:
+    text: 更新被关闭格口为关门/上锁
+    type: write
+    data_source: app
+    sql_id: app.slot.update_state
+    inputs:
+      - { name: slot_id, from: context:last_closed_slot_id }
+      - { name: door_state, from: const:closed }
+      - { name: lock_state, from: const:locked }
+      - { name: biz_state, from: const:"" }
+    routing: { success: isAllSlotDoorsClosed }
+
+  endSuccess: { text: 所有门已关闭，流程完成, type: terminal, terminal_kind: success }
+  endFail: { text: 开门失败, type: terminal, terminal_kind: fail }

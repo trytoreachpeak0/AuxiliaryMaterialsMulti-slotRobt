@@ -1,0 +1,61 @@
+flow_id: material_handler_open_all_available_wire_slots
+title: 物料员打开所有含可用焊丝的格口
+diagram: requirements/flows/diagrams/物料员打开所有含有可用焊丝的格口.md
+start: openAllAvailableWireSlots
+node_order:
+  - openAllAvailableWireSlots
+  - updateCorrespondingSlots
+  - isAllSlotDoorsClosed
+  - closeSingleSlotDoor
+  - updateSlot
+
+nodes:
+  openAllAvailableWireSlots:
+    text: 打开所有含可用焊丝的格口
+    type: slot_open_batch
+    data_source: app
+    sql_id: app.slot.list_by_filter
+    open_sql_id: app.slot.open
+    inputs:
+      - { name: filter, from: const:available_wire_slots }
+    routing: { success: updateCorrespondingSlots, error: endFail }
+
+  updateCorrespondingSlots:
+    text: 更新对应格口为开门/解锁
+    type: write
+    data_source: app
+    sql_id: app.slot.update_state
+    batch: open_slots
+    inputs:
+      - { name: door_state, from: const:open }
+      - { name: lock_state, from: const:unlocked }
+      - { name: biz_state, from: const:"" }
+    routing: { success: isAllSlotDoorsClosed }
+
+  isAllSlotDoorsClosed:
+    text: 所有格口门是否已关闭
+    type: decision
+    data_source: app
+    sql_id: app.slot.are_all_doors_closed
+    check: { kind: all_doors_closed, ref: all_closed }
+    routing: { yes: endSuccess, no: closeSingleSlotDoor }
+
+  closeSingleSlotDoor:
+    text: 物料员关闭一个格口门
+    type: slot_close
+    routing: { success: updateSlot }
+
+  updateSlot:
+    text: 更新被关闭格口为关门/上锁
+    type: write
+    data_source: app
+    sql_id: app.slot.update_state
+    inputs:
+      - { name: slot_id, from: context:last_closed_slot_id }
+      - { name: door_state, from: const:closed }
+      - { name: lock_state, from: const:locked }
+      - { name: biz_state, from: const:"" }
+    routing: { success: isAllSlotDoorsClosed }
+
+  endSuccess: { text: 所有门已关闭，流程完成, type: terminal, terminal_kind: success }
+  endFail: { text: 开门失败, type: terminal, terminal_kind: fail }

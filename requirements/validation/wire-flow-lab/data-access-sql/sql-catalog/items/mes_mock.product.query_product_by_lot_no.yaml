@@ -1,0 +1,30 @@
+id: mes_mock.product.query_product_by_lot_no
+mirrors: mes.product.query_product_by_lot_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: 按产品批号聚合查询数量与工序，供领用阶段写入事务。
+sql: |
+  SELECT SUM(qty) AS qty,
+         MAX(step) AS step
+  FROM v_fw_wip_sublot
+  WHERE lot = :productLot
+    AND state <> '关闭';
+oracle_sql: |
+  SELECT
+    SUM(qty) qty,
+    MAX(step) step
+  FROM v_fw_wip_sublot
+  WHERE lot = :productLot
+    AND state <> '关闭'
+params:
+  - name: productLot
+    source: queryLastProductLotNo.lot
+outputs:
+  - qty
+  - step
+business_rule: 聚合无匹配行时仍返回一行但 qty/step 为空，应用须判空（checkProductInfoExists）。
+result_cardinality: 1
+sample_result:
+  - qty: 5000
+    step: 焊线

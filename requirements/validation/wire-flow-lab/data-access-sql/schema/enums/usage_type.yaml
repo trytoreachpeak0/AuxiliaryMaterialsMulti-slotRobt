@@ -1,0 +1,7 @@
+field: usage_type
+applies_to: [app_slot.usage_type]
+db_type: TEXT
+values:
+  - { value: available, meaning: 用于存放可用焊丝 }
+  - { value: returned, meaning: 预留用于存放归还焊丝 }
+  - { value: shared, meaning: 可用/归还共用 }

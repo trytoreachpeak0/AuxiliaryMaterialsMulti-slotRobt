@@ -1,0 +1,41 @@
+version: 1
+owner: wire-flow-lab 验证工具
+dialect: sqlite
+description: >-
+  焊丝发放流程验证（SQLite）SQL 清单。app.* 为应用数据库真实执行的 SQL，补齐正式 flow-sql-map
+  中缺 SQL 的节点；mes_mock.* 为 MES 在 mock 模式下的 SQLite 等价 SQL（原生 Oracle 保留在 oracle_sql 字段）。
+sql_items_index:
+  # 应用数据库（真实 SQLite 执行）
+  - id: app.slot.find_available
+    path: items/app.slot.find_available.yaml
+  - id: app.wire_inventory.find_matched_available
+    path: items/app.wire_inventory.find_matched_available.yaml
+  - id: app.returned_weight.get_by_spec
+    path: items/app.returned_weight.get_by_spec.yaml
+  - id: app.slot.bind_wire
+    path: items/app.slot.bind_wire.yaml
+  - id: app.slot.get_status
+    path: items/app.slot.get_status.yaml
+  - id: app.slot.open
+    path: items/app.slot.open.yaml
+  - id: app.slot.update_state
+    path: items/app.slot.update_state.yaml
+  - id: app.slot.list_by_filter
+    path: items/app.slot.list_by_filter.yaml
+  - id: app.slot.are_all_doors_closed
+    path: items/app.slot.are_all_doors_closed.yaml
+  # MES mock（SQLite 等价；Oracle 原生见 oracle_sql）
+  - id: mes_mock.operator.get_by_id
+    path: items/mes_mock.operator.get_by_id.yaml
+  - id: mes_mock.wire.get_by_lot_no
+    path: items/mes_mock.wire.get_by_lot_no.yaml
+  - id: mes_mock.eqp.get_by_wire_bonding_eqp_no
+    path: items/mes_mock.eqp.get_by_wire_bonding_eqp_no.yaml
+  - id: mes_mock.product.get_latest_product_lot_by_eqp
+    path: items/mes_mock.product.get_latest_product_lot_by_eqp.yaml
+  - id: mes_mock.product.query_product_by_lot_no
+    path: items/mes_mock.product.query_product_by_lot_no.yaml
+  - id: mes_mock.wire_quota.check_quota
+    path: items/mes_mock.wire_quota.check_quota.yaml
+  - id: mes_mock.mat_trans.submit_return
+    path: items/mes_mock.mat_trans.submit_return.yaml

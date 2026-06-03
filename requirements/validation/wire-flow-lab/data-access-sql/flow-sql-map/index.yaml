@@ -1,0 +1,28 @@
+version: 1
+dialect: sqlite
+description: >-
+  焊丝发放 6 个流程的验证版编排（SQLite）。每个流程聚合为一个 flow.yaml，包含 node_order 与每个节点的
+  type / data_source / sql_id / input_mappings / outcome_routing，缺 SQL 的节点已补上指向 sql-catalog 的 sql_id。
+node_schema:
+  type: user_input | query | decision | write | slot_open | slot_close | terminal
+  routing_keys:
+    query: [single, empty, multiple, error]
+    decision: [yes, no]
+    write: [success, error]
+    slot_open: [success, error]
+    slot_close: [success]
+    user_input: [success]
+  input_from_syntax: "node:<nodeId>.<field> | const:<value> | system:<param> | context:<field>"
+flows_index:
+  - flow_id: operator_return_wire_and_issue_available_wire
+    path: flows/operator_return_wire_and_issue_available_wire/flow.yaml
+  - flow_id: material_handler_load_available_wire
+    path: flows/material_handler_load_available_wire/flow.yaml
+  - flow_id: material_handler_open_single_slot
+    path: flows/material_handler_open_single_slot/flow.yaml
+  - flow_id: material_handler_open_all_slots
+    path: flows/material_handler_open_all_slots/flow.yaml
+  - flow_id: material_handler_open_all_available_wire_slots
+    path: flows/material_handler_open_all_available_wire_slots/flow.yaml
+  - flow_id: material_handler_open_all_returned_wire_slots
+    path: flows/material_handler_open_all_returned_wire_slots/flow.yaml

@@ -1,0 +1,34 @@
+id: mes_mock.mat_trans.submit_return
+mirrors: mes.mat_trans.submit_return
+aliases: [submitWireReturn, submitWireIssue, submitWireDraw]
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: function
+business_meaning: >-
+  调用 MES 存储函数 FWMES.FUN_MAT_TRANS_NEW 提交物料事务（归还 / 领用）。
+  返回字符串：空 / 'SUCCESS' / 含 'ORA-01403' 视为成功；'ERROR: ...' 视为失败。
+mock:
+  kind: configurable_result
+  result_field: submit_result
+  source: "由界面「MES 函数 mock 结果」面板配置（成功返回 SUCCESS，失败返回 ERROR: ...）。"
+oracle_sql: |
+  DECLARE
+    v_result VARCHAR2(4000);
+  BEGIN
+    BEGIN
+      v_result := FWMES.FUN_MAT_TRANS_NEW(
+        :V_Step, :v_Task, :v_Eqp, :v_Code,
+        :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
+        :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
+        :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
+      );
+    EXCEPTION
+      WHEN OTHERS THEN
+        v_result := 'ERROR: ' || SQLERRM;
+    END;
+    :result := v_result;
+  END;
+outputs:
+  - submit_result
+result_cardinality: 1
+success_rule: 空 / SUCCESS / 含 ORA-01403 视为成功；否则失败。

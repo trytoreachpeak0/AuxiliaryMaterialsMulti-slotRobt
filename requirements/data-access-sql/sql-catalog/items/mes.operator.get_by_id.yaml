@@ -1,0 +1,62 @@
+id: mes.operator.get_by_id
+title: 查询 MES 操作员
+system: MES
+operation: read
+dialect: oracle
+risk_level: low
+status: verified
+datasource: mes.oracle.main
+purpose: 根据 OP 输入的操作人员 ID，校验该人员是否存在并返回基础信息。
+inputs:
+  - name: user_id
+    type: string
+    required: true
+    source: OP输入操作人员ID
+    example: S0017655
+outputs:
+  - name: operator_name
+    type: string
+    meaning: 操作人员姓名
+sql: |+
+  SELECT
+    username as operator_name
+  FROM
+    mv_fw_username
+  WHERE
+    usercode = :user_id;
+    
+result_cardinality: 0..1
+outcomes:
+  empty:
+    means: 操作员不存在或已停用。
+    action: 提示“不存在该操作人员”，返回重新输入操作人员 ID。
+  single:
+    means: 命中唯一操作员。
+    action: 显示操作人员姓名，继续流程。
+  multiple:
+    means: 同一工号查到多条记录，属于数据异常。
+    action: 提示“该工号存在多条记录，请联系管理员”，禁止放行。
+    severity: error
+  error:
+    means: 数据库异常或查询超时。
+    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    severity: error
+    
+notes: |
+  - 若经业务确认 usercode 唯一、多行仅为视图 JOIN 重复，可改用 SELECT DISTINCT 或在此说明取舍。
+
+tables:
+  - name: mv_fw_username
+    type: view
+    usage: 操作员工号与姓名映射
+interface:
+  function_name: getOperatorNameByUserCode
+  params:
+    - name: user_code
+      type: string
+  returns: operator_name (string) | null
+sample_result:
+  - operator_name: 张三
+meta:
+  last_updated: 2026-06-02
+  author: ZhengyuShao

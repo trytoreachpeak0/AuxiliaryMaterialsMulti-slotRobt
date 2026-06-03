@@ -1,0 +1,19 @@
+name: app_slot
+kind: table
+dialect: sqlite
+description: 发货柜格口表，应用数据库核心表，记录每个格口的用途、业务状态、门/锁状态及绑定焊丝信息。
+columns:
+  - { name: slot_id, type: INTEGER, pk: true, description: 格口主键 }
+  - { name: slot_no, type: TEXT, nullable: false, description: 格口编号，如 A01 }
+  - { name: usage_type, type: TEXT, nullable: false, enum: usage_type, description: available/returned/shared }
+  - { name: biz_state, type: TEXT, nullable: false, enum: biz_state, description: idle/available_wire/returned_wire/processing }
+  - { name: door_state, type: TEXT, nullable: false, enum: door_state, description: open/closed，由 MockSlotController 回写 }
+  - { name: lock_state, type: TEXT, nullable: false, description: locked/unlocked }
+  - { name: wire_lot_no, type: TEXT, description: 绑定焊丝批号 }
+  - { name: wire_spec, type: TEXT, description: 焊丝规格 }
+  - { name: wire_code, type: TEXT, description: 焊丝物料编码 }
+  - { name: shelflife, type: TEXT, description: 保质期 }
+  - { name: matlot, type: TEXT, description: 主批次 }
+  - { name: qty, type: REAL, description: 数量 }
+  - { name: wire_state, type: TEXT, description: 焊丝 MES 状态（可用/归还等） }
+  - { name: updated_at, type: TEXT, description: 更新时间 }

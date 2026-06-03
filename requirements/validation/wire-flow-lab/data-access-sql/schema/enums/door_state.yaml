@@ -1,0 +1,6 @@
+field: door_state
+applies_to: [app_slot.door_state]
+db_type: TEXT
+values:
+  - { value: open, meaning: 门已打开 }
+  - { value: closed, meaning: 门已关闭 }

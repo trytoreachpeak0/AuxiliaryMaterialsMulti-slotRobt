@@ -1,0 +1,26 @@
+id: mes_mock.eqp.get_by_wire_bonding_eqp_no
+mirrors: mes.eqp.get_by_wire_bonding_eqp_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: 校验焊线工序机台号是否存在。
+sql: |
+  SELECT eqpno, step
+  FROM fw_eqpres_eqpinformation
+  WHERE eqpno = :eqp_no
+    AND step = '焊线';
+oracle_sql: |
+  SELECT *
+  FROM fw_eqpres_eqpinformation
+  WHERE eqpno=:eqp_no
+    and step='焊线'
+params:
+  - name: eqp_no
+    source: inputEqpNo.eqp_no
+outputs:
+  - eqpno
+  - step
+result_cardinality: 0..1
+sample_result:
+  - eqpno: 1QH029
+    step: 焊线

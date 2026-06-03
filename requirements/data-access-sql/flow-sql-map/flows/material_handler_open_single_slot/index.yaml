@@ -1,0 +1,19 @@
+flow_id: material_handler_open_single_slot
+title: 物料员打开单个格口
+file: requirements/flows/diagrams/物料员打开单个格口.md
+description: 物料员选择并打开单个格口，关门后更新该格口状态。
+nodes_dir: nodes
+node_order:
+  - inputSelectedSlot
+  - openSingleSlot
+  - updateCorrespondingSlot
+  - isAllSlotDoorsClosed
+  - closeSingleSlotDoor
+  - updateSlot
+node_files:
+  inputSelectedSlot: nodes/inputSelectedSlot.yaml
+  openSingleSlot: nodes/openSingleSlot.yaml
+  updateCorrespondingSlot: nodes/updateCorrespondingSlot.yaml
+  isAllSlotDoorsClosed: nodes/isAllSlotDoorsClosed.yaml
+  closeSingleSlotDoor: nodes/closeSingleSlotDoor.yaml
+  updateSlot: nodes/updateSlot.yaml

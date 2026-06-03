@@ -1,0 +1,31 @@
+id: app.wire_inventory.find_matched_available
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: >-
+  操作员归还焊丝后，按归还焊丝规格在发货柜内查找一卷可领用的同规格可用焊丝及其格口，
+  用于后续领用阶段（queryMatchedAvailableWire）。
+sql: |
+  SELECT wire_lot_no AS matched_available_wire_lot_no,
+         slot_id,
+         slot_no,
+         wire_spec
+  FROM app_slot
+  WHERE wire_spec = :returned_wire_spec
+    AND biz_state = 'available_wire'
+  ORDER BY slot_no
+  LIMIT 1;
+params:
+  - name: returned_wire_spec
+    source: queryWireSpecByLotNo.spec
+outputs:
+  - matched_available_wire_lot_no
+  - slot_id
+  - slot_no
+  - wire_spec
+result_cardinality: 0..1
+sample_result:
+  - matched_available_wire_lot_no: 14Z1888-0888
+    slot_id: 5
+    slot_no: A05
+    wire_spec: φ42(MAXSOFT)

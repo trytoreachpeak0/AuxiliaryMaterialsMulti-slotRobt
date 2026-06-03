@@ -1,0 +1,14 @@
+name: v_fw_material_indetail
+kind: table
+dialect: sqlite
+mirrors: v_fw_material_indetail (Oracle view)
+description: MES 物料明细 mock 表（焊丝批号信息）。
+columns:
+  - { name: sublot, type: TEXT, description: 焊丝批号 }
+  - { name: spec, type: TEXT, description: 规格 }
+  - { name: type, type: TEXT, description: 物料类型，焊丝场景为 '焊丝' }
+  - { name: code, type: TEXT, description: 物料编码 }
+  - { name: shelflife, type: TEXT, description: 保质期 }
+  - { name: matlot, type: TEXT, description: 主批次 }
+  - { name: qty, type: REAL, description: 数量 }
+  - { name: state, type: TEXT, enum: state, description: 焊丝状态 }

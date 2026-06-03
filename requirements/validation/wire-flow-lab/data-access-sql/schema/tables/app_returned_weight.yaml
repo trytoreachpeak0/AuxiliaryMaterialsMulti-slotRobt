@@ -1,0 +1,7 @@
+name: app_returned_weight
+kind: table
+dialect: sqlite
+description: 按焊丝规格配置的归还重量。
+columns:
+  - { name: wire_spec, type: TEXT, pk: true, description: 焊丝规格 }
+  - { name: return_weight, type: REAL, nullable: false, description: 归还重量 }

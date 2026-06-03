@@ -1,0 +1,22 @@
+id: mes_mock.operator.get_by_id
+mirrors: mes.operator.get_by_id
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: 校验操作员工号是否存在并取得姓名。
+sql: |
+  SELECT username AS operator_name
+  FROM mv_fw_username
+  WHERE usercode = :user_id;
+oracle_sql: |
+  SELECT username AS operator_name
+  FROM mv_fw_username
+  WHERE usercode = :user_id;
+params:
+  - name: user_id
+    source: inputOperatorWorkInfo.operator_id
+outputs:
+  - operator_name
+result_cardinality: 0..1
+sample_result:
+  - operator_name: 张三

@@ -1,0 +1,10 @@
+name: app_operation_log
+kind: table
+dialect: sqlite
+description: 流程执行操作日志（验证工具写入 trace 摘要，便于复盘）。
+columns:
+  - { name: id, type: INTEGER, pk: true, autoincrement: true }
+  - { name: ts, type: TEXT, description: 时间戳 }
+  - { name: flow_id, type: TEXT, description: 流程 id }
+  - { name: node_id, type: TEXT, description: 节点 id }
+  - { name: message, type: TEXT, description: 摘要信息 }

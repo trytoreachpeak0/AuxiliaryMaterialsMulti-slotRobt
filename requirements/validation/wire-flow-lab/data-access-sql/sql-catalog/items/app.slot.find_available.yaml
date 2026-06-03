@@ -1,0 +1,26 @@
+id: app.slot.find_available
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: >-
+  物料员存入可用焊丝时，按预留规则查找一个可用空闲格口。预留规则：usage_type 为 available 或 shared
+  的空闲(idle)且门已关闭的格口；为保证至少给归还流程预留一个 returned 格口，这里只在 available/shared 中选。
+sql: |
+  SELECT slot_id        AS available_slot_id,
+         slot_no
+  FROM app_slot
+  WHERE usage_type IN ('available', 'shared')
+    AND biz_state = 'idle'
+    AND door_state = 'closed'
+  ORDER BY slot_no
+  LIMIT 1;
+params:
+  - name: slot_usage_policy
+    note: 预留规则，已固化在 WHERE 条件中（占位，便于与正式节点 input_mappings 对齐）。
+outputs:
+  - available_slot_id
+  - slot_no
+result_cardinality: 0..1
+sample_result:
+  - available_slot_id: 3
+    slot_no: A03

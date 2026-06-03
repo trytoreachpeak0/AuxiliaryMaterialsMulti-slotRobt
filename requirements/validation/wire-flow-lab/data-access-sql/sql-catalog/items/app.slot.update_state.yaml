@@ -1,0 +1,25 @@
+id: app.slot.update_state
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  更新格口业务/门状态。用于 updateCorrespondingSlot(s) / updateAllSlots / updateSlot 等节点：
+  标记本次打开的格口进入待关闭(processing)，或在关门后回写为 closed/idle。
+sql: |
+  UPDATE app_slot
+  SET biz_state  = COALESCE(NULLIF(:biz_state, ''),  biz_state),
+      door_state = COALESCE(NULLIF(:door_state, ''), door_state),
+      lock_state = COALESCE(NULLIF(:lock_state, ''), lock_state),
+      updated_at = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+  - name: biz_state
+    note: 可空，为空则不改业务状态。
+  - name: door_state
+    note: 可空，open/closed。
+  - name: lock_state
+    note: 可空，locked/unlocked。
+outputs:
+  - rows_affected
+result_cardinality: write

@@ -1,0 +1,8 @@
+field: biz_state
+applies_to: [app_slot.biz_state]
+db_type: TEXT
+values:
+  - { value: idle, meaning: 空闲，无焊丝 }
+  - { value: available_wire, meaning: 含可用焊丝 }
+  - { value: returned_wire, meaning: 含归还焊丝 }
+  - { value: processing, meaning: 本次流程开门中/待关闭 }

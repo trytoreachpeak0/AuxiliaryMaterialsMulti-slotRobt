@@ -1,0 +1,9 @@
+name: mes_mock_function_result
+kind: table
+dialect: sqlite
+description: >-
+  MES 存储函数 mock 结果表，用于在 SqliteMock 模式下持久化默认返回值
+  （Get_Mat_QuotaCheck 的配额差值、FUN_MAT_TRANS_NEW 的提交结果）。运行时通常由界面覆盖。
+columns:
+  - { name: func_name, type: TEXT, pk: true, description: 函数名 }
+  - { name: result, type: TEXT, description: 返回值（数字或字符串） }

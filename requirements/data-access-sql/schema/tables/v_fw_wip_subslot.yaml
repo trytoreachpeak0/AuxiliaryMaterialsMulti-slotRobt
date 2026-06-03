@@ -1,0 +1,28 @@
+name: v_fw_wip_subslot
+datasource: mes.oracle.main
+type: table
+comment: WIP 子批次/子单元当前状态
+columns:
+  - name: qty
+    type: NUMBER
+    nullable: false
+    is_key: false
+    comment: 数量
+  - name: step
+    type: VARCHAR2
+    length: 255
+    nullable: true
+    is_key: false
+    comment: 工步
+  - name: lot
+    type: VARCHAR2
+    length: 40
+    nullable: false
+    is_key: false
+    comment: 批号
+  - name: state
+    type: VARCHAR2
+    length: 20
+    nullable: false
+    is_key: true
+    comment: 状态

@@ -1,0 +1,17 @@
+flow_id: material_handler_open_all_available_wire_slots
+title: 物料员打开所有含有可用焊丝的格口
+file: requirements/flows/diagrams/物料员打开所有含有可用焊丝的格口.md
+description: 物料员批量打开所有存放可用焊丝的格口，并在关门过程中逐个更新格口状态。
+nodes_dir: nodes
+node_order:
+  - openAllAvailableWireSlots
+  - updateCorrespondingSlots
+  - isAllSlotDoorsClosed
+  - closeSingleSlotDoor
+  - updateSlot
+node_files:
+  openAllAvailableWireSlots: nodes/openAllAvailableWireSlots.yaml
+  updateCorrespondingSlots: nodes/updateCorrespondingSlots.yaml
+  isAllSlotDoorsClosed: nodes/isAllSlotDoorsClosed.yaml
+  closeSingleSlotDoor: nodes/closeSingleSlotDoor.yaml
+  updateSlot: nodes/updateSlot.yaml

@@ -1,0 +1,41 @@
+name: fw_wip_trans.yaml
+datasource: mes.oracle.main
+type: table
+comment: 查询流转中的在制品
+columns:
+  - name: lot
+    type: VARCHAR2
+    length: 50 BYTE
+    nullable: true
+    is_key: false
+    comment: 批号
+  - name: eqp
+    type: VARCHAR2
+    length: 50 BYTE
+    nullable: true
+    is_key: false
+    comment: 设备
+  - name: step
+    type: VARCHAR2
+    length: 50 BYTE
+    nullable: false
+    is_key: false
+    comment: 工步
+  - name: task
+    type: VARCHAR2
+    length: 50 BYTE
+    nullable: false
+    is_key: false
+    comment: 任务
+  - name: remark
+    type: VARCHAR2
+    length: 4000 BYTE
+    nullable: true
+    is_key: false
+    comment: 备注
+  - name: dates
+    type: date
+    nullable: true
+    is_key: false
+    comment: 时间
+    

@@ -1,0 +1,40 @@
+id: mes_mock.product.get_latest_product_lot_by_eqp
+mirrors: mes.product.get_latest_product_lot_by_eqp
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: 取机台最近一次完工的焊线/键合产品批号，无则返回 N/A。
+sql: |
+  SELECT COALESCE(MAX(lot), 'N/A') AS lot
+  FROM (
+    SELECT lot
+    FROM fw_wip_trans
+    WHERE eqp = :eqp_no
+      AND (step LIKE '焊线%' OR step LIKE '键合%')
+      AND task = '完工'
+      AND COALESCE(remark, 'NA') NOT LIKE '取消%'
+    ORDER BY dates DESC
+    LIMIT 1
+  );
+oracle_sql: |
+  SELECT
+    NVL(MAX(lot), 'N/A') As Lot
+  FROM (
+    SELECT lot
+    FROM fw_wip_trans
+    WHERE eqp = :eqp_no
+      AND ( step LIKE '焊线%' OR step LIKE '键合%' )
+      AND task = '完工'
+      AND NVL(remark, 'NA') NOT LIKE '取消%'
+    ORDER BY dates DESC
+  )
+  WHERE ROWNUM = 1;
+params:
+  - name: eqp_no
+    source: inputEqpNo.eqp_no
+outputs:
+  - lot
+result_cardinality: 1
+note: 聚合后总有一行；lot 可能为 'N/A'。
+sample_result:
+  - lot: P20260601-01

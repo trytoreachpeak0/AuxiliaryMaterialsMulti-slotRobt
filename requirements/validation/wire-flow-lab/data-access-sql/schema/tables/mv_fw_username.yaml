@@ -1,0 +1,8 @@
+name: mv_fw_username
+kind: table
+dialect: sqlite
+mirrors: mv_fw_username (Oracle view)
+description: MES 操作员名册 mock 表。
+columns:
+  - { name: usercode, type: TEXT, pk: true, description: 工号 }
+  - { name: username, type: TEXT, description: 姓名 }

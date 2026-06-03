@@ -1,0 +1,34 @@
+id: mes_mock.wire.get_by_lot_no
+mirrors: mes.wire.get_by_lot_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: 按焊丝批号查询规格、编码、保质期、主批次、数量、状态。
+sql: |
+  SELECT spec, code, shelflife, matlot, qty, state
+  FROM v_fw_material_indetail
+  WHERE sublot = :wire_lot_no
+    AND type = '焊丝';
+oracle_sql: |
+  SELECT spec, code, shelflife, matlot, qty, state
+  FROM v_fw_material_indetail
+  WHERE sublot = :wire_lot_no
+  AND type = '焊丝'
+params:
+  - name: wire_lot_no
+outputs:
+  - spec
+  - code
+  - shelflife
+  - matlot
+  - qty
+  - state
+business_rule: 归还场景命中后 state 须为「归还」；存入可用焊丝场景 state 须为「可用」。
+result_cardinality: 0..1
+sample_result:
+  - spec: φ42(MAXSOFT)
+    code: WIRE-φ42
+    shelflife: 2026-12-31 00:00:00
+    matlot: 14Z1888
+    qty: 1
+    state: 归还

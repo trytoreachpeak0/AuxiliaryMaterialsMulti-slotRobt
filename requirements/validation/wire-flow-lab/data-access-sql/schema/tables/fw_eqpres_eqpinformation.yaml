@@ -1,0 +1,8 @@
+name: fw_eqpres_eqpinformation
+kind: table
+dialect: sqlite
+mirrors: fw_eqpres_eqpinformation (Oracle table)
+description: MES 机台信息 mock 表。
+columns:
+  - { name: eqpno, type: TEXT, description: 机台号 }
+  - { name: step, type: TEXT, description: 工序，如 焊线 }

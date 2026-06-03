@@ -1,0 +1,12 @@
+name: fw_wip_trans
+kind: table
+dialect: sqlite
+mirrors: fw_wip_trans (Oracle table)
+description: MES 在制品事务 mock 表，用于查机台最近完工产品批号。
+columns:
+  - { name: lot, type: TEXT, description: 产品批号 }
+  - { name: eqp, type: TEXT, description: 机台号 }
+  - { name: step, type: TEXT, description: 工序 }
+  - { name: task, type: TEXT, description: 任务类型，如 完工 }
+  - { name: remark, type: TEXT, description: 备注，取消% 表示作废 }
+  - { name: dates, type: TEXT, description: 事务时间，用于取最近一条 }
