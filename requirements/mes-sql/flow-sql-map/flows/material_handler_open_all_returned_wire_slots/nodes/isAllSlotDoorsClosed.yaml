@@ -1,0 +1,27 @@
+node_id: isAllSlotDoorsClosed
+node_text: 所有格口门是否已关闭
+access_type: decision
+sql_ids: []
+business_meaning: 判断本次批量打开的归还焊丝格口门是否已经全部关闭。
+input_mappings:
+  - name: opened_slot_ids
+    source_node: updateCorrespondingSlots
+    source_field: opened_slot_ids
+    source_text: 本次批量打开并需要等待关闭的归还焊丝格口列表。
+  - name: door_status
+    source_type: application_db
+    source_field: slot_door_status
+    source_text: 应用数据库或门控状态中的格口门关闭状态。
+decision_rule:
+  success_when:
+    - condition: all_closed
+      field: door_status
+      meaning: 所有相关格口门均已关闭时结束流程。
+  failure_when:
+    - condition: otherwise
+      meaning: 仍有未关闭格口门时继续等待物料员关闭单个格口门。
+outcome_routing:
+  yes:
+    next: End
+  no:
+    next: closeSingleSlotDoor

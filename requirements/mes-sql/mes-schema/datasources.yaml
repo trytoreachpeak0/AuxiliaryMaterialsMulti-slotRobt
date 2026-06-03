@@ -1,3 +1,3 @@
 datasources:
   - id: mes.oracle.main
-    ref: mes-connection.yaml -> connections[id=mes.oracle.main]
+    description: MES Oracle 主库逻辑数据源

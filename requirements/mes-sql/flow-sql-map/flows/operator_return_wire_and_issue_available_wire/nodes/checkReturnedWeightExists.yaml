@@ -1,0 +1,23 @@
+node_id: checkReturnedWeightExists
+node_text: 应用数据库中是否存在该焊丝类型的归还重量
+access_type: decision
+sql_ids: []
+business_meaning: 判断应用数据库是否配置了该焊丝规格的归还重量。
+input_mappings:
+  - name: return_weight
+    source_node: queryWireReturnedWeightBySpec
+    source_field: return_weight
+    source_text: 应用数据库配置的该规格归还重量。
+decision_rule:
+  success_when:
+    - condition: is_not_null_or_empty
+      field: return_weight
+      meaning: return_weight 非空时允许继续输入机台号。
+  failure_when:
+    - condition: otherwise
+      meaning: 未配置归还重量时提示到物料间人工归还。
+outcome_routing:
+  yes:
+    next: inputEqpNo
+  no:
+    next: showReturnedWeightNotExists

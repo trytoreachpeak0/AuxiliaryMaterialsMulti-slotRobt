@@ -1,0 +1,86 @@
+id: mes.wire.get_by_lot_no
+title: 查询焊丝批号对应的焊丝信息
+system: MES
+operation: read
+dialect: oracle
+risk_level: low
+status: verified
+datasource: mes.oracle.main
+purpose: 根据焊丝批号查询 MES 中登记的焊丝类型，用于匹配发货柜库存和存放规则。
+inputs:
+  - name: wire_lot_no
+    type: string
+    required: true
+    source: OP或物料员扫码/录入焊丝批号
+    example: 14Z1888-0160
+outputs:
+  - name: spec
+    type: string
+    meaning: 焊丝规格
+  - name: code
+    type: string
+    meaning: 焊丝编码
+  - name: shelflife
+    type: datetime
+    meaning: 焊丝保质期
+  - name: matlot
+    type: string
+    meaning: 主批次
+  - name: qty
+    type: integer
+    meaning: 焊丝数量
+  - name: state
+    type: string
+    meaning: 焊丝状态
+sql: |
+  SELECT
+    spec,
+    code,
+    shelflife,
+    matlot,
+    qty,
+    state
+  FROM v_fw_material_indetail
+  WHERE sublot = :wire_lot_no
+  AND type = '焊丝'
+result_cardinality: 0..1
+outcomes:
+  empty:
+    means: MES 中不存在该焊丝批号
+    action: 提示“不存在该焊丝批号”，返回重新输入焊丝批号。
+  single:
+    means: 命中唯一焊丝。
+    action: 获取该焊丝信息，再按 business_rule 校验 state 是否为“归还”。
+  multiple:
+    means: 同一焊丝批号查到多条记录，属于数据异常。
+    action: 提示“该焊丝批号存在多条记录，请联系管理员”，禁止放行。
+    severity: error
+  error:
+    means: 数据库异常或查询超时。
+    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    severity: error
+business_rule: |
+  命中焊丝后需校验 state：仅当 state 为“归还”时才允许继续后续流程；
+  若 state 不是“归还”，提示“焊丝状态不正确”，禁止放行。
+notes: |
+  - 如果 MES 中焊丝类型来自物料主数据，请在 SQL 中补充 JOIN 关系。
+tables:
+  - name: v_fw_material_indetail
+    type: view
+    usage: 查询焊丝信息
+interface:
+  function_name: getWireInfoByLotNo
+  params:
+    - name: wire_lot_no
+      type: string
+  returns: WireLotInfo { spec, code, shelflife, matlot, qty, state } | null
+sample_result:
+  - spec: φ42(MAXSOFT)
+    code: 121010600007C1-033
+    shelflife: null
+    matlot: 14Z1888-0160
+    qty: 0
+    state: 归还
+meta:
+  last_updated: 2026-06-02
+  author: ZhengyuShao

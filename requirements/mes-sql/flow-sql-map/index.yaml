@@ -1,6 +1,14 @@
 version: 1
 flows_index:
-  - flow_id: op_return_old_wire_take_new_wire
-    path: flows/op_return_old_wire_take_new_wire.yaml
-  - flow_id: mh_store_wire
-    path: flows/mh_store_wire.yaml
+  - flow_id: operator_return_wire_and_issue_available_wire
+    path: flows/operator_return_wire_and_issue_available_wire/index.yaml
+  - flow_id: material_handler_load_available_wire
+    path: flows/material_handler_load_available_wire/index.yaml
+  - flow_id: material_handler_open_all_returned_wire_slots
+    path: flows/material_handler_open_all_returned_wire_slots/index.yaml
+  - flow_id: material_handler_open_all_available_wire_slots
+    path: flows/material_handler_open_all_available_wire_slots/index.yaml
+  - flow_id: material_handler_open_all_slots
+    path: flows/material_handler_open_all_slots/index.yaml
+  - flow_id: material_handler_open_single_slot
+    path: flows/material_handler_open_single_slot/index.yaml

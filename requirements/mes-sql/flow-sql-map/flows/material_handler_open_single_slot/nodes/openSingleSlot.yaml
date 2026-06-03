@@ -1,0 +1,21 @@
+node_id: openSingleSlot
+node_text: 打开单个格口
+access_type: application_db_and_slot_control
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 根据物料员选择的格口查询当前状态，并下发单格口开门指令。
+input_mappings:
+  - name: slot_id
+    source_node: inputSelectedSlot
+    source_field: selected_slot_id
+    source_text: 物料员选择的格口号。
+  - name: slot_status
+    source_type: application_db
+    source_field: slot_status
+    source_text: 当前格口门状态和业务状态。
+outcome_routing:
+  success:
+    next: updateCorrespondingSlot
+  error:
+    next: End
+    note: 流程图未单列失败节点，实现时应提示开门失败并记录日志。

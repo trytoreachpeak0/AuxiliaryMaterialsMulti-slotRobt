@@ -1,0 +1,17 @@
+flow_id: material_handler_open_all_returned_wire_slots
+title: 物料员打开所有含有归还焊丝的格口
+file: requirements/焊丝发放流程图/物料员打开所有含有归还焊丝的格口.md
+description: 物料员批量打开所有存放归还焊丝的格口，并在关门过程中逐个更新格口状态。
+nodes_dir: nodes
+node_order:
+  - openAllReturnedWireSlots
+  - updateCorrespondingSlots
+  - isAllSlotDoorsClosed
+  - closeSingleSlotDoor
+  - updateSlot
+node_files:
+  openAllReturnedWireSlots: nodes/openAllReturnedWireSlots.yaml
+  updateCorrespondingSlots: nodes/updateCorrespondingSlots.yaml
+  isAllSlotDoorsClosed: nodes/isAllSlotDoorsClosed.yaml
+  closeSingleSlotDoor: nodes/closeSingleSlotDoor.yaml
+  updateSlot: nodes/updateSlot.yaml

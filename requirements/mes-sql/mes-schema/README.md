@@ -23,4 +23,7 @@
 |------|------|
 | [enums/state.yaml](enums/state.yaml) | `v_fw_material_indetail.state` |
 
-维护与合并方式同 [mes-sql-catalog/README.md](../mes-sql-catalog/README.md)。
+## 维护方式
+
+表/视图结构直接维护在 `tables/*.yaml`，枚举直接维护在 `enums/*.yaml`。
+新增或改名文件时，同步维护 `index.yaml`。

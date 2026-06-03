@@ -1,0 +1,21 @@
+node_id: queryWireSpecByLotNo
+node_text: 查询 MES 数据库该批号对应的焊丝规格
+access_type: mes_sql
+sql_ids:
+  - mes.wire.get_by_lot_no
+business_meaning: 校验归还焊丝批号是否存在，取得规格、编码、保质期、主批次、数量和状态。
+input_mappings:
+  - name: wire_lot_no
+    source_node: inputReturnedWireLotNo
+    source_field: returned_wire_lot_no
+    source_text: 操作员输入归还焊丝批号。
+outcome_routing:
+  single:
+    next: checkWireLotNoExists
+  empty:
+    next: checkWireLotNoExists
+  multiple:
+    next: showWireLotNoInputInvalidOrNotExistsMessage
+    note: 同一批号多行属于数据异常，当前流程图复用批号错误提示。
+  error:
+    next: showWireLotNoInputInvalidOrNotExistsMessage

@@ -1,0 +1,20 @@
+node_id: queryLastProductLotNo
+node_text: 查询 MES 数据库该机台最近生产的产品批次号
+access_type: mes_sql
+sql_ids:
+  - mes.product.get_latest_product_lot_by_eqp
+business_meaning: 获取该机台最近生产产品批号，作为后续用量核对和领用事务的产品批号。
+input_mappings:
+  - name: eqp_no
+    source_node: inputEqpNo
+    source_field: eqp_no
+    source_text: 已校验存在的机台号。
+outcome_routing:
+  single:
+    next: checkLastProductLotNoExists
+    note: 若 MES 未查询到最近生产产品批次号，应用侧主动填充 lot 为 N/A，并继续交给判断节点处理。
+  empty:
+    next: checkLastProductLotNoExists
+    note: 未查询到最近生产产品批次号时，应用侧输出默认 lot: N/A。
+  error:
+    next: showLastProductLotNoNotExistsMessage

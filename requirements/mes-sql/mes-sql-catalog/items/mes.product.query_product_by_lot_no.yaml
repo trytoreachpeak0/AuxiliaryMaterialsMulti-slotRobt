@@ -1,0 +1,57 @@
+id: mes.product.query_product_by_lot_no
+title: 查询产品批次信息
+system: MES
+operation: read
+dialect: oracle
+risk_level: low
+status: verified
+datasource: mes.oracle.main
+purpose: 根据产品批次号查询 MES 中未关闭子批的总数量和工序信息，用于给焊丝领用步骤提供信息。
+inputs:
+  - name: productLot
+    type: string
+    required: true
+    source: 机台最近生产的产品批次号
+    example: 123
+outputs:
+  - name: qty
+    type: integer
+    meaning: 未关闭子批数量合计
+  - name: step
+    type: string
+    meaning: 未关闭子批中的最大工序
+sql: |
+  SELECT
+    SUM(qty) qty,
+    MAX(step) step
+  FROM v_fw_wip_sublot
+  WHERE lot = :productLot
+    AND state <> '关闭'
+result_cardinality: 1
+outcomes:
+  single:
+    means: 返回该产品批次未关闭子批的数量合计和工序信息；如果 qty 或 step 为空，通常表示未查询到未关闭子批。
+    action: qty 和 step 有效时继续领用流程；为空时提示“产品信息不存在”或转人工处理。
+  error:
+    means: 数据库异常或查询超时。
+    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    severity: error
+business_rule: |
+  该 SQL 使用聚合查询，Oracle 在没有命中行时仍会返回一行，qty 和 step 均为空。
+  应用侧不能只按“是否返回行”判断产品存在，需要同时校验 qty/step 是否为空。
+tables:
+  - name: v_fw_wip_sublot
+    type: view
+    usage: 查询产品批次下未关闭子批数量和工序
+interface:
+  function_name: queryProductByLotNo
+  params:
+    - name: productLot
+      type: string
+  returns: ProductLotInfo { qty, step }（qty/step 为空表示未查询到有效未关闭子批）
+sample_result:
+  - qty: 1000
+    step: 焊线
+meta:
+  last_updated: 2026-06-03
+  author: ZhengyuShao

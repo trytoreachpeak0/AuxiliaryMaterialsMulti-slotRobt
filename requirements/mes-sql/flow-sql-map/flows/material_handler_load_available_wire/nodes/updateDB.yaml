@@ -1,0 +1,29 @@
+node_id: updateDB
+node_text: 焊丝信息存入应用数据库，更新格口业务信息
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 在物料员关闭格口门后，将可用焊丝和格口绑定并更新格口业务状态。
+input_mappings:
+  - name: slot_id
+    source_node: checkAvailableSlot
+    source_field: available_slot_id
+    source_text: 前面选出的空闲格口。
+  - name: wire_lot_no
+    source_node: inputAvailableWireLotNo
+    source_field: available_wire_lot_no
+    source_text: 物料员录入的可用焊丝批号。
+  - name: wire_info
+    source_node: queryWireSpecByLotNo
+    source_field: spec/code/shelflife/matlot/qty/state
+    source_text: MES 查询到的焊丝信息。
+  - name: door_closed_event
+    source_node: closeAvailableSlotDoor
+    source_field: closed
+    source_text: 物料员关闭格口门的确认事件。
+outcome_routing:
+  success:
+    next: End
+  error:
+    next: End
+    note: 流程图未单列失败节点，实现时应提示更新失败并记录日志。

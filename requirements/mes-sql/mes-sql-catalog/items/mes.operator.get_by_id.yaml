@@ -6,29 +6,24 @@ dialect: oracle
 risk_level: low
 status: verified
 datasource: mes.oracle.main
-flow_refs:
-  - flow_id: op_return_old_wire_take_new_wire
-    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
-    node_id: queryOPId
-    node_text: 查询MES数据库该操作人员
 purpose: 根据 OP 输入的操作人员 ID，校验该人员是否存在并返回基础信息。
 inputs:
-  - name: user_code
+  - name: user_id
     type: string
     required: true
     source: OP输入操作人员ID
     example: S0017655
 outputs:
-  - name: username
+  - name: user_name
     type: string
     meaning: 操作人员姓名
 sql: |+
   SELECT
-    username
+    username as user_name
   FROM
     mv_fw_username
   WHERE
-    usercode = :user_code;
+    usercode = :user_id;
     
 result_cardinality: 0..1
 outcomes:
@@ -46,10 +41,10 @@ outcomes:
     means: 数据库异常或查询超时。
     action: 提示“系统繁忙，请稍后重试”，记录日志。
     severity: error
+    
 notes: |
-  - 表名和字段名为示例，需要替换成 MES 实际表结构。
-  - 多行不在 SQL 层用 ROWNUM 掩盖，保持暴露以便发现数据问题（方案 3-A）。
   - 若经业务确认 usercode 唯一、多行仅为视图 JOIN 重复，可改用 SELECT DISTINCT 或在此说明取舍。
+
 tables:
   - name: mv_fw_username
     type: view
@@ -63,5 +58,5 @@ interface:
 sample_result:
   - operator_name: 张三
 meta:
-  last_updated: 2026-06-01
+  last_updated: 2026-06-02
   author: ZhengyuShao

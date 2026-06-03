@@ -1,0 +1,23 @@
+flow_id: material_handler_load_available_wire
+title: 物料员存入可用焊丝
+file: requirements/焊丝发放流程图/物料员存入可用焊丝.md
+description: 物料员录入可用焊丝批号，校验 MES 焊丝信息后放入空闲格口，并更新应用数据库格口业务信息。
+nodes_dir: nodes
+node_order:
+  - inputAvailableWireLotNo
+  - checkAvailableSlot
+  - queryWireSpecByLotNo
+  - checkWireLotNoExists
+  - checkWireSpecExists
+  - openAvailableSlot
+  - closeAvailableSlotDoor
+  - updateDB
+node_files:
+  inputAvailableWireLotNo: nodes/inputAvailableWireLotNo.yaml
+  checkAvailableSlot: nodes/checkAvailableSlot.yaml
+  queryWireSpecByLotNo: nodes/queryWireSpecByLotNo.yaml
+  checkWireLotNoExists: nodes/checkWireLotNoExists.yaml
+  checkWireSpecExists: nodes/checkWireSpecExists.yaml
+  openAvailableSlot: nodes/openAvailableSlot.yaml
+  closeAvailableSlotDoor: nodes/closeAvailableSlotDoor.yaml
+  updateDB: nodes/updateDB.yaml

@@ -1,0 +1,27 @@
+node_id: checkLastProductLotNoExists
+node_text: 是否已有可用于后续流程的产品批次号
+access_type: decision
+sql_ids: []
+business_meaning: 判断是否已有可用于后续 MES 事务的产品批次号；未查询到时使用默认值 N/A 继续流程。
+input_mappings:
+  - name: lot
+    source_node: queryLastProductLotNo
+    source_field: lot
+    source_text: MES 查询到的机台最近生产产品批号；未查询到时由应用侧填充为 N/A。
+decision_rule:
+  success_when:
+    - condition: is_not_null_or_empty
+      field: lot
+      meaning: lot 非空时继续流程；N/A 是允许的默认产品批次号。
+    - condition: equals
+      field: lot
+      value: N/A
+      meaning: 未查询到最近生产产品批次号时，应用侧填充 N/A 并允许继续。
+  failure_when:
+    - condition: otherwise
+      meaning: lot 仍为空时才提示找不到最近生产产品批次号。
+outcome_routing:
+  yes:
+    next: inputRemainingQty
+  no:
+    next: showLastProductLotNoNotExistsMessage

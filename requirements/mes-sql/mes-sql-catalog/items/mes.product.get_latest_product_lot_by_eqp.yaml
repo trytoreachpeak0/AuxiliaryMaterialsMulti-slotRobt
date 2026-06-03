@@ -6,11 +6,6 @@ dialect: oracle
 risk_level: low
 status: verified
 datasource: mes.oracle.main
-flow_refs:
-  - flow_id: op_return_old_wire_take_new_wire
-    file: 焊丝发放流程图/操作员OP存废焊丝取新焊丝.md
-    node_id: queryLastProductLotNo
-    node_text: 查询MES数据库该机台最近生产的工单批次号
 purpose: 根据机台号查询最近生产工单批次号，用于后续焊线用量核对。
 inputs:
   - name: eqp_no
