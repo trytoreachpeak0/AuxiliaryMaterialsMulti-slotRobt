@@ -1,0 +1,25 @@
+id: app.slot.assume_empty
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  MH 维护流程关门后：账面视为已清空（idle + 清空 wire_*），即使实物未取走。
+sql: |
+  UPDATE app_slot
+  SET biz_state   = 'idle',
+      door_state  = 'closed',
+      lock_state  = 'locked',
+      wire_lot_no = NULL,
+      wire_spec   = NULL,
+      wire_code   = NULL,
+      shelflife   = NULL,
+      matlot      = NULL,
+      qty         = NULL,
+      wire_state  = NULL,
+      updated_at  = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+outputs:
+  - rows_affected
+result_cardinality: write

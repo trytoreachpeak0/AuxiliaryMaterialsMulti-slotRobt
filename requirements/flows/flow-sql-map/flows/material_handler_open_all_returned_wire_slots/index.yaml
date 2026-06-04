@@ -1,8 +1,20 @@
 flow_id: material_handler_open_all_returned_wire_slots
 title: 物料员打开所有含有归还焊丝的格口
-file: requirements/flows/diagrams/物料员打开所有含有归还焊丝的格口.md
+file: diagrams/物料员打开所有含有归还焊丝的格口.md
 description: 物料员批量打开所有存放归还焊丝的格口，并在关门过程中逐个更新格口状态。
 nodes_dir: nodes
+sections:
+  - subgraph_id: openReturnedWireSlots
+    title: 一、打开格口
+    node_ids:
+      - openAllReturnedWireSlots
+      - updateCorrespondingSlots
+  - subgraph_id: closeSlotDoors
+    title: 二、关闭格口门
+    node_ids:
+      - isAllSlotDoorsClosed
+      - closeSingleSlotDoor
+      - updateSlot
 node_order:
   - openAllReturnedWireSlots
   - updateCorrespondingSlots
@@ -10,8 +22,8 @@ node_order:
   - closeSingleSlotDoor
   - updateSlot
 node_files:
-  openAllReturnedWireSlots: nodes/openAllReturnedWireSlots.yaml
-  updateCorrespondingSlots: nodes/updateCorrespondingSlots.yaml
-  isAllSlotDoorsClosed: nodes/isAllSlotDoorsClosed.yaml
-  closeSingleSlotDoor: nodes/closeSingleSlotDoor.yaml
-  updateSlot: nodes/updateSlot.yaml
+  openAllReturnedWireSlots: nodes/openReturnedWireSlots/openAllReturnedWireSlots.yaml
+  updateCorrespondingSlots: nodes/openReturnedWireSlots/updateCorrespondingSlots.yaml
+  isAllSlotDoorsClosed: nodes/closeSlotDoors/isAllSlotDoorsClosed.yaml
+  closeSingleSlotDoor: nodes/closeSlotDoors/closeSingleSlotDoor.yaml
+  updateSlot: nodes/closeSlotDoors/updateSlot.yaml

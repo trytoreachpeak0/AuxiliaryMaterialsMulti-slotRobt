@@ -1,8 +1,20 @@
 flow_id: material_handler_open_all_slots
 title: 物料员打开所有格口
-file: requirements/flows/diagrams/物料员打开所有格口.md
+file: diagrams/物料员打开所有格口.md
 description: 物料员打开发货柜所有格口，并在关门过程中逐个更新格口状态。
 nodes_dir: nodes
+sections:
+  - subgraph_id: openSlots
+    title: 一、打开格口
+    node_ids:
+      - openAllSlots
+      - updateAllSlots
+  - subgraph_id: closeSlotDoors
+    title: 二、关闭格口门
+    node_ids:
+      - isAllSlotDoorsClosed
+      - closeSingleSlotDoor
+      - updateSlot
 node_order:
   - openAllSlots
   - updateAllSlots
@@ -10,8 +22,8 @@ node_order:
   - closeSingleSlotDoor
   - updateSlot
 node_files:
-  openAllSlots: nodes/openAllSlots.yaml
-  updateAllSlots: nodes/updateAllSlots.yaml
-  isAllSlotDoorsClosed: nodes/isAllSlotDoorsClosed.yaml
-  closeSingleSlotDoor: nodes/closeSingleSlotDoor.yaml
-  updateSlot: nodes/updateSlot.yaml
+  openAllSlots: nodes/openSlots/openAllSlots.yaml
+  updateAllSlots: nodes/openSlots/updateAllSlots.yaml
+  isAllSlotDoorsClosed: nodes/closeSlotDoors/isAllSlotDoorsClosed.yaml
+  closeSingleSlotDoor: nodes/closeSlotDoors/closeSingleSlotDoor.yaml
+  updateSlot: nodes/closeSlotDoors/updateSlot.yaml

@@ -5,8 +5,8 @@ tables_index:
   # 应用数据库
   - name: app_slot
     path: tables/app_slot.yaml
-  - name: app_returned_weight
-    path: tables/app_returned_weight.yaml
+  - name: welding_wire_materials
+    path: tables/welding_wire_materials.yaml
   - name: app_operation_log
     path: tables/app_operation_log.yaml
   # MES mock

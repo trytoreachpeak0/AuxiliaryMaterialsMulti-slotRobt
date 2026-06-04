@@ -1,0 +1,27 @@
+subgraph_id: openSlots
+node_id: updateAllSlots
+node_text: 更新所有格口状态
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 将所有已打开格口更新为待关闭/处理中状态。
+output_fields:
+  - name: rows_affected
+    source_type: sql_catalog
+    source_ref: app.slot.update_state
+    catalog_field: rows_affected
+    source_text: 批量更新格口状态影响行数。
+  - name: opened_slot_ids
+    source_type: runtime
+    source_text: 本次打开并等待关门的格口 ID 列表。
+input_mappings:
+  - name: opened_slot_ids
+    source_node: openAllSlots
+    source_field: slot_ids
+    source_text: 已打开的全部格口列表。
+outcome_routing:
+  success:
+    next: isAllSlotDoorsClosed
+  error:
+    next: isAllSlotDoorsClosed
+    note: 流程图未单列失败节点，实现时应记录状态更新失败。

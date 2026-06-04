@@ -13,8 +13,8 @@
 |---|---|---|
 | **`sql-catalog/`** | 数据访问 SQL 清单 | [index.yaml](sql-catalog/index.yaml) + [items/&lt;id&gt;.yaml](sql-catalog/items/)，见 [sql-catalog/README.md](sql-catalog/README.md) |
 | **`schema/`** | 表结构与数据字典 | [tables/](schema/tables/)、[enums/](schema/enums/)，见 [schema/README.md](schema/README.md) |
-| **`flow-sql-map/`** | 流程节点 ↔ SQL | [flows/&lt;flow_id&gt;.yaml](flow-sql-map/flows/)，见 [flow-sql-map/README.md](flow-sql-map/README.md) |
 | `connections/` | 数据源连接资料 | 可存放本地连接说明或模板；含敏感信息的真实连接不应公开 |
+| `../flows/flow-sql-map/` | 流程可执行映射 | 与流程图、SQL 清单关联，见 [../flows/flow-sql-map/README.md](../flows/flow-sql-map/README.md) |
 | `../flows/glossary/` | 术语对照 | 按主题分文件 |
 
 ### 1.2 维护方式
@@ -24,14 +24,14 @@
 
 - SQL 清单：`sql-catalog/items/<id>.yaml`
 - 表结构与枚举：`schema/tables/*.yaml`、`schema/enums/*.yaml`
-- 流程映射：`flow-sql-map/flows/*.yaml`
+- 流程可执行映射：[`../flows/flow-sql-map/`](../flows/flow-sql-map/)（见该目录 README）
 
 ### 1.3 引用关系
 
 ```text
-flow-sql-map/flows/*.yaml ──(sql_ids)──> sql-catalog/items/*.yaml ──(datasource)──> 逻辑数据源 ID
-                                              │
-                                              └──(tables)──> schema/tables/*.yaml
+flows/flow-sql-map/flows/*.yaml ──(sql_ids)──> data-access-sql/sql-catalog/items/*.yaml ──(datasource)──> 逻辑数据源 ID
+                                                      │
+                                                      └──(tables)──> data-access-sql/schema/tables/*.yaml
 ```
 
 ---
@@ -81,7 +81,7 @@ flow-sql-map/flows/*.yaml ──(sql_ids)──> sql-catalog/items/*.yaml ──
 
 ### 2.3 流程关联来源
 
-SQL 条目只描述 SQL 自身的用途、参数、结果和调用契约；流程节点与 SQL 的关联统一维护在 `flow-sql-map/flows/*.yaml` 的 `sql_ids` 中，避免同一份流程关联信息在多个文件重复维护。
+SQL 条目只描述 SQL 自身的用途、参数、结果和调用契约；流程节点与 SQL 的关联统一维护在 [`../flows/flow-sql-map/flows/`](../flows/flow-sql-map/flows/) 各节点 YAML 的 `sql_ids` 与 `output_fields`（引用 catalog，不重复抄写 SQL）中，下游 `input_mappings` 通过 `source_node` + `source_field` 引用上游产出字段。
 
 ### 2.4 inputs 子字段（输入参数）
 
@@ -121,7 +121,7 @@ SQL 条目只描述 SQL 自身的用途、参数、结果和调用契约；流�
 | `action` | string | 是 | 业务上怎么处理。 |
 | `severity` | string | 否 | 严重度，例如 `error`。 |
 
-> 职责边界：`outcomes` 只描述“这条 SQL 的某种结果代表什么、严重度如何”，**不记录跳转到哪个流程节点**。跳转是与流程绑定的编排行为（同一条 SQL 被多个流程复用时跳转目标不同），统一放在 `flow-sql-map/flows/<flow_id>.yaml` 的 `outcome_routing.<分支>.next`（见 3.5）。
+> 职责边界：`outcomes` 只描述“这条 SQL 的某种结果代表什么、严重度如何”，**不记录跳转到哪个流程节点**。跳转是与流程绑定的编排行为（同一条 SQL 被多个流程复用时跳转目标不同），统一放在 [`../flows/flow-sql-map/`](../flows/flow-sql-map/) 节点 YAML 的 `outcome_routing.<分支>.next`（见 [flow-sql-map README](../flows/flow-sql-map/README.md)）。
 >
 > 原则：唯一性/身份校验类查询不要在 SQL 层用 `ROWNUM`/`TOP` 掩盖多行，应通过 `outcomes.multiple` 暴露成异常，以便发现数据问题。完整示例见 `mes.operator.get_by_id`。
 
@@ -165,66 +165,9 @@ SQL 条目只描述 SQL 自身的用途、参数、结果和调用契约；流�
 
 ---
 
-## 3. flow-sql-map 字段说明
+## 3. flow-sql-map（已迁至 flows）
 
-适用于 **`flow-sql-map/flows/<flow_id>.yaml`**（合并文件里 `flows` 的每一项结构相同）。
-
-### 3.1 顶层字段
-
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `version` | integer | 是 | 文件结构版本号。 |
-| `flows` | list | 是 | 流程列表，每个元素是一个流程（见 3.2）。 |
-
-### 3.2 flows 子字段（单个流程）
-
-| 字段 | 类型 | 必填 | 说明 | 示例 |
-|---|---|---|---|---|
-| `flow_id` | string | 是 | 流程唯一 ID。 | `operator_return_wire_and_issue_available_wire` |
-| `title` | string | 是 | 流程标题。 | `OP存废焊丝取新焊丝` |
-| `file` | string | 是 | 流程图文件路径，按仓库根目录相对路径记录。 | `requirements/flows/diagrams/操作员存入归还焊丝取出可用焊丝.md` |
-| `description` | string | 否 | 流程说明。 | - |
-| `nodes` | list | 是 | 该流程中调用 SQL 的节点列表（见 3.3）。 | - |
-
-### 3.3 nodes 子字段（流程节点 → SQL）
-
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `node_id` | string | 是 | 流程图 Mermaid 节点 ID。 |
-| `node_text` | string | 否 | 节点文字，便于人阅读。 |
-| `sql_ids` | list | 是 | 该节点调用的 SQL ID 列表，引用 catalog 的 `id`。 |
-| `business_meaning` | string | 否 | 该节点的业务含义。 |
-| `input_mappings` | list | 推荐 | 该 SQL/function 的入参来源（见 3.4）。 |
-| `outcome_routing` | map | 推荐 | 各结果分支跳到哪个节点（见 3.5），与 catalog 的 `outcomes` 对应。 |
-| `on_success_next` | string | 否(旧) | 旧字段：成功后跳转节点。推荐改用 `outcome_routing`。 |
-| `on_empty_or_error` | string | 否(旧) | 旧字段：空或异常时跳转节点。推荐改用 `outcome_routing`。 |
-
-### 3.4 input_mappings 子字段
-
-记录 SQL/function 每个入参从哪里来，便于实现时把流程输入、上一步输出和固定上下文绑定到正确参数。
-SQL/function 的输出字段以 catalog 的 `outputs` 为准；后续节点如果使用上游输出，在自身 `input_mappings` 中引用上游 `source_node/source_field`，避免双向重复维护。
-
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `name` | string | 是 | SQL/function 入参名，应与 catalog 的 `inputs.name` 一致。 |
-| `source_node` | string | 条件必填 | 来源流程节点 ID；仅当入参来自流程图里的真实节点或上游访问节点时填写。 |
-| `source_type` | string | 条件必填 | 非流程节点来源类型；常用 `constant` / `context` / `system` / `application_db`。 |
-| `source_field` | string | 否 | 来源字段名；适用于 `source_node`、`context`、`system`、`application_db` 等来源。 |
-| `value` | string/number/boolean | 否 | 固定值；当 `source_type: constant` 时填写。 |
-| `source_text` | string | 否 | 人能看懂的来源说明。 |
-
-> `source_node` 和 `source_type` 二选一：来自真实流程节点时用 `source_node`，来自固定值、系统上下文或应用数据库上下文时用 `source_type`。
-
-### 3.5 outcome_routing 子字段
-
-键与 catalog `outcomes` 一致（`single` / `empty` / `multiple` / `error`），每个键的值是一个 map：
-
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `next` | string | 是 | 跳转到的流程图节点 ID。 |
-| `note` | string | 否 | 备注，例如“复用提示节点”或“建议单独加异常节点”。 |
-
-> `on_success_next` / `on_empty_or_error` 为早期字段，部分节点仍在用；新增节点建议统一用 `outcome_routing`。
+流程可执行映射（节点顺序、分支、`sql_ids`、入参来源）已迁至 [`../flows/flow-sql-map/`](../flows/flow-sql-map/)。字段说明与维护约定见该目录 [README.md](../flows/flow-sql-map/README.md)。
 
 ---
 
@@ -338,7 +281,7 @@ MES查询
 queryOPById[("查询 MES 数据库该操作人员")]
 ```
 
-则在对应的 `flow-sql-map/flows/<flow_id>.yaml` 中写：
+则在对应的 [`../flows/flow-sql-map/flows/<flow_id>/nodes/<subgraph_id>/<node_id>.yaml`](../flows/flow-sql-map/) 中写：
 
 ```yaml
 - node_id: queryOPById
@@ -360,7 +303,7 @@ queryOPById[("查询 MES 数据库该操作人员")]
 1. SQL 必须参数化，不要把真实操作员、批号、机台号直接写死在 SQL 中。
 2. 不要在 catalog/map/schema 里记录数据库账号、密码、IP、端口、连接串；这里只保留逻辑数据源 ID。
 3. 如果 SQL 会写入数据库，必须把 `operation` 标记为 `write` 或 `update`，并补充写入影响范围。
-4. 如果同一条 SQL 被多个流程使用，只维护一条 SQL 清单，并在对应流程的 `flow-sql-map/flows/*.yaml` 节点中引用同一个 `sql_id`。
+4. 如果同一条 SQL 被多个流程使用，只维护一条 SQL 清单，并在 [`../flows/flow-sql-map/`](../flows/flow-sql-map/) 对应节点中引用同一个 `sql_id`。
 5. 如果字段来自多个表，建议在 `notes` 中说明 JOIN 关系和业务口径。
 6. 如果业务判断不完全由 SQL 决定，例如“差值小于 500 颗”，请写在 `business_rule` 中。
 7. `outputs.name` 是逻辑字段名（契约），建议用 SQL 别名与真实列名对齐，或用 `column` 记录真实列名。

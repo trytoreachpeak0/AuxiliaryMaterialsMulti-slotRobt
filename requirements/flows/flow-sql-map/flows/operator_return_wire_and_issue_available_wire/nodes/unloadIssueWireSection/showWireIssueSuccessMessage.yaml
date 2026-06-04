@@ -1,0 +1,9 @@
+subgraph_id: unloadIssueWireSection
+node_id: showWireIssueSuccessMessage
+node_text: 显示焊丝领用成功的提示
+access_type: ui_message
+sql_ids: []
+business_meaning: MES 领用提交成功后提示操作员，随后打开领用格口取料。
+outcome_routing:
+  success:
+    next: openIssueSlot

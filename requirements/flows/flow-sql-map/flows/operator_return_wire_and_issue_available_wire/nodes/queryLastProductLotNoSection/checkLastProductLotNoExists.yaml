@@ -1,0 +1,28 @@
+subgraph_id: queryLastProductLotNoSection
+node_id: checkLastProductLotNoExists
+node_text: 是否查询到最近生产的产品批次号
+access_type: decision
+sql_ids: []
+business_meaning: 判断机台最近生产产品批号是否为有效批号；lot 为空或为 N/A（MES 未查到时的占位值）时视为不存在。
+input_mappings:
+  - name: lot
+    source_node: queryLastProductLotNo
+    source_field: lot
+    source_text: MES 查询到的机台最近生产产品批号；未查询到时为 N/A。
+decision_rule:
+  failure_when:
+    - condition: equals
+      field: lot
+      value: N/A
+      meaning: lot 为 N/A 时视为未查到最近生产产品批次号。
+    - condition: is_null_or_empty
+      field: lot
+      meaning: lot 为空时视为未查到最近生产产品批次号。
+  success_when:
+    - condition: otherwise
+      meaning: lot 为有效批号时继续输入剩余芯片数量。
+outcome_routing:
+  yes:
+    next: inputRemainingQty
+  no:
+    next: showLastProductLotNoNotExistsMessage

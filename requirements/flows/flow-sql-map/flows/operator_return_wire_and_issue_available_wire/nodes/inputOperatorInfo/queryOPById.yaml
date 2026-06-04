@@ -1,0 +1,29 @@
+subgraph_id: inputOperatorInfo
+node_id: queryOPById
+node_text: 查询 MES 数据库该操作人员
+access_type: mes_sql
+sql_ids:
+  - mes.operator.get_by_id
+business_meaning: 校验操作员工号是否存在，并取得操作员姓名。
+output_fields:
+  - name: operator_name
+    source_type: sql_catalog
+    source_ref: mes.operator.get_by_id
+    catalog_field: operator_name
+    source_text: MES 操作员姓名。
+input_mappings:
+  - name: user_id
+    source_node: inputOperatorWorkInfo
+    source_field: operator_id
+    source_text: 操作员输入工号、班组、班次中的工号。
+outcome_routing:
+  single:
+    next: checkOPIdExists
+  empty:
+    next: checkOPIdExists
+  multiple:
+    next: checkOPIdExists
+    note: 同一工号多行属于数据异常，判断节点统一转失败分支。
+  error:
+    next: showOPIdNotExistsMessage
+    note: 当前流程图未单列系统异常节点，先复用失败提示。

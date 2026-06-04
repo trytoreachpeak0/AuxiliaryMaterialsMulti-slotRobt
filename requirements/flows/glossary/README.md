@@ -1,6 +1,6 @@
 # 焊丝发放流程术语表
 
-本目录基于 `requirements/flows/diagrams/` 下 6 个 Mermaid 流程文件重建，未沿用旧 glossary 内容。
+本目录基于 `requirements/flows/diagrams/` 下 6 个 Mermaid 流程文件重建，未沿用旧 glossary 内容。流程可执行映射见同级 [`../flow-sql-map/`](../flow-sql-map/)。
 
 ## 文件说明
 

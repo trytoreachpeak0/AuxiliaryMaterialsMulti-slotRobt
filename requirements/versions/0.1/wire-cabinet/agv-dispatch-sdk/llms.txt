@@ -1,0 +1,11 @@
+# AgvDispatch SDK index
+docs/LLM集成指南.md
+docs/AGV调度场景与状态机.md
+docs/AGV调度SDK使用说明.md
+docs/schemas/AgvDispatchOptions.schema.json
+docs/fixtures/login.response.json
+docs/fixtures/vehicle-info.response.json
+docs/fixtures/order-detail.response.json
+docs/fixtures/create-order.request.json
+AgvDispatch.Sdk/appsettings.example.json
+AGENTS.md

@@ -1,0 +1,16 @@
+id: app.slot.are_all_doors_closed
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: >-
+  判断是否所有格口门都已关闭（isAllSlotDoorsClosed）。门状态由 MockSlotController 回写到 app_slot.door_state，
+  这里统计仍处于 open 的格口数量，为 0 则全部关闭。
+sql: |
+  SELECT CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END AS all_closed
+  FROM app_slot
+  WHERE door_state = 'open';
+outputs:
+  - all_closed
+result_cardinality: 1
+sample_result:
+  - all_closed: 1

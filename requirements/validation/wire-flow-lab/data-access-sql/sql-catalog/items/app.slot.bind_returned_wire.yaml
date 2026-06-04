@@ -1,0 +1,32 @@
+id: app.slot.bind_returned_wire
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  操作员将归还焊丝放入归还格口并关门后，绑定归还批号/规格，业务状态置为 returned_wire。
+sql: |
+  UPDATE app_slot
+  SET wire_lot_no = :wire_lot_no,
+      wire_spec   = :wire_spec,
+      wire_code   = :wire_code,
+      shelflife   = :shelflife,
+      matlot      = :matlot,
+      qty         = :qty,
+      wire_state  = :wire_state,
+      biz_state   = 'returned_wire',
+      door_state  = 'closed',
+      lock_state  = 'locked',
+      updated_at  = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+  - name: wire_lot_no
+  - name: wire_spec
+  - name: wire_code
+  - name: shelflife
+  - name: matlot
+  - name: qty
+  - name: wire_state
+outputs:
+  - rows_affected
+result_cardinality: write

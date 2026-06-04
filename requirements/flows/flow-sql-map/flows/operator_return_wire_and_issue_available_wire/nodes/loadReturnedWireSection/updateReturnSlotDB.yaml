@@ -1,0 +1,52 @@
+subgraph_id: loadReturnedWireSection
+node_id: updateReturnSlotDB
+node_text: 更新归还格口库存信息
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 关门后将归还批号/规格写入归还格口，biz_state=returned_wire。
+output_fields:
+  - name: rows_affected
+    source_type: sql_catalog
+    source_ref: app.slot.bind_returned_wire
+    catalog_field: rows_affected
+    source_text: 归还格口库存更新行数。
+input_mappings:
+  - name: slot_id
+    source_node: findReturnSlot
+    source_field: return_slot_id
+    source_text: 归还格口 ID。
+  - name: wire_lot_no
+    source_node: inputReturnedWireLotNo
+    source_field: returned_wire_lot_no
+    source_text: 归还焊丝批号。
+  - name: wire_spec
+    source_node: queryWireSpecByLotNo
+    source_field: spec
+    source_text: 归还焊丝规格。
+  - name: wire_code
+    source_node: queryWireSpecByLotNo
+    source_field: code
+    source_text: 归还焊丝物料编码。
+  - name: shelflife
+    source_node: queryWireSpecByLotNo
+    source_field: shelflife
+    source_text: 保质期。
+  - name: matlot
+    source_node: queryWireSpecByLotNo
+    source_field: matlot
+    source_text: 主批次。
+  - name: qty
+    source_node: queryWireSpecByLotNo
+    source_field: qty
+    source_text: 数量。
+  - name: wire_state
+    source_node: queryWireSpecByLotNo
+    source_field: state
+    source_text: MES 焊丝状态。
+outcome_routing:
+  success:
+    next: queryWireByLotNo
+  error:
+    next: showWireReturnFailMessage
+    note: 库存更新失败；执行异常由应用层统一提示。

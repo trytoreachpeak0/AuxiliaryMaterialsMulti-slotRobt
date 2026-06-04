@@ -1,0 +1,29 @@
+id: app.slot.get_status
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: 查询单个格口当前门状态、锁状态和业务状态（开门前读取格口状态）。
+sql: |
+  SELECT slot_id,
+         slot_no,
+         door_state AS slot_door_status,
+         lock_state,
+         biz_state
+  FROM app_slot
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+    source: inputSelectedSlot.selected_slot_id
+outputs:
+  - slot_id
+  - slot_no
+  - slot_door_status
+  - lock_state
+  - biz_state
+result_cardinality: 0..1
+sample_result:
+  - slot_id: 1
+    slot_no: A01
+    slot_door_status: closed
+    lock_state: locked
+    biz_state: available_wire

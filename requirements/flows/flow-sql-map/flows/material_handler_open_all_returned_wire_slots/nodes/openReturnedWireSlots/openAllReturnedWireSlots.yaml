@@ -1,0 +1,42 @@
+subgraph_id: openReturnedWireSlots
+node_id: openAllReturnedWireSlots
+node_text: 打开所有含有归还焊丝的格口
+access_type: application_db_and_slot_control
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 查询应用数据库中业务状态为归还焊丝的格口，并下发批量开门指令。
+output_fields:
+  - name: slot_id
+    source_type: sql_catalog
+    source_ref: app.slot.list_by_filter
+    catalog_field: slot_id
+    source_text: 含归还焊丝的格口 ID。
+  - name: slot_no
+    source_type: sql_catalog
+    source_ref: app.slot.list_by_filter
+    catalog_field: slot_no
+    source_text: 格口编号。
+  - name: biz_state
+    source_type: sql_catalog
+    source_ref: app.slot.list_by_filter
+    catalog_field: biz_state
+    source_text: 业务状态。
+  - name: door_state
+    source_type: sql_catalog
+    source_ref: app.slot.list_by_filter
+    catalog_field: door_state
+    source_text: 门状态。
+  - name: slot_ids
+    source_type: runtime
+    source_text: 批量开门格口 ID 列表。
+input_mappings:
+  - name: slot_filter
+    source_type: constant
+    value: returned_wire_slots
+    source_text: 过滤条件为“含有归还焊丝”的格口。
+outcome_routing:
+  success:
+    next: updateCorrespondingSlots
+  error:
+    next: End
+    note: 流程图未单列失败节点，实现时应提示开门失败并记录日志。

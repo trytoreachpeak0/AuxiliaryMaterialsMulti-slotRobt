@@ -1,8 +1,26 @@
 flow_id: material_handler_load_available_wire
 title: 物料员存入可用焊丝
-file: requirements/flows/diagrams/物料员存入可用焊丝.md
+file: diagrams/物料员存入可用焊丝.md
 description: 物料员录入可用焊丝批号，校验 MES 焊丝信息后放入空闲格口，并更新应用数据库格口业务信息。
 nodes_dir: nodes
+sections:
+  - subgraph_id: switchUI
+    title: 一、切换界面
+    node_ids: []
+  - subgraph_id: inputWireLotNo
+    title: 二、输入焊丝批号
+    node_ids:
+      - inputAvailableWireLotNo
+      - checkAvailableSlot
+      - queryWireSpecByLotNo
+      - checkWireLotNoExists
+      - checkWireSpecExists
+  - subgraph_id: openSlotLoadWire
+    title: 三、打开格口，存放焊丝
+    node_ids:
+      - openAvailableSlot
+      - closeAvailableSlotDoor
+      - updateDB
 node_order:
   - inputAvailableWireLotNo
   - checkAvailableSlot
@@ -13,11 +31,11 @@ node_order:
   - closeAvailableSlotDoor
   - updateDB
 node_files:
-  inputAvailableWireLotNo: nodes/inputAvailableWireLotNo.yaml
-  checkAvailableSlot: nodes/checkAvailableSlot.yaml
-  queryWireSpecByLotNo: nodes/queryWireSpecByLotNo.yaml
-  checkWireLotNoExists: nodes/checkWireLotNoExists.yaml
-  checkWireSpecExists: nodes/checkWireSpecExists.yaml
-  openAvailableSlot: nodes/openAvailableSlot.yaml
-  closeAvailableSlotDoor: nodes/closeAvailableSlotDoor.yaml
-  updateDB: nodes/updateDB.yaml
+  inputAvailableWireLotNo: nodes/inputWireLotNo/inputAvailableWireLotNo.yaml
+  checkAvailableSlot: nodes/inputWireLotNo/checkAvailableSlot.yaml
+  queryWireSpecByLotNo: nodes/inputWireLotNo/queryWireSpecByLotNo.yaml
+  checkWireLotNoExists: nodes/inputWireLotNo/checkWireLotNoExists.yaml
+  checkWireSpecExists: nodes/inputWireLotNo/checkWireSpecExists.yaml
+  openAvailableSlot: nodes/openSlotLoadWire/openAvailableSlot.yaml
+  closeAvailableSlotDoor: nodes/openSlotLoadWire/closeAvailableSlotDoor.yaml
+  updateDB: nodes/openSlotLoadWire/updateDB.yaml

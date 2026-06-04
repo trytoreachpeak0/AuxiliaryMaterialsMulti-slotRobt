@@ -1,0 +1,11 @@
+name: welding_wire_materials
+kind: table
+dialect: sqlite
+description: 焊丝规格与空盘重量（镜像现场 WeldingWireMaterials，见仓库根目录 WeldingWireMaterials.sql）。
+columns:
+  - { name: id, type: INTEGER, pk: true, description: 主键 }
+  - { name: material_type, type: TEXT, nullable: false, description: 物料类型 }
+  - { name: specification_model, type: TEXT, nullable: false, description: 规格型号，对应 MES spec }
+  - { name: empty_spool_weight, type: REAL, nullable: false, description: 空盘重量，查询别名 return_weight }
+  - { name: created_at, type: TEXT, description: 创建时间 }
+  - { name: updated_at, type: TEXT, description: 更新时间 }

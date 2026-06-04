@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "AgvDispatchOptions",
+  "title": "AgvDispatchOptions",
+  "type": "object",
+  "required": [
+    "BaseUrl",
+    "Username",
+    "Password",
+    "DefaultDeviceKey",
+    "DefaultMapId",
+    "VehicleQueryDeviceIds",
+    "PauseMovementMessageId",
+    "ContinueMovementMessageId"
+  ],
+  "properties": {
+    "BaseUrl": { "type": "string", "format": "uri", "description": "调度 API 根地址，如 http://host:8888" },
+    "Username": { "type": "string" },
+    "Password": { "type": "string" },
+    "DefaultDeviceKey": { "type": "string" },
+    "DefaultMapId": { "type": "integer" },
+    "DefaultOrderName": { "type": "string" },
+    "VehicleQueryDeviceIds": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+    "HttpTimeout": { "type": "string", "description": "TimeSpan 字符串" },
+    "ChargeDestination": { "type": "integer" },
+    "ChargeActionId": { "type": "integer" },
+    "ChargeActionName": { "type": "string" },
+    "ChargeActionParam1": { "type": "integer" },
+    "ChargeActionParam2": { "type": "integer" },
+    "ChargeOccupiedStationNames": { "type": "array", "items": { "type": "string" } },
+    "ChargeOccupiedPositions": { "type": "array", "items": { "type": "integer" } },
+    "PauseMovementMessageId": { "type": "integer" },
+    "ContinueMovementMessageId": { "type": "integer" },
+    "CancelEmergencyMessageId": { "type": "integer" },
+    "RecommendedPollIntervalMs": { "type": "integer" },
+    "StateThresholds": {
+      "type": "object",
+      "properties": {
+        "ExpectedDoorCount": { "type": "integer" },
+        "DoorClosedChar": { "type": "string", "maxLength": 1 },
+        "DoorOpenChar": { "type": "string", "maxLength": 1 },
+        "OrderStateCanceled": { "type": "integer" },
+        "OrderStatePending": { "type": "integer" }
+      }
+    }
+  }
+}

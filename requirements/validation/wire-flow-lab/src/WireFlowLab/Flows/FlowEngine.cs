@@ -424,6 +424,13 @@ public sealed class FlowEngine
         // 终止节点没有路由是正常的
         if (node.Type == NodeType.Terminal) return (null, findings);
 
+        // 执行失败：不回落到 single/yes，由界面统一提示并结束本流程（见 flow-sql-map README outcome_routing）
+        if (string.Equals(key, "error", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(Err(node, "执行失败", "SQL/连接/catalog 异常，未配置流程图 error 出边；流程终止。"));
+            return (null, findings);
+        }
+
         findings.Add(Warn(node, "未路由", $"结果 '{key}' 未在 outcome_routing 中定义。"));
 
         // 回退：优先 single/success，否则取第一个

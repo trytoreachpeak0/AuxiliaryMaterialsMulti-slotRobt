@@ -1,0 +1,13 @@
+subgraph_id: openSlot
+node_id: inputSelectedSlot
+node_text: 物料员选择单个格口
+access_type: user_input
+sql_ids: []
+business_meaning: 记录物料员在界面选择的目标格口。
+output_fields:
+  - name: selected_slot_id
+    source_type: ui_input
+    source_text: 物料员在界面选择的格口号。
+outcome_routing:
+  success:
+    next: openSingleSlot

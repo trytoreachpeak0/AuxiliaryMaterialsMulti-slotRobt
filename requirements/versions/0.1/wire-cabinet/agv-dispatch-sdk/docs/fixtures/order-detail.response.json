@@ -1,0 +1,12 @@
+{
+  "code": "0",
+  "result": {
+    "id": 10001,
+    "orderState": 1,
+    "startStationName": "待命点",
+    "endStationName": "物料间",
+    "mission": [
+      { "type": "move", "destination": 519, "mapId": 22 }
+    ]
+  }
+}

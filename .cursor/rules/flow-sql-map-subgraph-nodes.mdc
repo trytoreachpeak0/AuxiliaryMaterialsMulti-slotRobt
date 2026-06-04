@@ -1,0 +1,64 @@
+---
+description: flow-sql-map 节点目录与 Mermaid subgraph 对齐规则（diagrams ↔ index.yaml ↔ nodes/）
+globs: requirements/flows/flow-sql-map/**,requirements/flows/diagrams/**
+alwaysApply: false
+---
+
+# flow-sql-map 与流程图 subgraph 对齐
+
+## 三层对应关系
+
+| 层级 | 位置 | 职责 |
+|------|------|------|
+| 流程图 | `requirements/flows/diagrams/<name>.md` | Mermaid `subgraph <id>[标题]` 定义段落与节点 |
+| 流程索引 | `flow-sql-map/flows/<flow_id>/index.yaml` | `sections` + `node_files` + `node_order` |
+| 节点规格 | `flow-sql-map/flows/<flow_id>/nodes/<subgraph_id>/<node_id>.yaml` | 可执行节点字段 |
+
+## subgraph_id 规则
+
+1. **与 Mermaid 完全一致**：`subgraph inputOperatorInfo[...]` → 目录 `nodes/inputOperatorInfo/`，节点 YAML 首行 `subgraph_id: inputOperatorInfo`。
+2. **叶子 subgraph 放文件**：节点 YAML 放在**最内层**包含该节点的 subgraph 目录下，不要放在仅作容器的父 subgraph（如 `returnWire`）下。
+3. **避免与 node_id 冲突**：若 subgraph id 与某 node_id 同名，流程图侧加后缀（如 `inputReturnedWireLotNoSection`），map 沿用该 id，不要自行改名。
+4. **容器 subgraph**：`index.yaml` 的 `sections` 可列出无 YAML 的容器段（`node_ids: []`），并用 `parent_subgraph_id` 指向父段（如 `inputOperatorInfo.parent_subgraph_id: returnWire`）。
+
+## 改流程图时必做
+
+1. 改 `diagrams/*.md` 的 subgraph / 节点。
+2. 同步 `index.yaml`：
+   - `sections[].subgraph_id` / `title` / `node_ids`
+   - `node_files` 路径 `nodes/<subgraph_id>/<node_id>.yaml`
+   - 必要时更新 `node_order`
+3. 移动或新建节点 YAML，写入正确 `subgraph_id`。
+4. 仅 UI/路由、尚未实现 spec 的节点：`sections` 保留占位，`node_ids: []`，待补 stub。
+
+## index.yaml 字段
+
+```yaml
+sections:
+  - subgraph_id: returnWire          # 与 Mermaid subgraph id 一致
+    title: 1.2 归还焊丝               # 与 Mermaid 方括号标题一致
+    parent_subgraph_id: null          # 顶层容器为 null；可省略
+    node_ids: []                      # 容器段可为空
+  - subgraph_id: inputOperatorInfo
+    title: 1.2.1 输入操作员工号、班组、班次
+    parent_subgraph_id: returnWire
+    node_ids: [inputOperatorWorkInfo, queryOPById, checkOPIdExists]
+node_files:
+  queryOPById: nodes/inputOperatorInfo/queryOPById.yaml
+```
+
+## 节点 YAML 最少字段
+
+- `subgraph_id`、`node_id`、`access_type`、`sql_ids`
+- 有数据流时：`input_mappings`、`output_fields`、`outcome_routing`
+
+## 工具脚本
+
+- 批量迁移目录：`_tools/migrate_subgraph_nodes.py`（修改 `FLOW_SUBGRAPHS` 后执行）
+- 批量补 `output_fields`：`_tools/apply_output_fields.py`
+
+## 禁止
+
+- 不要在 `nodes/` 根下长期堆放扁平 `*.yaml`（新流程一律分子目录）。
+- 不要 invent 与流程图不同的 subgraph_id。
+- `outcome_routing.next` 指向的 node_id 必须在流程图存在；有 spec 的必须在 `node_files` 有路径。

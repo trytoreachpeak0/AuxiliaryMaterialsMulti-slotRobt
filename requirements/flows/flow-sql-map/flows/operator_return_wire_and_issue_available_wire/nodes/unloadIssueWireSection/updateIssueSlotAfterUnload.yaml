@@ -1,0 +1,24 @@
+subgraph_id: unloadIssueWireSection
+node_id: updateIssueSlotAfterUnload
+node_text: 更新领用格口库存（已取出）
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 关门后将领用格口置为 idle 并清空焊丝绑定（柜内该卷已领走）。
+output_fields:
+  - name: rows_affected
+    source_type: sql_catalog
+    source_ref: app.slot.complete_issue_pickup
+    catalog_field: rows_affected
+    source_text: 领用格口库存更新行数。
+input_mappings:
+  - name: slot_id
+    source_node: queryMatchedAvailableWire
+    source_field: slot_id
+    source_text: 领用格口 ID。
+outcome_routing:
+  success:
+    next: End
+  error:
+    next: showWireIssueFailMessage
+    note: 库存更新失败；执行异常由应用层统一提示。

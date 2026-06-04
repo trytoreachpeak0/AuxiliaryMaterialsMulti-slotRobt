@@ -1,0 +1,87 @@
+subgraph_id: submitWireIssueSection
+node_id: submitWireIssue
+node_text: 提交焊丝领用请求
+access_type: mes_function
+sql_ids:
+  - mes.mat_trans.submit_return
+business_meaning: 调用 FWMES.FUN_MAT_TRANS_NEW 提交焊丝领用事务。
+output_fields:
+  - name: result
+    source_type: sql_catalog
+    source_ref: mes.mat_trans.submit_return
+    catalog_field: result
+    source_text: MES 领用事务返回结果；空或 SUCCESS 为成功。
+input_mappings:
+  - name: V_Step
+    source_node: queryProductByLotNo
+    source_field: step
+    source_text: 产品批次当前工序；为空时按业务默认“焊线”。
+  - name: v_Task
+    source_type: constant
+    value: 领用
+    source_text: 领用流程固定传“领用”。
+  - name: v_Eqp
+    source_node: inputEqpNo
+    source_field: eqp_no
+    source_text: 操作员输入并校验通过的机台号。
+  - name: v_Code
+    source_node: queryWireByLotNo
+    source_field: code
+    source_text: 可用焊丝物料编码。
+  - name: v_Matlot
+    source_node: queryMatchedAvailableWire
+    source_field: matched_available_wire_lot_no
+    source_text: 可用焊丝批号。
+  - name: v_MatFromLot
+    source_node: queryWireByLotNo
+    source_field: matlot
+    source_text: 可用焊丝主批次。
+  - name: v_Qty
+    source_node: queryWireByLotNo
+    source_field: qty
+    source_text: 可用焊丝数量。
+  - name: v_Count
+    source_type: constant
+    value: "1"
+    source_text: 当前业务固定传 "1"。
+  - name: v_PrdLot
+    source_node: queryLastProductLotNo
+    source_field: lot
+    source_text: 机台最近生产产品批号。
+  - name: v_PrdQty
+    source_node: queryProductByLotNo
+    source_field: qty
+    source_text: 产品批次未关闭子批数量合计。
+  - name: V_ShelfLife
+    source_node: queryWireByLotNo
+    source_field: shelflife
+    source_text: 可用焊丝保质期。
+  - name: V_Opr
+    source_node: inputOperatorWorkInfo
+    source_field: operator_id
+    source_text: 操作员工号。
+  - name: V_Remark
+    source_type: constant
+    value: ""
+    source_text: 领用流程传空字符串。
+  - name: V_Workgroup
+    source_node: inputOperatorWorkInfo
+    source_field: work_group
+    source_text: 操作员输入班组。
+  - name: V_Shift
+    source_node: inputOperatorWorkInfo
+    source_field: shift
+    source_text: 操作员输入班次。
+  - name: v_Writer
+    source_type: system_parameter
+    source_field: configured_agv_no
+    source_text: 系统配置的 AGV/设备编号；不是数据库查询结果，也不是用户输入。
+  - name: V_SESSION
+    source_type: constant
+    value: ""
+    source_text: 会话标识，当前业务可传空字符串。
+outcome_routing:
+  single:
+    next: checkSubmitWireIssueSuccess
+  error:
+    next: showWireIssueFailMessage

@@ -1,0 +1,29 @@
+subgraph_id: closeSlotDoors
+node_id: updateSlot
+node_text: 更新单个格口状态
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: >-
+  物料员关闭单个格口门后：写 door/lock；对本流程已打开格口账面假定已清空（idle + 清空 wire_*，见 0.1 §3.2.1，app.slot.assume_empty）。
+output_fields:
+  - name: rows_affected
+    source_type: sql_catalog
+    source_ref: app.slot.update_state
+    catalog_field: rows_affected
+    source_text: 关门后状态更新行数。
+input_mappings:
+  - name: slot_id
+    source_node: closeSingleSlotDoor
+    source_field: slot_id
+    source_text: 本次关闭的格口。
+  - name: door_closed
+    source_node: closeSingleSlotDoor
+    source_field: closed
+    source_text: 单个格口门关闭确认事件。
+outcome_routing:
+  success:
+    next: isAllSlotDoorsClosed
+  error:
+    next: isAllSlotDoorsClosed
+    note: 流程图未单列失败节点，实现时应记录日志并提示人工处理。

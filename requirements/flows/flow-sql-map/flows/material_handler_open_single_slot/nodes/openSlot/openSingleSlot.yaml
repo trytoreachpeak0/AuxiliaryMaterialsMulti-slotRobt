@@ -1,0 +1,52 @@
+subgraph_id: openSlot
+node_id: openSingleSlot
+node_text: 打开单个格口
+access_type: application_db_and_slot_control
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 根据物料员选择的格口查询当前状态，并下发单格口开门指令。
+output_fields:
+  - name: slot_id
+    source_type: sql_catalog
+    source_ref: app.slot.get_status
+    catalog_field: slot_id
+    source_text: 格口 ID。
+  - name: slot_no
+    source_type: sql_catalog
+    source_ref: app.slot.get_status
+    catalog_field: slot_no
+    source_text: 格口编号。
+  - name: slot_door_status
+    source_type: sql_catalog
+    source_ref: app.slot.get_status
+    catalog_field: slot_door_status
+    source_text: 开门前门状态。
+  - name: lock_state
+    source_type: sql_catalog
+    source_ref: app.slot.get_status
+    catalog_field: lock_state
+    source_text: 锁状态。
+  - name: biz_state
+    source_type: sql_catalog
+    source_ref: app.slot.get_status
+    catalog_field: biz_state
+    source_text: 格口业务状态。
+  - name: opened_slot_id
+    source_type: slot_control
+    source_ref: app.slot.open
+    source_text: 门控开门后回写的格口 ID（与 slot_id 一致）。
+input_mappings:
+  - name: slot_id
+    source_node: inputSelectedSlot
+    source_field: selected_slot_id
+    source_text: 物料员选择的格口号。
+  - name: slot_status
+    source_type: application_db
+    source_field: slot_status
+    source_text: 当前格口门状态和业务状态。
+outcome_routing:
+  success:
+    next: updateCorrespondingSlot
+  error:
+    next: End
+    note: 流程图未单列失败节点，实现时应提示开门失败并记录日志。

@@ -6,13 +6,12 @@
 
 | 目录 | 作用 |
 |---|---|
-| [versions/0.1](versions/0.1/) | 当前调试演示版本，定义 0.1 必须实现和验收的范围 |
+| [versions/0.1](versions/0.1/) | 当前调试演示版本：需求/设计文档；可运行工程在 [versions/0.1/wire-cabinet](versions/0.1/wire-cabinet/) |
 | [versions/0.2](versions/0.2/) | 预留给下一阶段增量需求 |
 | [versions/final](versions/final/) | 最终生产版本的完整建设方向 |
 | [baseline](baseline/) | 完整分层需求资料来源，不直接代表当前版本范围 |
-| [flows/diagrams](flows/diagrams/) | 焊丝发放相关流程图 |
-| [flows/glossary](flows/glossary/) | 流程、节点、术语对照 |
-| [data-access-sql](data-access-sql/) | MES、应用数据库等数据访问 SQL、schema 和流程映射 |
+| [flows](flows/) | 流程图、术语、可执行映射（`diagrams/`、`glossary/`、`flow-sql-map/`） |
+| [data-access-sql](data-access-sql/) | MES、应用数据库等数据访问 SQL 与 schema（`sql-catalog/`、`schema/`） |
 | [validation/wire-flow-lab](validation/wire-flow-lab/) | 焊丝发放流程验证工具资料，非最终交付品 |
 
 ## Version Priority
@@ -25,5 +24,6 @@
 
 - 版本目录只记录该版本要实现、测试和验收的内容。
 - `baseline/` 保留完整需求源文档，作为版本拆分和详细设计依据。
-- `data-access-sql/` 可以同时记录 MES 与应用数据库 SQL，通过 `system`、`datasource` 和目录说明区分来源。
+- `flows/flow-sql-map/` 描述流程节点如何引用 `data-access-sql/sql-catalog/` 中的 SQL；流程图在 `flows/diagrams/`。
+- `data-access-sql/` 只维护 SQL 与表结构，通过 `system`、`datasource` 区分 MES 与应用库。
 - `validation/` 下的内容只服务流程跑通、逻辑校验、SQL 校验和缺口发现，不作为最终交付物。

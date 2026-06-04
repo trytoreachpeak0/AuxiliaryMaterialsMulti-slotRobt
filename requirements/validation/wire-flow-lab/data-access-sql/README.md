@@ -9,7 +9,7 @@
 | `sql-catalog/items/mes.*.yaml` | `sql-catalog/items/mes_mock.*.yaml` | 把 MES 的 Oracle 原生 SQL / 存储函数改写为 SQLite 等价语句（mock 表）。原生 Oracle SQL 以 `oracle_sql` 字段保留备查。 |
 | （此前缺失的应用库 SQL） | `sql-catalog/items/app.*.yaml` | 补齐 `flow-sql-map` 中 `catalog_status: pending_catalog` / `sql_ids: []` 的应用数据库与格口控制节点的 SQLite SQL。 |
 | `schema/tables/*.yaml` | `schema/tables/*.yaml` | MES mock 表 + 新增应用库表（`app_slot` / `app_returned_weight` / `app_operation_log`）。 |
-| `flow-sql-map/flows/<id>/nodes/*.yaml`（每节点一文件） | `flow-sql-map/flows/<id>/flow.yaml`（每流程一文件） | 为便于流程引擎单步执行，按流程聚合为单个 `flow.yaml`，字段语义与正式 map 一致（`node_order` / `input_mappings` / `outcome_routing` / `sql_ids`），并把缺 SQL 的节点补上 `sql_id`。 |
+| 正式 `../../flows/flow-sql-map/flows/<id>/nodes/*.yaml`（每节点一文件） | 本目录 `flow-sql-map/flows/<id>/flow.yaml`（每流程一文件） | 为便于流程引擎单步执行，按流程聚合为单个 `flow.yaml`，字段语义与正式 map 一致（`node_order` / `input_mappings` / `outcome_routing` / `sql_ids`），并把缺 SQL 的节点补上 `sql_id`。 |
 
 ## 与正式 catalog 的同步记录（findings C-1～C-4）
 

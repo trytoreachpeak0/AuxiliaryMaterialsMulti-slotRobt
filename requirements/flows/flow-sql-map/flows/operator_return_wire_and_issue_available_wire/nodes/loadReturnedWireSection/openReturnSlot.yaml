@@ -1,0 +1,24 @@
+subgraph_id: loadReturnedWireSection
+node_id: openReturnSlot
+node_text: 发货柜打开归还格口
+access_type: application_db_and_slot_control
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 对 findReturnSlot 选出的格口下发开门指令并落库 door=open。
+output_fields:
+  - name: opened_slot_id
+    source_type: sql_catalog
+    source_ref: app.slot.open
+    catalog_field: opened_slot_id
+    source_text: 已打开的归还格口 ID。
+input_mappings:
+  - name: slot_id
+    source_node: findReturnSlot
+    source_field: return_slot_id
+    source_text: 归还目标格口。
+outcome_routing:
+  success:
+    next: showLoadWireAndCloseDoorMessage
+  error:
+    next: showNoReturnSlotAvailableMessage
+    note: 开门失败按无可用归还格口处理并记录日志；执行异常由应用层统一提示。

@@ -1,0 +1,28 @@
+id: app.slot.list_by_filter
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: >-
+  按过滤条件列出需要打开的格口集合，供 openAllSlots / openAllAvailableWireSlots / openAllReturnedWireSlots 复用。
+  filter 取值：all_slots（全部）、available_wire_slots（含可用焊丝）、returned_wire_slots（含归还焊丝）。
+sql: |
+  SELECT slot_id, slot_no, biz_state, door_state
+  FROM app_slot
+  WHERE (:filter = 'all_slots')
+     OR (:filter = 'available_wire_slots' AND biz_state = 'available_wire')
+     OR (:filter = 'returned_wire_slots'  AND biz_state = 'returned_wire')
+  ORDER BY slot_no;
+params:
+  - name: filter
+    note: all_slots | available_wire_slots | returned_wire_slots
+outputs:
+  - slot_id
+  - slot_no
+  - biz_state
+  - door_state
+result_cardinality: 0..n
+sample_result:
+  - slot_id: 5
+    slot_no: A05
+    biz_state: available_wire
+    door_state: closed

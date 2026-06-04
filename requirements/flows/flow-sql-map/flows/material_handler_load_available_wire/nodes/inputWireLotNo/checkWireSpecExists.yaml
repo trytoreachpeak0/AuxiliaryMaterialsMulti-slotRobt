@@ -1,0 +1,24 @@
+subgraph_id: inputWireLotNo
+node_id: checkWireSpecExists
+node_text: 焊丝规格数据是否存在
+access_type: decision
+sql_ids: []
+business_meaning: 判断 MES 返回的焊丝规格是否有效，供后续写入可用焊丝库存。
+input_mappings:
+  - name: spec
+    source_node: queryWireSpecByLotNo
+    source_field: spec
+    source_text: MES 查询到的可用焊丝规格。
+decision_rule:
+  success_when:
+    - condition: is_not_null_or_empty
+      field: spec
+      meaning: spec 非空时认为焊丝规格数据存在。
+  failure_when:
+    - condition: otherwise
+      meaning: spec 为空时提示焊丝规格不存在。
+outcome_routing:
+  yes:
+    next: openAvailableSlot
+  no:
+    next: showWireSpecNotExistsMessage

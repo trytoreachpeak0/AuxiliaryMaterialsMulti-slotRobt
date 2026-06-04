@@ -1,8 +1,106 @@
 flow_id: operator_return_wire_and_issue_available_wire
 title: 操作员存入归还焊丝并取出可用焊丝
-file: requirements/flows/diagrams/操作员存入归还焊丝取出可用焊丝.md
+file: diagrams/操作员存入归还焊丝取出可用焊丝.md
 description: 操作员先归还旧焊丝，再从发货柜取出匹配规格的可用焊丝。
 nodes_dir: nodes
+sections:
+  - subgraph_id: switchUI
+    title: 1.1 切换界面
+    node_ids: []
+  - subgraph_id: returnWire
+    title: 1.2 归还焊丝
+    parent_subgraph_id: null
+    node_ids: []
+  - subgraph_id: inputOperatorInfo
+    title: 1.2.1 输入操作员工号、班组、班次
+    parent_subgraph_id: returnWire
+    node_ids:
+      - inputOperatorWorkInfo
+      - queryOPById
+      - checkOPIdExists
+  - subgraph_id: inputReturnedWireLotNoSection
+    title: 1.2.2 输入焊丝批号
+    parent_subgraph_id: returnWire
+    node_ids:
+      - inputReturnedWireLotNo
+      - queryWireSpecByLotNo
+      - checkWireLotNoExists
+      - checkWireSpecExists
+      - queryMatchedAvailableWire
+      - checkMatchedWireExists
+  - subgraph_id: queryReturnedWeightSection
+    title: 1.2.3 获取焊丝归还重量
+    parent_subgraph_id: returnWire
+    node_ids:
+      - queryWireReturnedWeightBySpec
+      - checkReturnedWeightExists
+  - subgraph_id: inputEqpNoSection
+    title: 1.2.4 输入机台号
+    parent_subgraph_id: returnWire
+    node_ids:
+      - inputEqpNo
+      - queryEqpByEqpNo
+      - checkEqpNoExists
+  - subgraph_id: queryLastProductLotNoSection
+    title: 1.2.5 获取机台最近生产的产品批次号
+    parent_subgraph_id: returnWire
+    node_ids:
+      - queryLastProductLotNo
+      - checkLastProductLotNoExists
+  - subgraph_id: inputRemainingQtySection
+    title: 1.2.6 输入产品剩余待焊芯片数量
+    parent_subgraph_id: returnWire
+    node_ids:
+      - inputRemainingQty
+      - queryWireQuotaCheck
+      - checkWireQuotaLE500
+      - showRemainingQtyWrongHint
+  - subgraph_id: submitWireReturnSection
+    title: 1.2.7 提交归还焊丝请求
+    parent_subgraph_id: returnWire
+    node_ids:
+      - submitWireReturn
+      - checkSubmitWireReturnSuccess
+  - subgraph_id: loadReturnedWireSection
+    title: 1.2.8 操作员存入归还焊丝
+    parent_subgraph_id: returnWire
+    node_ids:
+      - showWireReturnSuccessMessage
+      - findReturnSlot
+      - checkReturnSlotExists
+      - openReturnSlot
+      - showLoadWireAndCloseDoorMessage
+      - loadReturnedWire
+      - closeReturnSlotDoor
+      - updateReturnSlotDB
+  - subgraph_id: issueWire
+    title: 1.3 领用焊丝
+    parent_subgraph_id: null
+    node_ids: []
+  - subgraph_id: queryWireAndProductSection
+    title: 1.3.1 查询该可用焊丝信息和查询产品批次信息
+    parent_subgraph_id: issueWire
+    node_ids:
+      - queryWireByLotNo
+      - checkWireInfoExists
+      - queryProductByLotNo
+      - checkProductInfoExists
+  - subgraph_id: submitWireIssueSection
+    title: 1.3.2 提交领用焊丝请求
+    parent_subgraph_id: issueWire
+    node_ids:
+      - submitWireIssue
+      - checkSubmitWireIssueSuccess
+  - subgraph_id: unloadIssueWireSection
+    title: 1.3.3 操作员取出领用焊丝
+    parent_subgraph_id: issueWire
+    node_ids:
+      - showWireIssueSuccessMessage
+      - openIssueSlot
+      - showUnloadWireAndCloseDoorMessage
+      - unloadWire
+      - closeIssueSlotDoor
+      - updateIssueSlotAfterUnload
 node_order:
   - inputOperatorWorkInfo
   - queryOPById
@@ -23,39 +121,69 @@ node_order:
   - inputRemainingQty
   - queryWireQuotaCheck
   - checkWireQuotaLE500
+  - showRemainingQtyWrongHint
   - submitWireReturn
   - checkSubmitWireReturnSuccess
+  - showWireReturnSuccessMessage
+  - findReturnSlot
+  - checkReturnSlotExists
+  - openReturnSlot
+  - showLoadWireAndCloseDoorMessage
+  - loadReturnedWire
+  - closeReturnSlotDoor
+  - updateReturnSlotDB
   - queryWireByLotNo
   - checkWireInfoExists
   - queryProductByLotNo
   - checkProductInfoExists
   - submitWireIssue
   - checkSubmitWireIssueSuccess
+  - showWireIssueSuccessMessage
+  - openIssueSlot
+  - showUnloadWireAndCloseDoorMessage
+  - unloadWire
+  - closeIssueSlotDoor
+  - updateIssueSlotAfterUnload
 node_files:
-  inputOperatorWorkInfo: nodes/inputOperatorWorkInfo.yaml
-  queryOPById: nodes/queryOPById.yaml
-  checkOPIdExists: nodes/checkOPIdExists.yaml
-  inputReturnedWireLotNo: nodes/inputReturnedWireLotNo.yaml
-  queryWireSpecByLotNo: nodes/queryWireSpecByLotNo.yaml
-  checkWireLotNoExists: nodes/checkWireLotNoExists.yaml
-  checkWireSpecExists: nodes/checkWireSpecExists.yaml
-  queryMatchedAvailableWire: nodes/queryMatchedAvailableWire.yaml
-  checkMatchedWireExists: nodes/checkMatchedWireExists.yaml
-  queryWireReturnedWeightBySpec: nodes/queryWireReturnedWeightBySpec.yaml
-  checkReturnedWeightExists: nodes/checkReturnedWeightExists.yaml
-  inputEqpNo: nodes/inputEqpNo.yaml
-  queryEqpByEqpNo: nodes/queryEqpByEqpNo.yaml
-  checkEqpNoExists: nodes/checkEqpNoExists.yaml
-  queryLastProductLotNo: nodes/queryLastProductLotNo.yaml
-  checkLastProductLotNoExists: nodes/checkLastProductLotNoExists.yaml
-  inputRemainingQty: nodes/inputRemainingQty.yaml
-  queryWireQuotaCheck: nodes/queryWireQuotaCheck.yaml
-  checkWireQuotaLE500: nodes/checkWireQuotaLE500.yaml
-  submitWireReturn: nodes/submitWireReturn.yaml
-  checkSubmitWireReturnSuccess: nodes/checkSubmitWireReturnSuccess.yaml
-  queryWireByLotNo: nodes/queryWireByLotNo.yaml
-  checkWireInfoExists: nodes/checkWireInfoExists.yaml
-  queryProductByLotNo: nodes/queryProductByLotNo.yaml
-  checkProductInfoExists: nodes/checkProductInfoExists.yaml
-  submitWireIssue: nodes/submitWireIssue.yaml
-  checkSubmitWireIssueSuccess: nodes/checkSubmitWireIssueSuccess.yaml
+  inputOperatorWorkInfo: nodes/inputOperatorInfo/inputOperatorWorkInfo.yaml
+  queryOPById: nodes/inputOperatorInfo/queryOPById.yaml
+  checkOPIdExists: nodes/inputOperatorInfo/checkOPIdExists.yaml
+  inputReturnedWireLotNo: nodes/inputReturnedWireLotNoSection/inputReturnedWireLotNo.yaml
+  queryWireSpecByLotNo: nodes/inputReturnedWireLotNoSection/queryWireSpecByLotNo.yaml
+  checkWireLotNoExists: nodes/inputReturnedWireLotNoSection/checkWireLotNoExists.yaml
+  checkWireSpecExists: nodes/inputReturnedWireLotNoSection/checkWireSpecExists.yaml
+  queryMatchedAvailableWire: nodes/inputReturnedWireLotNoSection/queryMatchedAvailableWire.yaml
+  checkMatchedWireExists: nodes/inputReturnedWireLotNoSection/checkMatchedWireExists.yaml
+  queryWireReturnedWeightBySpec: nodes/queryReturnedWeightSection/queryWireReturnedWeightBySpec.yaml
+  checkReturnedWeightExists: nodes/queryReturnedWeightSection/checkReturnedWeightExists.yaml
+  inputEqpNo: nodes/inputEqpNoSection/inputEqpNo.yaml
+  queryEqpByEqpNo: nodes/inputEqpNoSection/queryEqpByEqpNo.yaml
+  checkEqpNoExists: nodes/inputEqpNoSection/checkEqpNoExists.yaml
+  queryLastProductLotNo: nodes/queryLastProductLotNoSection/queryLastProductLotNo.yaml
+  checkLastProductLotNoExists: nodes/queryLastProductLotNoSection/checkLastProductLotNoExists.yaml
+  inputRemainingQty: nodes/inputRemainingQtySection/inputRemainingQty.yaml
+  queryWireQuotaCheck: nodes/inputRemainingQtySection/queryWireQuotaCheck.yaml
+  checkWireQuotaLE500: nodes/inputRemainingQtySection/checkWireQuotaLE500.yaml
+  showRemainingQtyWrongHint: nodes/inputRemainingQtySection/showRemainingQtyWrongHint.yaml
+  submitWireReturn: nodes/submitWireReturnSection/submitWireReturn.yaml
+  checkSubmitWireReturnSuccess: nodes/submitWireReturnSection/checkSubmitWireReturnSuccess.yaml
+  showWireReturnSuccessMessage: nodes/loadReturnedWireSection/showWireReturnSuccessMessage.yaml
+  findReturnSlot: nodes/loadReturnedWireSection/findReturnSlot.yaml
+  checkReturnSlotExists: nodes/loadReturnedWireSection/checkReturnSlotExists.yaml
+  openReturnSlot: nodes/loadReturnedWireSection/openReturnSlot.yaml
+  showLoadWireAndCloseDoorMessage: nodes/loadReturnedWireSection/showLoadWireAndCloseDoorMessage.yaml
+  loadReturnedWire: nodes/loadReturnedWireSection/loadReturnedWire.yaml
+  closeReturnSlotDoor: nodes/loadReturnedWireSection/closeReturnSlotDoor.yaml
+  updateReturnSlotDB: nodes/loadReturnedWireSection/updateReturnSlotDB.yaml
+  queryWireByLotNo: nodes/queryWireAndProductSection/queryWireByLotNo.yaml
+  checkWireInfoExists: nodes/queryWireAndProductSection/checkWireInfoExists.yaml
+  queryProductByLotNo: nodes/queryWireAndProductSection/queryProductByLotNo.yaml
+  checkProductInfoExists: nodes/queryWireAndProductSection/checkProductInfoExists.yaml
+  submitWireIssue: nodes/submitWireIssueSection/submitWireIssue.yaml
+  checkSubmitWireIssueSuccess: nodes/submitWireIssueSection/checkSubmitWireIssueSuccess.yaml
+  showWireIssueSuccessMessage: nodes/unloadIssueWireSection/showWireIssueSuccessMessage.yaml
+  openIssueSlot: nodes/unloadIssueWireSection/openIssueSlot.yaml
+  showUnloadWireAndCloseDoorMessage: nodes/unloadIssueWireSection/showUnloadWireAndCloseDoorMessage.yaml
+  unloadWire: nodes/unloadIssueWireSection/unloadWire.yaml
+  closeIssueSlotDoor: nodes/unloadIssueWireSection/closeIssueSlotDoor.yaml
+  updateIssueSlotAfterUnload: nodes/unloadIssueWireSection/updateIssueSlotAfterUnload.yaml

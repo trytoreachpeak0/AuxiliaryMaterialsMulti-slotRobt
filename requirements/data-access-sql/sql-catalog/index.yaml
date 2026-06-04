@@ -16,3 +16,5 @@ sql_items_index:
     path: items/mes.wire_quota.check_quota.yaml
   - id: mes.mat_trans.submit_return
     path: items/mes.mat_trans.submit_return.yaml
+  - id: app.returned_weight.get_by_spec
+    path: items/app.returned_weight.get_by_spec.yaml

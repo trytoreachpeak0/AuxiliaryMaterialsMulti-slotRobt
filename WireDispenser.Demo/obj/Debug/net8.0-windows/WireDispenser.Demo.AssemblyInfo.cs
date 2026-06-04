@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WireDispenser.Demo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+52df2b28064ea5c62649b837fa3fb4ddb20725d9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d179231876d145cf3f470336aba04ced6938ee06")]
 [assembly: System.Reflection.AssemblyProductAttribute("WireDispenser.Demo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WireDispenser.Demo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

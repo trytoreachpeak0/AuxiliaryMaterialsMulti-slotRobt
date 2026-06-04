@@ -1,0 +1,7 @@
+{
+  "mission": [
+    { "destination": 519, "mapId": 22, "type": "move" }
+  ],
+  "orderName": "order006",
+  "appointVehicleKey": "BROKERX-example"
+}

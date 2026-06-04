@@ -20,4 +20,4 @@
 - **编辑**：只改 `items/<id>.yaml`。
 - **索引**：新增或改名条目时，同步维护 `index.yaml`。
 
-字段说明见上级 [README.md](../README.md)。
+流程节点如何引用本目录 SQL，见 [`../../flows/flow-sql-map/`](../../flows/flow-sql-map/)。字段说明见上级 [README.md](../README.md)。

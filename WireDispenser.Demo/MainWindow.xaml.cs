@@ -47,4 +47,10 @@ public partial class MainWindow : Window
     {
         Close();
     }
+
+    public void SetStatus(string message)
+    {
+        if (StatusText != null)
+            StatusText.Text = message;
+    }
 }

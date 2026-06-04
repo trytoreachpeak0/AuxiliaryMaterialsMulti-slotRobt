@@ -2,12 +2,18 @@ version: 1
 owner: wire-flow-lab 验证工具
 dialect: sqlite
 description: >-
-  焊丝发放流程验证（SQLite）SQL 清单。app.* 为应用数据库真实执行的 SQL，补齐正式 flow-sql-map
+  焊丝发放流程验证（SQLite）SQL 清单。app.* 为应用数据库真实执行的 SQL，补齐正式 flows/flow-sql-map
   中缺 SQL 的节点；mes_mock.* 为 MES 在 mock 模式下的 SQLite 等价 SQL（原生 Oracle 保留在 oracle_sql 字段）。
 sql_items_index:
   # 应用数据库（真实 SQLite 执行）
   - id: app.slot.find_available
     path: items/app.slot.find_available.yaml
+  - id: app.slot.find_return_slot
+    path: items/app.slot.find_return_slot.yaml
+  - id: app.slot.bind_returned_wire
+    path: items/app.slot.bind_returned_wire.yaml
+  - id: app.slot.complete_issue_pickup
+    path: items/app.slot.complete_issue_pickup.yaml
   - id: app.wire_inventory.find_matched_available
     path: items/app.wire_inventory.find_matched_available.yaml
   - id: app.returned_weight.get_by_spec

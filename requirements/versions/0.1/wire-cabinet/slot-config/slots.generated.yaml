@@ -1,0 +1,329 @@
+schema_version: '0.1'
+generated_at: '2026-06-04T08:19:36Z'
+source: 仓位信息/仓位编号.xlsx
+slot_count: 54
+slots:
+- slot_index: 1
+  door_position: front(1,1)
+  slot_code: F-A01
+  display_name_short: 前-A01
+  display_name: 前面 A行 1列
+  side: front
+- slot_index: 2
+  door_position: front(2,1)
+  slot_code: F-A02
+  display_name_short: 前-A02
+  display_name: 前面 A行 2列
+  side: front
+- slot_index: 3
+  door_position: front(3,1)
+  slot_code: F-A03
+  display_name_short: 前-A03
+  display_name: 前面 A行 3列
+  side: front
+- slot_index: 4
+  door_position: front(1,2)
+  slot_code: F-B01
+  display_name_short: 前-B01
+  display_name: 前面 B行 1列
+  side: front
+- slot_index: 5
+  door_position: front(2,2)
+  slot_code: F-B02
+  display_name_short: 前-B02
+  display_name: 前面 B行 2列
+  side: front
+- slot_index: 6
+  door_position: front(3,2)
+  slot_code: F-B03
+  display_name_short: 前-B03
+  display_name: 前面 B行 3列
+  side: front
+- slot_index: 7
+  door_position: front(1,3)
+  slot_code: F-C01
+  display_name_short: 前-C01
+  display_name: 前面 C行 1列
+  side: front
+- slot_index: 8
+  door_position: front(2,3)
+  slot_code: F-C02
+  display_name_short: 前-C02
+  display_name: 前面 C行 2列
+  side: front
+- slot_index: 9
+  door_position: front(3,3)
+  slot_code: F-C03
+  display_name_short: 前-C03
+  display_name: 前面 C行 3列
+  side: front
+- slot_index: 10
+  door_position: front(1,4)
+  slot_code: F-D01
+  display_name_short: 前-D01
+  display_name: 前面 D行 1列
+  side: front
+- slot_index: 11
+  door_position: front(2,4)
+  slot_code: F-D02
+  display_name_short: 前-D02
+  display_name: 前面 D行 2列
+  side: front
+- slot_index: 12
+  door_position: front(3,4)
+  slot_code: F-D03
+  display_name_short: 前-D03
+  display_name: 前面 D行 3列
+  side: front
+- slot_index: 13
+  door_position: front(1,5)
+  slot_code: F-E01
+  display_name_short: 前-E01
+  display_name: 前面 E行 1列
+  side: front
+- slot_index: 14
+  door_position: front(2,5)
+  slot_code: F-E02
+  display_name_short: 前-E02
+  display_name: 前面 E行 2列
+  side: front
+- slot_index: 15
+  door_position: front(3,5)
+  slot_code: F-E03
+  display_name_short: 前-E03
+  display_name: 前面 E行 3列
+  side: front
+- slot_index: 16
+  door_position: front(1,6)
+  slot_code: F-F01
+  display_name_short: 前-F01
+  display_name: 前面 F行 1列
+  side: front
+- slot_index: 17
+  door_position: front(2,6)
+  slot_code: F-F02
+  display_name_short: 前-F02
+  display_name: 前面 F行 2列
+  side: front
+- slot_index: 18
+  door_position: front(3,6)
+  slot_code: F-F03
+  display_name_short: 前-F03
+  display_name: 前面 F行 3列
+  side: front
+- slot_index: 19
+  door_position: front(1,7)
+  slot_code: F-G01
+  display_name_short: 前-G01
+  display_name: 前面 G行 1列
+  side: front
+- slot_index: 20
+  door_position: front(2,7)
+  slot_code: F-G02
+  display_name_short: 前-G02
+  display_name: 前面 G行 2列
+  side: front
+- slot_index: 21
+  door_position: front(3,7)
+  slot_code: F-G03
+  display_name_short: 前-G03
+  display_name: 前面 G行 3列
+  side: front
+- slot_index: 22
+  door_position: front(1,8)
+  slot_code: F-H01
+  display_name_short: 前-H01
+  display_name: 前面 H行 1列
+  side: front
+- slot_index: 23
+  door_position: front(2,8)
+  slot_code: F-H02
+  display_name_short: 前-H02
+  display_name: 前面 H行 2列
+  side: front
+- slot_index: 24
+  door_position: front(3,8)
+  slot_code: F-H03
+  display_name_short: 前-H03
+  display_name: 前面 H行 3列
+  side: front
+- slot_index: 25
+  door_position: front(1,9)
+  slot_code: F-I01
+  display_name_short: 前-I01
+  display_name: 前面 I行 1列
+  side: front
+- slot_index: 26
+  door_position: front(2,9)
+  slot_code: F-I02
+  display_name_short: 前-I02
+  display_name: 前面 I行 2列
+  side: front
+- slot_index: 27
+  door_position: front(3,9)
+  slot_code: F-I03
+  display_name_short: 前-I03
+  display_name: 前面 I行 3列
+  side: front
+- slot_index: 28
+  door_position: rear(1,1)
+  slot_code: R-A01
+  display_name_short: 后-A01
+  display_name: 后面 A行 1列
+  side: rear
+- slot_index: 29
+  door_position: rear(2,1)
+  slot_code: R-A02
+  display_name_short: 后-A02
+  display_name: 后面 A行 2列
+  side: rear
+- slot_index: 30
+  door_position: rear(3,1)
+  slot_code: R-A03
+  display_name_short: 后-A03
+  display_name: 后面 A行 3列
+  side: rear
+- slot_index: 31
+  door_position: rear(1,2)
+  slot_code: R-B01
+  display_name_short: 后-B01
+  display_name: 后面 B行 1列
+  side: rear
+- slot_index: 32
+  door_position: rear(2,2)
+  slot_code: R-B02
+  display_name_short: 后-B02
+  display_name: 后面 B行 2列
+  side: rear
+- slot_index: 33
+  door_position: rear(3,2)
+  slot_code: R-B03
+  display_name_short: 后-B03
+  display_name: 后面 B行 3列
+  side: rear
+- slot_index: 34
+  door_position: rear(1,3)
+  slot_code: R-C01
+  display_name_short: 后-C01
+  display_name: 后面 C行 1列
+  side: rear
+- slot_index: 35
+  door_position: rear(2,3)
+  slot_code: R-C02
+  display_name_short: 后-C02
+  display_name: 后面 C行 2列
+  side: rear
+- slot_index: 36
+  door_position: rear(3,3)
+  slot_code: R-C03
+  display_name_short: 后-C03
+  display_name: 后面 C行 3列
+  side: rear
+- slot_index: 37
+  door_position: rear(1,4)
+  slot_code: R-D01
+  display_name_short: 后-D01
+  display_name: 后面 D行 1列
+  side: rear
+- slot_index: 38
+  door_position: rear(2,4)
+  slot_code: R-D02
+  display_name_short: 后-D02
+  display_name: 后面 D行 2列
+  side: rear
+- slot_index: 39
+  door_position: rear(3,4)
+  slot_code: R-D03
+  display_name_short: 后-D03
+  display_name: 后面 D行 3列
+  side: rear
+- slot_index: 40
+  door_position: rear(1,5)
+  slot_code: R-E01
+  display_name_short: 后-E01
+  display_name: 后面 E行 1列
+  side: rear
+- slot_index: 41
+  door_position: rear(2,5)
+  slot_code: R-E02
+  display_name_short: 后-E02
+  display_name: 后面 E行 2列
+  side: rear
+- slot_index: 42
+  door_position: rear(3,5)
+  slot_code: R-E03
+  display_name_short: 后-E03
+  display_name: 后面 E行 3列
+  side: rear
+- slot_index: 43
+  door_position: rear(1,6)
+  slot_code: R-F01
+  display_name_short: 后-F01
+  display_name: 后面 F行 1列
+  side: rear
+- slot_index: 44
+  door_position: rear(2,6)
+  slot_code: R-F02
+  display_name_short: 后-F02
+  display_name: 后面 F行 2列
+  side: rear
+- slot_index: 45
+  door_position: rear(3,6)
+  slot_code: R-F03
+  display_name_short: 后-F03
+  display_name: 后面 F行 3列
+  side: rear
+- slot_index: 46
+  door_position: rear(1,7)
+  slot_code: R-G01
+  display_name_short: 后-G01
+  display_name: 后面 G行 1列
+  side: rear
+- slot_index: 47
+  door_position: rear(2,7)
+  slot_code: R-G02
+  display_name_short: 后-G02
+  display_name: 后面 G行 2列
+  side: rear
+- slot_index: 48
+  door_position: rear(3,7)
+  slot_code: R-G03
+  display_name_short: 后-G03
+  display_name: 后面 G行 3列
+  side: rear
+- slot_index: 49
+  door_position: rear(1,8)
+  slot_code: R-H01
+  display_name_short: 后-H01
+  display_name: 后面 H行 1列
+  side: rear
+- slot_index: 50
+  door_position: rear(2,8)
+  slot_code: R-H02
+  display_name_short: 后-H02
+  display_name: 后面 H行 2列
+  side: rear
+- slot_index: 51
+  door_position: rear(3,8)
+  slot_code: R-H03
+  display_name_short: 后-H03
+  display_name: 后面 H行 3列
+  side: rear
+- slot_index: 52
+  door_position: rear(1,9)
+  slot_code: R-I01
+  display_name_short: 后-I01
+  display_name: 后面 I行 1列
+  side: rear
+- slot_index: 53
+  door_position: rear(2,9)
+  slot_code: R-I02
+  display_name_short: 后-I02
+  display_name: 后面 I行 2列
+  side: rear
+- slot_index: 54
+  door_position: rear(3,9)
+  slot_code: R-I03
+  display_name_short: 后-I03
+  display_name: 后面 I行 3列
+  side: rear

@@ -1,0 +1,25 @@
+id: app.slot.complete_issue_pickup
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  操作员从领用格口取出匹配可用焊丝并关门后，清空格口焊丝绑定并置为 idle（柜内已无该卷可用焊丝）。
+sql: |
+  UPDATE app_slot
+  SET biz_state   = 'idle',
+      wire_lot_no = NULL,
+      wire_spec   = NULL,
+      wire_code   = NULL,
+      shelflife   = NULL,
+      matlot      = NULL,
+      qty         = NULL,
+      wire_state  = NULL,
+      door_state  = 'closed',
+      lock_state  = 'locked',
+      updated_at  = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+outputs:
+  - rows_affected
+result_cardinality: write

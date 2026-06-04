@@ -1,0 +1,24 @@
+subgraph_id: loadReturnedWireSection
+node_id: checkReturnSlotExists
+node_text: 是否存在可用于归还的空闲格口
+access_type: decision
+sql_ids: []
+business_meaning: 判断是否找到归还目标格口；无则提示无法自动归还。
+decision_rule:
+  success_when:
+    - condition: is_not_null_or_empty
+      field: return_slot_id
+      meaning: 找到归还格口 ID。
+  failure_when:
+    - condition: otherwise
+      meaning: 无空闲归还格口。
+input_mappings:
+  - name: return_slot_id
+    source_node: findReturnSlot
+    source_field: return_slot_id
+    source_text: 查询到的归还格口 ID。
+outcome_routing:
+  yes:
+    next: openReturnSlot
+  no:
+    next: showNoReturnSlotAvailableMessage

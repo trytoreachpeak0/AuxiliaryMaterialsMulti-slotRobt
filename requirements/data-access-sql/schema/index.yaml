@@ -12,6 +12,8 @@ tables_index:
     path: tables/v_fw_wip_sublot.yaml
   - name: v_fw_material_indetail
     path: tables/v_fw_material_indetail.yaml
+  - name: welding_wire_materials
+    path: tables/welding_wire_materials.yaml
 
 
 enums_index:

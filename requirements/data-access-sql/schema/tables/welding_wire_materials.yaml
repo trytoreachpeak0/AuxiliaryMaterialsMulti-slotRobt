@@ -1,0 +1,41 @@
+name: welding_wire_materials
+datasource: app.sqlite.main
+type: table
+comment: |
+  焊丝规格与空盘（归还）重量配置。现场源表 SQL Server [dbo].[WeldingWireMaterials]（SQNewWireAGV01）；
+  0.1 应用库 SQLite 镜像，供 queryWireReturnedWeightBySpec 使用。
+source:
+  system: SQL Server
+  catalog: SQNewWireAGV01
+  table: dbo.WeldingWireMaterials
+  export_file: ../../../../WeldingWireMaterials.sql
+columns:
+  - name: id
+    type: INTEGER
+    nullable: false
+    is_key: true
+    comment: 主键（自增）
+  - name: material_type
+    type: TEXT
+    nullable: false
+    comment: 物料类型，流程固定匹配「焊丝」
+  - name: specification_model
+    type: TEXT
+    nullable: false
+    comment: 规格型号；与 MES v_fw_material_indetail.spec / 流程 wire_spec 对齐
+  - name: empty_spool_weight
+    type: REAL
+    nullable: false
+    comment: 空盘重量；流程输出字段 return_weight 来源
+  - name: created_at
+    type: TEXT
+    nullable: true
+    comment: 创建时间
+  - name: updated_at
+    type: TEXT
+    nullable: true
+    comment: 更新时间
+constraints:
+  - kind: unique
+    columns: [material_type, specification_model]
+    comment: 对应现场 UQ_WeldingWire

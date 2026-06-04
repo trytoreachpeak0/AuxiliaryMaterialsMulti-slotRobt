@@ -1,0 +1,17 @@
+{
+  "code": "0",
+  "message": "success",
+  "result": {
+    "deviceKey": "BROKERX-example",
+    "deviceName": "示例小车",
+    "sysState": "IDLE",
+    "locationState": "LOCATION_STATE_RUNNING",
+    "orderTaskId": null,
+    "battery": 85,
+    "enable": true,
+    "currentPosition": 518,
+    "procState": "IDLE",
+    "actionState": "AT_FINISHED",
+    "movementState": "AT_FINISHED"
+  }
+}

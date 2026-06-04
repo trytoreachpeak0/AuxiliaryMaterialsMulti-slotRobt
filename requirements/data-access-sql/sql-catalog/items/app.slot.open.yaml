@@ -1,0 +1,19 @@
+id: app.slot.open
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  下发开门指令：把指定格口门状态置为 open、解锁，并同步到 MockSlotController。
+  供 openSingleSlot / openAvailableSlot / openAll* 系列复用（按 slot_id 单个开门，批量由引擎循环调用）。
+sql: |
+  UPDATE app_slot
+  SET door_state = 'open',
+      lock_state = 'unlocked',
+      updated_at = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+outputs:
+  - opened_slot_id
+result_cardinality: write
+note: 实际门开闭由 MockSlotController 模拟并回写 door_state，本 SQL 表示应用库侧的状态落库。

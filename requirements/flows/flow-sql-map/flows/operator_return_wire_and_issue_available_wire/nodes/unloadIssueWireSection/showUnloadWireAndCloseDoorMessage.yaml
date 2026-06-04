@@ -1,0 +1,9 @@
+subgraph_id: unloadIssueWireSection
+node_id: showUnloadWireAndCloseDoorMessage
+node_text: 提示操作员取出对应焊丝并关闭格口门
+access_type: ui_message
+sql_ids: []
+business_meaning: 领用格口已打开，提示操作员取出匹配可用焊丝并准备关门。
+outcome_routing:
+  success:
+    next: unloadWire

@@ -47,5 +47,5 @@ dotnet run --project WireFlowLab/WireFlowLab.csproj -- selftest   # 无界面自
 
 - `../../versions/0.1/`：当前调试演示版本范围和验收清单。
 - `../../flows/diagrams/`：焊丝发放流程图。
-- `../../data-access-sql/flow-sql-map/`：流程节点到 SQL/function/input/decision 的映射。
+- `../../flows/flow-sql-map/`：正式流程节点到 SQL/function/input/decision 的映射（每节点一文件）；本工具镜像见 `data-access-sql/flow-sql-map/`（聚合 `flow.yaml`）。
 - `../../data-access-sql/sql-catalog/`：数据访问 SQL 清单。

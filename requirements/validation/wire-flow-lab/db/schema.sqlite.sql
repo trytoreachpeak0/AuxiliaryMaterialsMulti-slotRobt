@@ -19,9 +19,14 @@ CREATE TABLE IF NOT EXISTS app_slot (
     updated_at  TEXT
 );
 
-CREATE TABLE IF NOT EXISTS app_returned_weight (
-    wire_spec     TEXT PRIMARY KEY,
-    return_weight REAL NOT NULL
+CREATE TABLE IF NOT EXISTS welding_wire_materials (
+    id                   INTEGER PRIMARY KEY,
+    material_type        TEXT NOT NULL,
+    specification_model  TEXT NOT NULL,
+    empty_spool_weight   REAL NOT NULL,
+    created_at           TEXT,
+    updated_at           TEXT,
+    UNIQUE (material_type, specification_model)
 );
 
 CREATE TABLE IF NOT EXISTS app_operation_log (

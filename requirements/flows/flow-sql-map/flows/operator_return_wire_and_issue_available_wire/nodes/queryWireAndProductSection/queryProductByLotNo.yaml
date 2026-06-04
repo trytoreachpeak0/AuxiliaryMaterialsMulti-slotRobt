@@ -1,0 +1,29 @@
+subgraph_id: queryWireAndProductSection
+node_id: queryProductByLotNo
+node_text: 查询 MES 数据库产品批次信息
+access_type: mes_sql
+sql_ids:
+  - mes.product.query_product_by_lot_no
+business_meaning: 查询产品批次未关闭子批数量和工序，供领用事务使用。
+output_fields:
+  - name: qty
+    source_type: sql_catalog
+    source_ref: mes.product.query_product_by_lot_no
+    catalog_field: qty
+    source_text: 未关闭子批数量。
+  - name: step
+    source_type: sql_catalog
+    source_ref: mes.product.query_product_by_lot_no
+    catalog_field: step
+    source_text: 产品工序。
+input_mappings:
+  - name: productLot
+    source_node: queryLastProductLotNo
+    source_field: lot
+    source_text: 机台最近生产产品批号。
+outcome_routing:
+  single:
+    next: checkProductInfoExists
+    note: 聚合查询可能返回 qty/step 为空，应用侧需按空值判断产品不存在。
+  error:
+    next: showProductInfoNotExists

@@ -1,0 +1,38 @@
+id: app.slot.bind_wire
+dialect: sqlite
+datasource: app.sqlite
+operation: write
+business_meaning: >-
+  物料员把可用焊丝放入空闲格口后，更新应用数据库：绑定焊丝批号/规格到格口，业务状态置为 available_wire（updateDB）。
+sql: |
+  UPDATE app_slot
+  SET wire_lot_no = :wire_lot_no,
+      wire_spec   = :wire_spec,
+      wire_code   = :wire_code,
+      shelflife   = :shelflife,
+      matlot      = :matlot,
+      qty         = :qty,
+      wire_state  = :wire_state,
+      biz_state   = 'available_wire',
+      updated_at  = datetime('now')
+  WHERE slot_id = :slot_id;
+params:
+  - name: slot_id
+    source: checkAvailableSlot.available_slot_id
+  - name: wire_lot_no
+    source: inputAvailableWireLotNo.available_wire_lot_no
+  - name: wire_spec
+    source: queryWireSpecByLotNo.spec
+  - name: wire_code
+    source: queryWireSpecByLotNo.code
+  - name: shelflife
+    source: queryWireSpecByLotNo.shelflife
+  - name: matlot
+    source: queryWireSpecByLotNo.matlot
+  - name: qty
+    source: queryWireSpecByLotNo.qty
+  - name: wire_state
+    source: queryWireSpecByLotNo.state
+outputs:
+  - rows_affected
+result_cardinality: write

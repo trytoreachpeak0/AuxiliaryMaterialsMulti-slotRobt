@@ -1,0 +1,13 @@
+subgraph_id: loadReturnedWireSection
+node_id: loadReturnedWire
+node_text: 操作员存入归还焊丝
+access_type: user_input
+sql_ids: []
+business_meaning: 操作员确认已将归还焊丝放入归还格口（无格内传感器，以人工确认为准）。
+output_fields:
+  - name: loaded
+    source_type: ui_input
+    source_text: 操作员确认已放入归还焊丝。
+outcome_routing:
+  success:
+    next: closeReturnSlotDoor

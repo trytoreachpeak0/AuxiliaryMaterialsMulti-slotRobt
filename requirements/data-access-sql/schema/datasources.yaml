@@ -1,3 +1,5 @@
 datasources:
   - id: mes.oracle.main
     description: MES Oracle 主库逻辑数据源
+  - id: app.sqlite.main
+    description: 焊丝柜 0.1 应用库 SQLite（格口、焊丝配置、操作日志等）

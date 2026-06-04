@@ -1,0 +1,40 @@
+subgraph_id: inputReturnedWireLotNoSection
+node_id: queryMatchedAvailableWire
+node_text: 查询应用数据库发货柜内匹配的同规格可用焊丝
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: >-
+  根据归还焊丝规格查询发货柜库存，选择一卷可领用焊丝和对应格口。
+  查询成功（有/无行）均进入 checkMatchedWireExists 分支；SQL/连接等执行失败由应用层统一异常提示并中止流程，不在流程图中配置 error 出边。
+output_fields:
+  - name: matched_available_wire_lot_no
+    source_type: sql_catalog
+    source_ref: app.wire_inventory.find_matched_available
+    catalog_field: matched_available_wire_lot_no
+    source_text: 匹配规格的可用焊丝批号。
+  - name: slot_id
+    source_type: sql_catalog
+    source_ref: app.wire_inventory.find_matched_available
+    catalog_field: slot_id
+    source_text: 可用焊丝所在格口 ID。
+  - name: slot_no
+    source_type: sql_catalog
+    source_ref: app.wire_inventory.find_matched_available
+    catalog_field: slot_no
+    source_text: 格口编号。
+  - name: wire_spec
+    source_type: sql_catalog
+    source_ref: app.wire_inventory.find_matched_available
+    catalog_field: wire_spec
+    source_text: 焊丝规格（与归还规格一致）。
+input_mappings:
+  - name: returned_wire_spec
+    source_node: queryWireSpecByLotNo
+    source_field: spec
+    source_text: 归还焊丝规格。
+outcome_routing:
+  single:
+    next: checkMatchedWireExists
+  empty:
+    next: checkMatchedWireExists

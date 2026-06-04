@@ -1,0 +1,25 @@
+subgraph_id: queryReturnedWeightSection
+node_id: queryWireReturnedWeightBySpec
+node_text: 查询应用数据库该焊丝类型对应的归还重量
+access_type: application_db
+sql_ids:
+  - app.returned_weight.get_by_spec
+business_meaning: 按焊丝规格查询归还重量，供 MES 焊线用量核对和归还事务使用。
+output_fields:
+  - name: return_weight
+    source_type: sql_catalog
+    source_ref: app.returned_weight.get_by_spec
+    catalog_field: return_weight
+    source_text: 该规格配置的归还重量。
+input_mappings:
+  - name: wire_spec
+    source_node: queryWireSpecByLotNo
+    source_field: spec
+    source_text: 归还焊丝规格。
+outcome_routing:
+  single:
+    next: checkReturnedWeightExists
+  empty:
+    next: checkReturnedWeightExists
+  error:
+    next: showReturnedWeightNotExists

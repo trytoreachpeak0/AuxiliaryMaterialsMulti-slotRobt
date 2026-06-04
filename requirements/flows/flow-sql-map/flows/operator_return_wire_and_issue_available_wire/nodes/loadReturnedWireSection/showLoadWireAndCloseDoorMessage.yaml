@@ -1,0 +1,9 @@
+subgraph_id: loadReturnedWireSection
+node_id: showLoadWireAndCloseDoorMessage
+node_text: 提示操作员放入对应焊丝并关闭格口门
+access_type: ui_message
+sql_ids: []
+business_meaning: 归还格口已打开，提示操作员放入归还焊丝并准备关门确认。
+outcome_routing:
+  success:
+    next: loadReturnedWire

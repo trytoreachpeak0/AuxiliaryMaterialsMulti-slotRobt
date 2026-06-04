@@ -1,0 +1,47 @@
+# 复制为 io-modules.yaml 后，用现场提供的各模块 IP 填写 modules[].host。
+# modules[].key 为完整 MAC（与 slot-io-mapping 的 module_key 一致）；xlsx sheet 仍为末两位，经 module-key-map.yaml 映射。
+# 勿将含真实内网 IP / 现场 MAC 的 io-modules.yaml 提交到公共仓库。
+schema_version: "0.1"
+modbus:
+  default_port: 502
+  default_unit_id: 1   # 0.1 已确认：各模块均为 1，无例外则省略 modules[].unit_id
+  connect_timeout_ms: 3000
+  request_timeout_ms: 2000
+  health_check_interval_ms: 2000
+  # 本柜 IO 模块：0-based 寻址；每模块 16 DO + 16 DI（与 xlsx DO1..16 / DI1..16 一致）
+  addressing:
+    zero_based: true
+    do_start: 100
+    di_start: 10200
+    do_count: 16
+    di_count: 16
+  # 点名 → 地址：coil = do_start + (do_index - 1)；discrete = di_start + (di_index - 1)
+unlock:
+  # 本柜 IO 模块 DO 已配置为硬件脉冲：程序开锁只写 DO=1，不写 DO=0，脉冲由模块自动完成。
+  output_mode: hardware_pulse  # hardware_pulse | software_pulse | level
+  pulse_ms: 300                # 仅 software_pulse 时有效
+  unlock_feedback_timeout_ms: 5000
+di_semantics:
+  # 本柜已确认：DI=1 锁闭合，DI=0 锁释放 → di_active_means_locked 必须为 true
+  di_active_means_locked: true
+modules:
+  - key: "00:09:F6:15:6D:C4"
+    host: "192.168.71.11"
+    port: 502
+    unit_id: 1
+    enabled: true
+  - key: "00:09:F6:15:6D:67"
+    host: "192.168.71.12"
+    port: 502
+    unit_id: 1
+    enabled: true
+  - key: "00:09:F6:15:6D:24"
+    host: "192.168.71.13"
+    port: 502
+    unit_id: 1
+    enabled: true
+  - key: "00:09:F6:15:6C:BE"
+    host: "192.168.71.15"
+    port: 502
+    unit_id: 1
+    enabled: true

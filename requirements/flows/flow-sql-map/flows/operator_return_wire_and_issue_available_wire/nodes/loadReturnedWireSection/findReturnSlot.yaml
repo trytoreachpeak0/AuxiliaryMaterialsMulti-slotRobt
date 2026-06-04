@@ -1,0 +1,23 @@
+subgraph_id: loadReturnedWireSection
+node_id: findReturnSlot
+node_text: 查询可用于存放归还焊丝的空闲格口
+access_type: application_db
+catalog_status: pending_catalog
+sql_ids: []
+business_meaning: 在归还格/共用格口中查找 idle 且门已关闭的格口，供 openReturnSlot 使用。
+output_fields:
+  - name: return_slot_id
+    source_type: sql_catalog
+    source_ref: app.slot.find_return_slot
+    catalog_field: return_slot_id
+    source_text: 归还焊丝目标格口 ID。
+  - name: return_slot_no
+    source_type: sql_catalog
+    source_ref: app.slot.find_return_slot
+    catalog_field: return_slot_no
+    source_text: 归还焊丝目标格口编号。
+outcome_routing:
+  single:
+    next: checkReturnSlotExists
+  empty:
+    next: checkReturnSlotExists
