@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>WireCabinet.Hmi</RootNamespace>
+    <AssemblyName>WireCabinet.Hmi</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WireCabinet.Core\WireCabinet.Core.csproj" />
+    <ProjectReference Include="..\WireCabinet.Data\WireCabinet.Data.csproj" />
+    <ProjectReference Include="..\WireCabinet.Flow\WireCabinet.Flow.csproj" />
+    <ProjectReference Include="..\WireCabinet.Slots\WireCabinet.Slots.csproj" />
+    <ProjectReference Include="..\WireCabinet.Slots.Hardware\WireCabinet.Slots.Hardware.csproj" />
+    <ProjectReference Include="..\WireCabinet.Rcs\WireCabinet.Rcs.csproj" />
+    <ProjectReference Include="..\..\agv-dispatch-sdk\AgvDispatch.Sdk\AgvDispatch.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

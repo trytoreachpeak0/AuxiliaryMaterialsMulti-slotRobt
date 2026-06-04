@@ -1,0 +1,83 @@
+# 0.1 站点配置模板 — 复制为 stations.yaml 后由现场填写 RCS 整型站点号
+# 说明见 station-config/README.md
+#
+# 站点类型：
+#   work   — 作业站（可多站；每站声明 allowed_roles：OP / MH）
+#   charge — 充电点（0.1 仅 1 个）
+#
+# 充后返航：回到去充电前记录的作业站（不设驻点）。
+
+version: 1
+
+rcs:
+  map_id: 22
+  device_key: "YOUR_DEVICE_KEY"
+
+charge_policy:
+  low_battery_percent: 20
+  full_battery_percent: 95
+  after_charge_complete: return_to_last_work_station
+  remember_work_station_when:
+    - auto_charge_departure
+    - manual_charge_if_at_work
+
+# ---------------------------------------------------------------------------
+# 作业站（多个；每站绑定角色 + 允许的存取 flow）
+#
+# allowed_roles: 仅 [OP] | 仅 [MH] | [OP, MH]（0.1 建议每站单角色，避免混用）
+# allowed_wire_flows: 须与角色一致（OP 站勿配 MH 存料 flow）
+# ---------------------------------------------------------------------------
+work_stations:
+  # 示例 A：仅物料员 MH — 存可用焊丝 + 本柜格口维护
+  - station_code: WS_MH_STORE
+    display_name: 物料间焊丝柜（MH）
+    rcs_destination: 518                    # 现场填写
+    enabled: true
+    cabinet_id: 1
+    allowed_roles: [MH]
+    allowed_wire_flows:
+      - material_handler_load_available_wire
+    cabinet_maintenance_flows:
+      - material_handler_open_single_slot
+      - material_handler_open_all_available_wire_slots
+      - material_handler_open_all_returned_wire_slots
+      - material_handler_open_all_slots
+
+  # 示例 B：仅操作员 OP — 存废取新
+  - station_code: WS_OP_ISSUE
+    display_name: 线边焊丝柜（OP）
+    rcs_destination: 519                    # 现场填写；Sample DestinationStationId
+    enabled: true
+    cabinet_id: 2
+    allowed_roles: [OP]
+    allowed_wire_flows:
+      - operator_return_wire_and_issue_available_wire
+    # OP 站通常不做 MH 维护；维护在 MH 作业站柜旁执行
+    cabinet_maintenance_flows: []
+
+  # 若某物理点 OP/MH 共用同一 RCS 站点（少见），可合并为一项并 allowed_roles: [OP, MH]
+  # - station_code: WS_SHARED
+  #   allowed_roles: [OP, MH]
+  #   allowed_wire_flows:
+  #     - material_handler_load_available_wire
+  #     - operator_return_wire_and_issue_available_wire
+
+# ---------------------------------------------------------------------------
+# 充电点（0.1 仅保留 1 个）
+# ---------------------------------------------------------------------------
+charge_station:
+  station_code: CHG_WIRE_01
+  display_name: 物料多仓位充电点
+  rcs_destination: 520
+  enabled: true
+  charge_action_id: 78
+  occupied_check:
+    station_names: ["物料多仓位充电点"]
+    positions: [520]
+
+# 手动控车：列出 enabled 的 work_stations（不按角色过滤，到站后再按角色拦 flow）
+ui:
+  move_targets: [WS_MH_STORE, WS_OP_ISSUE]
+  default_move_target_by_role:
+    MH: WS_MH_STORE
+    OP: WS_OP_ISSUE

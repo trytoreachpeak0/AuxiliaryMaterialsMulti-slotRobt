@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>WireCabinet.Slots</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WireCabinet.Core\WireCabinet.Core.csproj" />
+    <ProjectReference Include="..\WireCabinet.Data\WireCabinet.Data.csproj" />
+    <ProjectReference Include="..\WireCabinet.Slots.Hardware\WireCabinet.Slots.Hardware.csproj" />
+    <ProjectReference Include="..\..\agv-dispatch-sdk\AgvDispatch.Sdk\AgvDispatch.Sdk.csproj" />
+  </ItemGroup>
+</Project>
