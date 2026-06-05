@@ -44,21 +44,12 @@ public static class CabinetPaths
         {
             var indexFile = Path.Combine(dir.FullName, "requirements", "flows", "flow-sql-map", "index.yaml");
             if (File.Exists(indexFile))
-            {
-                // #region agent log
-                DebugLog.Write("H1", "CabinetPaths.ResolveRepoRoot", "repo resolved via index.yaml", new { dir = dir.FullName, indexFile });
-                // #endregion
                 return dir.FullName;
-            }
             if (string.Equals(dir.Name, "AuxiliaryMaterialsMulti-slotRobt", StringComparison.OrdinalIgnoreCase))
                 return dir.FullName;
             dir = dir.Parent;
         }
 
-        var fallback = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "..", ".."));
-        // #region agent log
-        DebugLog.Write("H1", "CabinetPaths.ResolveRepoRoot", "repo fallback", new { fallback });
-        // #endregion
-        return fallback;
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "..", ".."));
     }
 }

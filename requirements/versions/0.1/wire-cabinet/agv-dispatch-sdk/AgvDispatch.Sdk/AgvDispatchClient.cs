@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -14,6 +15,9 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
     private readonly HttpClient _http;
     private readonly bool _ownsHttpClient;
     private string? _accessToken;
+    private DateTime? _tokenObtainedAtUtc;
+
+    public DateTime? TokenObtainedAtUtc => _tokenObtainedAtUtc;
 
     /// <summary>供 DI / IHttpClientFactory 使用。</summary>
     public AgvDispatchClient(HttpClient httpClient, IOptions<AgvDispatchOptions> options)
@@ -55,43 +59,46 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
         _accessToken = ExtractToken(raw);
         if (string.IsNullOrEmpty(_accessToken))
             throw new AgvDispatchException("Login succeeded but token not found in response.", (int)response.StatusCode, null, null, raw);
+
+        _tokenObtainedAtUtc = DateTime.UtcNow;
+    }
+
+    public async Task ForceReLoginAsync(CancellationToken cancellationToken = default)
+    {
+        _accessToken = null;
+        _tokenObtainedAtUtc = null;
+        await LoginAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<VehicleInfoDto> GetVehicleInfoAsync(string? deviceKey = null, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var key = deviceKey ?? _options.DefaultDeviceKey;
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, $"api/task/vehicles/getVehicleInfoByDeviceKey?key={Uri.EscapeDataString(key)}");
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        var raw = await SendAuthorizedAndReadAsync(
+            () => CreateAuthorizedRequest(HttpMethod.Get, $"api/task/vehicles/getVehicleInfoByDeviceKey?key={Uri.EscapeDataString(key)}"),
+            cancellationToken).ConfigureAwait(false);
         return DeserializeVehicleInfo(raw);
     }
 
     public async Task<IReadOnlyList<VehicleListItemDto>> GetVehiclesAsync(int[]? deviceIds = null, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var ids = deviceIds ?? _options.VehicleQueryDeviceIds;
         var query = string.Join(",", ids);
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, $"api/task/vehicles?deviceIds={query}&groupIds=&pageNum=-1");
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        var raw = await SendAuthorizedAndReadAsync(
+            () => CreateAuthorizedRequest(HttpMethod.Get, $"api/task/vehicles?deviceIds={query}&groupIds=&pageNum=-1"),
+            cancellationToken).ConfigureAwait(false);
 
         var wrapped = JsonSerializer.Deserialize<DispatchApiResponse<List<VehicleListItemDto>>>(raw, AgvDispatchJson.SerializerOptions);
         if (wrapped?.Result != null)
             return wrapped.Result;
 
-        throw new AgvDispatchException("Vehicle list result is empty.", (int)response.StatusCode, wrapped?.Code, wrapped?.Message, raw);
+        throw new AgvDispatchException("Vehicle list result is empty.", null, wrapped?.Code, wrapped?.Message, raw);
     }
 
     public async Task<OrderDetailDto> GetOrderDetailAsync(string orderId, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, $"api/order/v1/orderRecord/detailByOrderId/{Uri.EscapeDataString(orderId)}");
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        var raw = await SendAuthorizedAndReadAsync(
+            () => CreateAuthorizedRequest(HttpMethod.Get, $"api/order/v1/orderRecord/detailByOrderId/{Uri.EscapeDataString(orderId)}"),
+            cancellationToken).ConfigureAwait(false);
         return DeserializeOrderDetail(raw);
     }
 
@@ -114,7 +121,6 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
         if (destination == 0)
             throw new ArgumentException("destination must not be 0.", nameof(destination));
 
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var body = new CreateMoveOrderRequest
         {
             OrderName = orderName ?? _options.DefaultOrderName,
@@ -135,7 +141,6 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
 
     public async Task<CreateOrderResult> CreateChargeOrderAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var body = new CreateMoveOrderRequest
         {
             OrderName = _options.DefaultOrderName,
@@ -164,42 +169,41 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
 
     public async Task CancelOrderAsync(string orderId, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var body = new CancelOrderCommandRequest();
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/task/v1/order/command/{Uri.EscapeDataString(orderId)}");
-        request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        await SendAuthorizedAndReadAsync(() =>
+        {
+            var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/task/v1/order/command/{Uri.EscapeDataString(orderId)}");
+            request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
+            return request;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task PauseMovementAsync(string? deviceKey = null, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var key = deviceKey ?? _options.DefaultDeviceKey;
         var body = new ServiceCommandBody { MessageId = _options.PauseMovementMessageId, ThingsProperties = new { } };
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/device/v1/command/sync/service/{Uri.EscapeDataString(key)}/pauseMovement");
-        request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        await SendAuthorizedAndReadAsync(() =>
+        {
+            var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/device/v1/command/sync/service/{Uri.EscapeDataString(key)}/pauseMovement");
+            request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
+            return request;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task ContinueMovementAsync(string? deviceKey = null, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var key = deviceKey ?? _options.DefaultDeviceKey;
         var body = new ServiceCommandBody { MessageId = _options.ContinueMovementMessageId, ThingsProperties = new { } };
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/device/v1/command/sync/service/{Uri.EscapeDataString(key)}/continueMovement");
-        request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        await SendAuthorizedAndReadAsync(() =>
+        {
+            var request = CreateAuthorizedRequest(HttpMethod.Post, $"api/device/v1/command/sync/service/{Uri.EscapeDataString(key)}/continueMovement");
+            request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
+            return request;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task CancelEmergencyAsync(string? deviceKey = null, CancellationToken cancellationToken = default)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         var key = deviceKey ?? _options.DefaultDeviceKey;
         var body = new CancelEmergencyRequest
         {
@@ -207,11 +211,12 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
             DeviceKeys = { key },
             ServiceId = "cancelEmergency"
         };
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, "api/device/v1/command/batchServiceSet");
-        request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        await SendAuthorizedAndReadAsync(() =>
+        {
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "api/device/v1/command/batchServiceSet");
+            request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
+            return request;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -226,22 +231,53 @@ public sealed class AgvDispatchClient : IAgvDispatchClient, IDisposable
             await LoginAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private HttpRequestMessage CreateAuthorizedRequest(HttpMethod method, string relativeUrl)
-    {
-        var request = new HttpRequestMessage(method, relativeUrl);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        return request;
-    }
+    private HttpRequestMessage CreateAuthorizedRequest(HttpMethod method, string relativeUrl) =>
+        new(method, relativeUrl);
 
     private async Task<CreateOrderResult> PostCreateOrderAsync(CreateMoveOrderRequest body, CancellationToken cancellationToken)
     {
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, "api/order/v1/add/byDefaultMissions");
-        request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
-        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+        var raw = await SendAuthorizedAndReadAsync(() =>
+        {
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "api/order/v1/add/byDefaultMissions");
+            request.Content = JsonContent.Create(body, options: AgvDispatchJson.SerializerOptions);
+            return request;
+        }, cancellationToken).ConfigureAwait(false);
         return new CreateOrderResult { RawResponse = raw, OrderId = TryExtractOrderId(raw) };
+    }
+
+    private async Task<string> SendAuthorizedAndReadAsync(
+        Func<HttpRequestMessage> requestFactory,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
+            using var request = requestFactory();
+            ApplyAuthorization(request);
+            using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+            if (IsAuthFailure(response.StatusCode) && attempt == 0)
+            {
+                _accessToken = null;
+                _tokenObtainedAtUtc = null;
+                continue;
+            }
+
+            await EnsureSuccessAsync(response, raw, cancellationToken).ConfigureAwait(false);
+            return raw;
+        }
+
+        throw new AgvDispatchException("Authorized request failed after re-login.", null, null, null, null);
+    }
+
+    private static bool IsAuthFailure(HttpStatusCode status) =>
+        status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+
+    private void ApplyAuthorization(HttpRequestMessage request)
+    {
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
     private static Task EnsureSuccessAsync(HttpResponseMessage response, string raw, CancellationToken cancellationToken)

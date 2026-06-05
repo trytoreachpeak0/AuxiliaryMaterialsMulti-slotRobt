@@ -72,7 +72,9 @@ public sealed class OracleMesGateway : IMesGateway
 
     public DbResult Run(SqlCatalogItem item, IDictionary<string, object?> parameters)
     {
-        var sql = item.OracleSql ?? item.Sql;
+        var rawSql = item.OracleSql ?? item.Sql;
+        // ODP.NET ExecuteReader 不接受纯 SELECT 末尾分号，会报 ORA-00911。
+        var sql = item.Operation == SqlOperation.Function ? rawSql : StripTrailingStatementTerminator(rawSql);
         var result = new DbResult { RenderedSql = sql };
 
         if (string.IsNullOrWhiteSpace(_connectionString))
@@ -118,5 +120,13 @@ public sealed class OracleMesGateway : IMesGateway
             result.Error = ex.Message;
         }
         return result;
+    }
+
+    private static string StripTrailingStatementTerminator(string sql)
+    {
+        var s = sql.TrimEnd();
+        while (s.EndsWith(';'))
+            s = s[..^1].TrimEnd();
+        return s;
     }
 }

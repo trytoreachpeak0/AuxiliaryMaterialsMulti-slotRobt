@@ -15,7 +15,8 @@ sql: |
       wire_state  = :wire_state,
       biz_state   = 'available_wire',
       updated_at  = datetime('now')
-  WHERE slot_id = :slot_id;
+  WHERE slot_id = :slot_id
+    AND is_enabled = 1;
 params:
   - name: slot_id
     source: checkAvailableSlot.available_slot_id

@@ -22,6 +22,8 @@ public sealed class SlotHardwarePollService : IDisposable
 
     public IReadOnlyDictionary<string, SlotHardwareSnapshot> Snapshots => _snapshots;
 
+    public bool IsRunning => _timer.IsEnabled;
+
     public void Start()
     {
         _ = PollAsync();
@@ -30,11 +32,18 @@ public sealed class SlotHardwarePollService : IDisposable
 
     public void Stop() => _timer.Stop();
 
+    private Func<IReadOnlyDictionary<string, SlotHardwareSnapshot>, Task>? _afterPoll;
+
+    public void SetAfterPoll(Func<IReadOnlyDictionary<string, SlotHardwareSnapshot>, Task> handler) =>
+        _afterPoll = handler;
+
     public async Task PollAsync()
     {
         try
         {
-            _snapshots = await _hardware.ReadAllWiredSnapshotsAsync();
+            _snapshots = await _hardware.ReadAllWiredSnapshotsAsync().ConfigureAwait(false);
+            if (_afterPoll is not null)
+                await _afterPoll(_snapshots).ConfigureAwait(false);
             Updated?.Invoke(this, EventArgs.Empty);
         }
         catch

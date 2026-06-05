@@ -17,12 +17,12 @@ public sealed class ManualMoveService
     public int? TargetDestination { get; private set; }
     public string? LastMessage { get; private set; }
 
-    public ManualMoveService(IAgvDispatchClient client, AgvDispatchOptions options, ISlotControlService slots, IDoorStateProvider doors)
+    public ManualMoveService(IAgvDispatchClient client, AgvDispatchOptions options, ISlotControlService slots, AgvControlLoop loop)
     {
         _client = client;
         _options = options;
         _slots = slots;
-        _loop = new AgvControlLoop(client, options, doors);
+        _loop = loop;
     }
 
     public async Task<(bool Ok, string Message)> RequestMoveAsync(int destination, CancellationToken ct = default)
@@ -33,10 +33,12 @@ public sealed class ManualMoveService
         TargetDestination = destination;
         State = MoveUiState.Sending;
         var tick = await _loop.TickAsync(destination, ct).ConfigureAwait(false);
-        if (tick.Evaluation.CanAcceptOrder)
+        if (string.Equals(tick.ExecutedAction, "CreateMoveOrder", StringComparison.Ordinal))
         {
             State = MoveUiState.Moving;
-            LastMessage = "已下发移动单";
+            LastMessage = string.IsNullOrWhiteSpace(tick.CreatedOrderId)
+                ? "已下发移动单"
+                : $"已下发移动单（{tick.CreatedOrderId}）";
             return (true, LastMessage);
         }
 
@@ -48,14 +50,35 @@ public sealed class ManualMoveService
     public async Task RefreshAsync(CancellationToken ct = default)
     {
         var snap = await _client.GetVehicleSnapshotAsync(cancellationToken: ct).ConfigureAwait(false);
-        var pos = snap.Vehicle.CurrentPosition;
+        ApplySnapshot(snap);
+    }
+
+    public void RefreshFromSnapshot(AgvDispatch.Sdk.Models.VehicleSnapshot snap) => ApplySnapshot(snap);
+
+    public void ResetSession()
+    {
+        _loop.ResetCallState();
+        TargetDestination = null;
+        State = MoveUiState.Idle;
+        LastMessage = null;
+    }
+
+    private void ApplySnapshot(AgvDispatch.Sdk.Models.VehicleSnapshot snap)
+    {
+        var v = snap.Vehicle;
+        if (string.IsNullOrWhiteSpace(v.OrderTaskId) && State is MoveUiState.Arrived or MoveUiState.Moving)
+            ResetSession();
+
+        var pos = v.CurrentPosition;
         if (TargetDestination is > 0 && pos == TargetDestination)
         {
             State = MoveUiState.Arrived;
             LastMessage = "已到站";
         }
-        else if (!string.IsNullOrEmpty(snap.Vehicle.EffectiveMoveState) &&
-                 !snap.Vehicle.EffectiveMoveState.Contains("idle", StringComparison.OrdinalIgnoreCase))
+        else if (!string.IsNullOrWhiteSpace(v.OrderTaskId)
+                 && !string.IsNullOrEmpty(v.EffectiveMoveState)
+                 && !v.EffectiveMoveState.Contains("NA", StringComparison.OrdinalIgnoreCase)
+                 && !v.EffectiveMoveState.Contains("FINISHED", StringComparison.OrdinalIgnoreCase))
             State = MoveUiState.Moving;
     }
 }

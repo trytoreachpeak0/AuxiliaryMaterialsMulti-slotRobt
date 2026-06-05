@@ -75,16 +75,9 @@
                 <TextBox x:Name="OpIdBox" Grid.Row="1" Grid.Column="2" Style="{StaticResource IndustrialTextBox}"
                          TextChanged="OpField_TextChanged"/>
                 <ComboBox x:Name="TeamBox" Grid.Row="1" Grid.Column="4" Style="{StaticResource IndustrialComboBox}"
-                          IsEnabled="False">
-                    <ComboBoxItem Content="A组" IsSelected="True"/>
-                    <ComboBoxItem Content="B组"/>
-                    <ComboBoxItem Content="C组"/>
-                </ComboBox>
+                          IsEnabled="False"/>
                 <ComboBox x:Name="ShiftBox" Grid.Row="1" Grid.Column="6" Style="{StaticResource IndustrialComboBox}"
-                          IsEnabled="False">
-                    <ComboBoxItem Content="白班" IsSelected="True"/>
-                    <ComboBoxItem Content="夜班"/>
-                </ComboBox>
+                          IsEnabled="False"/>
                 <Border Grid.Row="1" Grid.Column="8" Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1"
                         Height="42" Padding="12,0" MinWidth="120">
                     <TextBlock x:Name="OpNameText" Text="—" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>

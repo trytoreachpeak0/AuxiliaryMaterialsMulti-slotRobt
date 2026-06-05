@@ -83,7 +83,7 @@ nodes:
     text: 操作员输入归还焊丝批号
     type: user_input
     outputs:
-      - { name: returned_wire_lot_no, label: 归还焊丝批号, default: "14Z1888-0160" }
+      - { name: returned_wire_lot_no, label: 归还焊丝批号 }
     routing: { success: queryWireSpecByLotNo }
 
   queryWireSpecByLotNo:
@@ -152,7 +152,7 @@ nodes:
     text: 操作员输入机台号
     type: user_input
     outputs:
-      - { name: eqp_no, label: 机台号, default: "1QH029" }
+      - { name: eqp_no, label: 机台号 }
     routing: { success: queryEqpByEqpNo }
 
   queryEqpByEqpNo:

@@ -37,6 +37,9 @@ public sealed class AgvControlLoop
         var snapshot = await _client.GetVehicleSnapshotAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
+        if (string.IsNullOrWhiteSpace(snapshot.Vehicle.OrderTaskId))
+            _callInProgress = false;
+
         var doorInput = await _doors.GetDoorStateAsync(cancellationToken).ConfigureAwait(false);
         var eval = AgvOperationEvaluator.Evaluate(
             snapshot.Vehicle,

@@ -8,6 +8,8 @@ namespace AgvDispatch.Sdk;
 public interface IAgvDispatchClient
 {
     Task LoginAsync(CancellationToken cancellationToken = default);
+    Task ForceReLoginAsync(CancellationToken cancellationToken = default);
+    DateTime? TokenObtainedAtUtc { get; }
     Task<VehicleInfoDto> GetVehicleInfoAsync(string? deviceKey = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<VehicleListItemDto>> GetVehiclesAsync(int[]? deviceIds = null, CancellationToken cancellationToken = default);
     Task<OrderDetailDto> GetOrderDetailAsync(string orderId, CancellationToken cancellationToken = default);

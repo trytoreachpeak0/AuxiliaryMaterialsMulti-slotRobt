@@ -39,7 +39,18 @@
 
 ---
 
-## 3. 「到站门禁」是什么意思？
+## 3. 控车 AGV 界面（HMI）
+
+- 顶部展示 RCS 当前移动任务（订单号、目标站）；仅 **IDLE** 且无进行中订单时可「前往作业站 / 充电」。
+- 左侧展示定位状态（`locationState` 映射）、急停状态；暂停/挂起任务可「取消当前任务」。
+- Bearer token 约 24h 过期，HMI 默认每 20h 自动重登；遇 401 会重试登录。
+- 车辆到达某 **作业站** `rcs_destination` 后，自动切换到该站 `allowed_roles` 对应 OP/MH 界面（充电点不切换）。
+
+`locationState` 成功/失败枚举可在 `AgvDispatch:StateThresholds` 中配置；联调时先观察 `getVehicleInfo` 返回值再固化。
+
+---
+
+## 4. 「到站门禁」是什么意思？
 
 **到站门禁** = 存取焊丝前的 **两道检查**（应用层，非 RCS API）：
 
@@ -72,7 +83,7 @@ flowchart TD
 
 ---
 
-## 4. 充电点（唯一）
+## 5. 充电点（唯一）
 
 - 配置节为 **`charge_station`**（单数），0.1 只保留一条。
 - 低电量 → `CreateChargeOrderAsync(charge_station.rcs_destination)`。
@@ -80,7 +91,7 @@ flowchart TD
 
 ---
 
-## 5. 与 appsettings / UI
+## 6. 与 appsettings / UI
 
 | 项 | 说明 |
 |----|------|
@@ -93,7 +104,7 @@ SDK 不读 YAML；宿主加载 `stations.yaml` 后实现门禁与回充。
 
 ---
 
-## 6. 验收检查
+## 7. 验收检查
 
 - [ ] 至少 1 个 MH 专用作业站 + 1 个 OP 专用作业站已启用且 RCS 号正确
 - [ ] 仅 1 个 `charge_station`

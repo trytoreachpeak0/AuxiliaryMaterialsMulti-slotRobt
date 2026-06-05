@@ -21,6 +21,7 @@ public sealed class AppBootstrap : IDisposable
     public ISlotControlService SlotControl { get; }
     public ISlotController FlowSlots { get; }
     public IWireOperationSession WireSession { get; } = new WireOperationSession();
+    public MhInterruptedLoadStore InterruptedLoad { get; }
     public EngineServices EngineServices { get; }
     public IReadOnlyList<FlowDefinition> Flows { get; }
     public MesOptions MesOptions { get; }
@@ -34,28 +35,21 @@ public sealed class AppBootstrap : IDisposable
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(dbPath))!);
         var needsInit = !SqliteDb.HasAppSlotTable(dbPath);
-        // #region agent log
-        WireCabinet.Core.DebugLog.Write("H2", "AppBootstrap.ctor", "db init check", new
-        {
-            dbPath,
-            repoRoot = CabinetPaths.RepoRoot,
-            versionRoot = CabinetPaths.VersionRoot,
-            schemaExists = File.Exists(CabinetPaths.SchemaScript),
-            needsInit
-        });
-        // #endregion
         if (needsInit && File.Exists(dbPath) && new FileInfo(dbPath).Length == 0)
             File.Delete(dbPath);
         AppDb = new SqliteDb(dbPath);
         if (needsInit)
             AppDb.Initialize(recreate: false);
 
+        InterruptedLoad = new MhInterruptedLoadStore(AppDb);
+        InterruptedLoad.EnsureSchema();
+
         Catalog = SqlCatalog.Load();
-        MesOptions = new MesOptions { ConnectionString = config["Mes:ConnectionString"] ?? "" };
+        MesOptions = new MesOptions { ConnectionString = NormalizeMesConnectionString(config["Mes:ConnectionString"]) };
         MesReady = MesOptions.IsConfigured;
         Mes = MesReady
             ? new OracleMesGateway(MesOptions.ConnectionString)
-            : new UnconfiguredMesGateway();
+            : new SqliteMockMesGateway(AppDb, new MesFunctionSettings());
 
         AppDbGateway = new SqliteAppDb(AppDb);
         SlotIo = SlotIoConfig.Load();
@@ -77,6 +71,20 @@ public sealed class AppBootstrap : IDisposable
     }
 
     public void Dispose() => (Hardware as IDisposable)?.Dispose();
+
+    /// <summary>去掉从旧版配置整段粘贴时误带的 OracleConnection= 前缀。</summary>
+    private static string NormalizeMesConnectionString(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "";
+
+        var s = raw.Trim();
+        const string legacyPrefix = "OracleConnection=";
+        if (s.StartsWith(legacyPrefix, StringComparison.OrdinalIgnoreCase))
+            s = s[legacyPrefix.Length..].TrimStart();
+
+        return s;
+    }
 }
 
 public sealed class UnconfiguredMesGateway : IMesGateway

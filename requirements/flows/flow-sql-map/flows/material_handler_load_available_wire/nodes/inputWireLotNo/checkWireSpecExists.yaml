@@ -19,6 +19,6 @@ decision_rule:
       meaning: spec 为空时提示焊丝规格不存在。
 outcome_routing:
   yes:
-    next: openAvailableSlot
+    next: queryAppWireLotNo
   no:
     next: showWireSpecNotExistsMessage

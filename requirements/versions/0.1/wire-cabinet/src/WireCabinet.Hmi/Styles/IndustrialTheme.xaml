@@ -26,6 +26,8 @@
     <Color x:Key="SlotReturnedBorderColor">#FFC0392B</Color>
     <Color x:Key="SlotOpenColor">#FFFFF3CD</Color>
     <Color x:Key="SlotOpenBorderColor">#FFD98E00</Color>
+    <Color x:Key="SlotDisabledColor">#FFD5DAE0</Color>
+    <Color x:Key="SlotDisabledBorderColor">#FF8A939E</Color>
 
     <!-- ============ 画刷 ============ -->
     <SolidColorBrush x:Key="WindowBgBrush" Color="{StaticResource WindowBgColor}"/>
@@ -51,6 +53,8 @@
     <SolidColorBrush x:Key="SlotReturnedBorderBrush" Color="{StaticResource SlotReturnedBorderColor}"/>
     <SolidColorBrush x:Key="SlotOpenBrush" Color="{StaticResource SlotOpenColor}"/>
     <SolidColorBrush x:Key="SlotOpenBorderBrush" Color="{StaticResource SlotOpenBorderColor}"/>
+    <SolidColorBrush x:Key="SlotDisabledBrush" Color="{StaticResource SlotDisabledColor}"/>
+    <SolidColorBrush x:Key="SlotDisabledBorderBrush" Color="{StaticResource SlotDisabledBorderColor}"/>
 
     <!-- ============ 基础字体 ============ -->
     <FontFamily x:Key="UiFont">Microsoft YaHei UI, Segoe UI, sans-serif</FontFamily>
@@ -140,6 +144,21 @@
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Height" Value="42"/>
         <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="8,6"/>
+                </Style>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- ============ 主操作按钮（蓝色） ============ -->

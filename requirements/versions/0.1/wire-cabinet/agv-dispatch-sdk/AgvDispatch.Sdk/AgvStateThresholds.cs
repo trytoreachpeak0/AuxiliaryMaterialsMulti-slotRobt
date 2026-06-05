@@ -43,4 +43,19 @@ public sealed class AgvStateThresholds
 
     /// <summary>门打开字符（原 '0'）。</summary>
     public char DoorOpenChar { get; set; } = '0';
+
+    /// <summary>定位成功（locationState 精确匹配，忽略大小写）。</summary>
+    public IList<string> SuccessLocationStates { get; set; } = new List<string>
+    {
+        "LOCATION_STATE_SUCCESS", "LOCATION_SUCCESS"
+    };
+
+    /// <summary>定位失败（locationState 包含任一子串，忽略大小写）。</summary>
+    public IList<string> FailedLocationStateContains { get; set; } = new List<string> { "FAIL", "ERROR" };
+
+    /// <summary>定位进行中（locationState 精确匹配，忽略大小写）。</summary>
+    public IList<string> RunningLocationStates { get; set; } = new List<string> { "LOCATION_STATE_RUNNING" };
+
+    /// <summary>急停态（emergencyState 包含任一子串，忽略大小写）。</summary>
+    public IList<string> EmergencyActiveContains { get; set; } = new List<string> { "EMERGENCY", "ESTOP", "STOP", "1", "TRUE" };
 }

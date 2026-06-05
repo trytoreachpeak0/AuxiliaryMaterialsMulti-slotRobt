@@ -3,7 +3,8 @@ dialect: sqlite
 datasource: app.sqlite
 operation: read
 business_meaning: >-
-  操作员归还焊丝前，查找一个可用于存放归还焊丝的空闲格口（usage_type 为 returned 或 shared，biz_state=idle，门已关）。
+  操作员归还焊丝前，分配保留归还格：即当前所有空闲非禁用格口中 slot_index 最大的一个
+  （与 find_available 预留规则一致），且 usage_type 须为 returned 或 shared。
 sql: |
   SELECT slot_id AS return_slot_id,
          slot_no AS return_slot_no
@@ -11,7 +12,18 @@ sql: |
   WHERE usage_type IN ('returned', 'shared')
     AND biz_state = 'idle'
     AND door_state = 'closed'
-  ORDER BY slot_no
+    AND is_enabled = 1
+    AND io_wired = 1
+    AND slot_id = (
+      SELECT r.slot_id
+      FROM app_slot r
+      WHERE r.biz_state = 'idle'
+        AND r.door_state = 'closed'
+        AND r.is_enabled = 1
+        AND r.io_wired = 1
+      ORDER BY r.slot_index DESC, r.slot_no DESC
+      LIMIT 1
+    )
   LIMIT 1;
 params: []
 outputs:

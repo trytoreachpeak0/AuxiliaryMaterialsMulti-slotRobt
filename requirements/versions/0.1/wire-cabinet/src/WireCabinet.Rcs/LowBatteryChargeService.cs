@@ -8,12 +8,14 @@ public sealed class LowBatteryChargeService
 {
     private readonly IAgvDispatchClient _client;
     private readonly AgvThresholdOptions _thresholds;
+    private readonly Func<bool> _hasActiveOrder;
     private int? _lastWorkStationBeforeCharge;
 
-    public LowBatteryChargeService(IAgvDispatchClient client, AgvThresholdOptions thresholds)
+    public LowBatteryChargeService(IAgvDispatchClient client, AgvThresholdOptions thresholds, Func<bool>? hasActiveOrder = null)
     {
         _client = client;
         _thresholds = thresholds;
+        _hasActiveOrder = hasActiveOrder ?? (() => false);
     }
 
     public void RememberWorkStation(int destination) => _lastWorkStationBeforeCharge = destination;
@@ -21,6 +23,9 @@ public sealed class LowBatteryChargeService
     public async Task<string?> TryAutoChargeAsync(double batteryPercent, CancellationToken ct = default)
     {
         if (batteryPercent > _thresholds.LowBatteryPercent)
+            return null;
+
+        if (_hasActiveOrder())
             return null;
 
         try
@@ -37,6 +42,9 @@ public sealed class LowBatteryChargeService
     public async Task<string?> TryReturnToWorkStationAsync(double batteryPercent, CancellationToken ct = default)
     {
         if (batteryPercent < _thresholds.FullBatteryPercent || _lastWorkStationBeforeCharge is not int dest)
+            return null;
+
+        if (_hasActiveOrder())
             return null;
 
         try

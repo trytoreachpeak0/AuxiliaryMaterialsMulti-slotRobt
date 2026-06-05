@@ -8,15 +8,11 @@ namespace WireCabinet.Hmi.Views;
 
 public partial class AgvView : UserControl
 {
-    private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromSeconds(2) };
-    private bool _polling;
-
     public AgvView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _pollTimer.Stop();
-        _pollTimer.Tick += async (_, _) => await PollTickAsync();
+        Unloaded += OnUnloaded;
     }
 
     private AgvServices Agv => App.Agv;
@@ -24,8 +20,6 @@ public partial class AgvView : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         StationCombo.ItemsSource = null;
-        MoveBtn.IsEnabled = false;
-        ChargeBtn.IsEnabled = false;
 
         if (!Agv.IsConfigured)
         {
@@ -34,7 +28,7 @@ public partial class AgvView : UserControl
             return;
         }
 
-        RcsConfigText.Text = Agv.IsConnected ? "RCS 已连接" : "RCS 已配置，请点击刷新登录";
+        RcsConfigText.Text = "RCS 由后台自动连接";
         var stations = Agv.Stations.EnabledWorkStations.ToList();
         StationCombo.ItemsSource = stations;
         if (stations.Count > 0)
@@ -45,53 +39,73 @@ public partial class AgvView : UserControl
             ? $"充电点：{chg.Name}（站点 {chg.RcsDestination}）"
             : "充电点：未配置（stations.yaml charge_station）";
 
-        MoveBtn.IsEnabled = stations.Count > 0;
-        ChargeBtn.IsEnabled = chg is { Enabled: true, RcsDestination: > 0 };
+        ChargePolicyText.Text =
+            $"自动回充：电量 ≤ {Agv.LowBatteryPercent}% 下充电单；≥ {Agv.FullBatteryPercent}% 返航上一作业站。";
 
-        _pollTimer.Start();
-        _ = ConnectAndRefreshAsync();
+        if (Window.GetWindow(this) is MainWindow mw)
+            mw.AgvPollUpdated += OnAgvPollUpdated;
+
+        UpdateStatusPanel();
+        if (!Agv.IsConnected)
+            _ = ConnectOnceAsync();
     }
 
-    private async Task ConnectAndRefreshAsync()
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this) is MainWindow mw)
+            mw.AgvPollUpdated -= OnAgvPollUpdated;
+    }
+
+    private void OnAgvPollUpdated() => Dispatcher.Invoke(UpdateStatusPanel);
+
+    private async Task ConnectOnceAsync()
     {
         await Agv.ConnectAsync();
         UpdateStatusPanel();
         SetStatus(Agv.IsConnected ? "RCS 已连接，可下发移动/充电单。" : Agv.LastError ?? "RCS 连接失败");
     }
 
-    private async Task PollTickAsync()
-    {
-        if (_polling || !Agv.IsConfigured) return;
-        _polling = true;
-        try
-        {
-            if (!Agv.IsConnected)
-                await Agv.ConnectAsync();
-            await Agv.RefreshStatusAsync();
-            var policyMsg = await Agv.RunAutoChargePolicyAsync();
-            UpdateStatusPanel();
-            if (policyMsg is not null)
-                SetStatus(policyMsg);
-        }
-        finally
-        {
-            _polling = false;
-        }
-    }
-
     private void UpdateStatusPanel()
     {
         BatteryText.Text = $"{Agv.LastBatteryPercent:F0}%";
-        PositionText.Text = Agv.LastPosition.ToString();
+        PositionText.Text = Agv.LastPositionDisplay;
+        LocationText.Text = Agv.LastLocationDisplay;
         SysStateText.Text = Agv.LastSysState;
         MoveStateText.Text = Agv.LastMoveState;
+        EmergencyText.Text = Agv.LastEmergencyDisplay;
         SessionStateText.Text = Agv.Move?.State.ToString() ?? "—";
-        RcsConfigText.Text = Agv.IsConnected ? "RCS 已连接" : (Agv.LastError ?? "未连接");
+        TaskSummaryText.Text = Agv.LastTaskTargetDisplay;
+        TaskProgressText.Text = Agv.HasActiveOrder ? $"{Agv.LastProgress}%" : "—";
+
+        RcsConfigText.Text = Agv.IsConnected
+            ? "RCS 已连接（后台自动刷新）"
+            : (Agv.LastError ?? "RCS 未连接");
+
+        App.UiGate.OnAgvSnapshotRefreshed();
+        App.UiGate.TryClearMovementLock();
+        UpdateButtonStates();
     }
 
-    private async void RefreshBtn_Click(object sender, RoutedEventArgs e)
+    private void DisableAllMovementControls()
     {
-        await ConnectAndRefreshAsync();
+        MoveBtn.IsEnabled = false;
+        ChargeBtn.IsEnabled = false;
+        StationCombo.IsEnabled = false;
+    }
+
+    private void UpdateButtonStates()
+    {
+        var stations = Agv.Stations.EnabledWorkStations.Any();
+        var chgOk = Agv.Stations.ChargeStation is { Enabled: true, RcsDestination: > 0 };
+        var moveLocked = App.UiGate.MovementControlsLocked;
+        var canMove = Agv.IsConfigured && Agv.IsConnected && stations && Agv.CanPlaceMoveOrChargeOrder && !moveLocked;
+        var canCharge = Agv.IsConfigured && Agv.IsConnected && chgOk && Agv.CanPlaceMoveOrChargeOrder && !moveLocked;
+
+        MoveBtn.IsEnabled = canMove;
+        ChargeBtn.IsEnabled = canCharge;
+        StationCombo.IsEnabled = canMove || canCharge;
+        CancelOrderBtn.IsEnabled = Agv.IsConfigured && Agv.IsConnected && Agv.CanCancelActiveOrder;
+        ReleaseEmergencyBtn.IsEnabled = Agv.IsConfigured && Agv.IsConnected && Agv.CanReleaseEmergency;
     }
 
     private async void MoveBtn_Click(object sender, RoutedEventArgs e)
@@ -102,31 +116,71 @@ public partial class AgvView : UserControl
             return;
         }
 
-        MoveBtn.IsEnabled = false;
+        DisableAllMovementControls();
         try
         {
             var (ok, msg) = await Agv.MoveToStationAsync(station.RcsDestination);
             SetStatus(msg);
+            if (ok)
+                App.UiGate.SetMovementLocked(true);
             UpdateStatusPanel();
+            if (!ok)
+                UpdateButtonStates();
         }
-        finally
+        catch
         {
-            MoveBtn.IsEnabled = true;
+            UpdateButtonStates();
+            throw;
         }
     }
 
     private async void ChargeBtn_Click(object sender, RoutedEventArgs e)
     {
-        ChargeBtn.IsEnabled = false;
+        DisableAllMovementControls();
         try
         {
             var (ok, msg) = await Agv.GoChargeAsync();
+            SetStatus(msg);
+            if (ok)
+                App.UiGate.SetMovementLocked(true);
+            UpdateStatusPanel();
+            if (!ok)
+                UpdateButtonStates();
+        }
+        catch
+        {
+            UpdateButtonStates();
+            throw;
+        }
+    }
+
+    private async void CancelOrderBtn_Click(object sender, RoutedEventArgs e)
+    {
+        CancelOrderBtn.IsEnabled = false;
+        try
+        {
+            var (_, msg) = await Agv.CancelActiveOrderAsync();
             SetStatus(msg);
             UpdateStatusPanel();
         }
         finally
         {
-            ChargeBtn.IsEnabled = Agv.Stations.ChargeStation is { RcsDestination: > 0 };
+            UpdateButtonStates();
+        }
+    }
+
+    private async void ReleaseEmergencyBtn_Click(object sender, RoutedEventArgs e)
+    {
+        ReleaseEmergencyBtn.IsEnabled = false;
+        try
+        {
+            var (_, msg) = await Agv.ReleaseEmergencyAsync();
+            SetStatus(msg);
+            UpdateStatusPanel();
+        }
+        finally
+        {
+            UpdateButtonStates();
         }
     }
 

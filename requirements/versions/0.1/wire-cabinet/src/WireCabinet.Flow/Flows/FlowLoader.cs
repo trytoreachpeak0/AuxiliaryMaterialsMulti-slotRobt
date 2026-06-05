@@ -26,9 +26,33 @@ public static class FlowLoader
         return flows;
     }
 
+    private static string? ResolveLabFlowYamlPath(string flowId)
+    {
+        var labPath = Path.Combine(
+            CabinetPaths.RepoRoot,
+            "requirements",
+            "validation",
+            "wire-flow-lab",
+            "data-access-sql",
+            "flow-sql-map",
+            "flows",
+            flowId,
+            "flow.yaml");
+        return File.Exists(labPath) ? labPath : null;
+    }
+
     public static FlowDefinition LoadFlow(string path)
     {
         var root = Yaml.Parse(File.ReadAllText(path));
+
+        var flowId = Yaml.Str(root, "flow_id") ?? "";
+        var nodes = Yaml.AsMap(Yaml.Get(root, "nodes"));
+        if ((nodes is null || nodes.Count == 0) && !string.IsNullOrEmpty(flowId))
+        {
+            var labPath = ResolveLabFlowYamlPath(flowId);
+            if (labPath is not null && !string.Equals(labPath, path, StringComparison.OrdinalIgnoreCase))
+                return LoadFlow(labPath);
+        }
 
         var def = new FlowDefinition
         {
@@ -48,7 +72,6 @@ public static class FlowLoader
             foreach (var o in order)
                 def.NodeOrder.Add(o.ToString()!);
 
-        var nodes = Yaml.AsMap(Yaml.Get(root, "nodes"));
         if (nodes is not null)
             foreach (var (key, val) in nodes)
             {

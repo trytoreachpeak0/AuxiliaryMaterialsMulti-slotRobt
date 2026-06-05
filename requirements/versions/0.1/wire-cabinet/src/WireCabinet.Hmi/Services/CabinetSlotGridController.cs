@@ -29,18 +29,27 @@ public static class CabinetSlotGridController
         slotId > FrontMaxSlotId ||
         slotNo.StartsWith("R-", StringComparison.OrdinalIgnoreCase);
 
-    public static List<MhSlotTileModel> BuildMhTiles(IReadOnlyList<SlotDoorState> sideSlots)
+    public static List<MhSlotTileModel> BuildMhTiles(
+        IReadOnlyList<SlotDoorState> sideSlots,
+        IReadOnlyDictionary<string, SlotHardwareSnapshot> hwSnapshots,
+        bool hardwareConfigured)
     {
         var tiles = new List<MhSlotTileModel>(SlotsPerSide);
         foreach (var slot in sideSlots)
-            tiles.Add(MhSlotTileModel.From(slot));
+        {
+            hwSnapshots.TryGetValue(slot.SlotNo, out var hw);
+            tiles.Add(MhSlotTileModel.From(slot, hw, hardwareConfigured));
+        }
         while (tiles.Count < SlotsPerSide)
             tiles.Add(MhSlotTileModel.Placeholder());
         return tiles;
     }
 
-    public static List<CabinetSlotTileVisual> BuildMhVisuals(IReadOnlyList<SlotDoorState> sideSlots) =>
-        BuildMhTiles(sideSlots).Select(CabinetSlotTileVisual.FromMh).ToList();
+    public static List<CabinetSlotTileVisual> BuildMhVisuals(
+        IReadOnlyList<SlotDoorState> sideSlots,
+        IReadOnlyDictionary<string, SlotHardwareSnapshot> hwSnapshots,
+        bool hardwareConfigured) =>
+        BuildMhTiles(sideSlots, hwSnapshots, hardwareConfigured).Select(CabinetSlotTileVisual.FromMh).ToList();
 
     public static List<CabinetSlotTileVisual> BuildMaintVisuals(
         IReadOnlyList<SlotDoorState> sideSlots,

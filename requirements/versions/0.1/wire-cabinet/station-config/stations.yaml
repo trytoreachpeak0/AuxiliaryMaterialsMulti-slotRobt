@@ -14,8 +14,8 @@ rcs:
   device_key: "YOUR_DEVICE_KEY"
 
 charge_policy:
-  low_battery_percent: 20
-  full_battery_percent: 95
+  low_battery_percent: 15
+  full_battery_percent: 60
   after_charge_complete: return_to_last_work_station
   remember_work_station_when:
     - auto_charge_departure
@@ -31,7 +31,7 @@ work_stations:
   # 示例 A：仅物料员 MH — 存可用焊丝 + 本柜格口维护
   - station_code: WS_MH_STORE
     display_name: 物料间焊丝柜（MH）
-    rcs_destination: 518                    # 现场填写
+    rcs_destination: 596                    # 现场填写
     enabled: true
     cabinet_id: 1
     allowed_roles: [MH]
@@ -46,7 +46,7 @@ work_stations:
   # 示例 B：仅操作员 OP — 存废取新
   - station_code: WS_OP_ISSUE
     display_name: 线边焊丝柜（OP）
-    rcs_destination: 519                    # 现场填写；Sample DestinationStationId
+    rcs_destination: 597                    # 现场填写；Sample DestinationStationId
     enabled: true
     cabinet_id: 2
     allowed_roles: [OP]

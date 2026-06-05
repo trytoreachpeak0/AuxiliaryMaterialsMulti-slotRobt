@@ -1,4 +1,5 @@
 using AgvDispatch.Sdk;
+using AgvDispatch.Sdk.Models;
 using Microsoft.Extensions.Configuration;
 using WireCabinet.Core.Config;
 using WireCabinet.Rcs;
@@ -24,9 +25,25 @@ public sealed class AgvServices : IDisposable
 
     public double LastBatteryPercent { get; private set; }
     public int LastPosition { get; private set; }
+    public string LastPositionDisplay { get; private set; } = "—";
     public string LastSysState { get; private set; } = "—";
     public string LastMoveState { get; private set; } = "—";
+    public int LastProgress { get; private set; }
+    public string? LastOrderTaskId { get; private set; }
+    public string? LastOrderName { get; private set; }
+    public string LastTaskTargetDisplay { get; private set; } = "—";
+    public string? LastEmergencyState { get; private set; }
+    public string LastEmergencyDisplay { get; private set; } = "—";
+    public string? LastLocationState { get; private set; }
+    public string LastLocationDisplay { get; private set; } = "—";
+    public bool HasActiveOrder { get; private set; }
+    public bool CanPlaceMoveOrChargeOrder { get; private set; }
+    public bool CanCancelActiveOrder { get; private set; }
+    public bool CanReleaseEmergency { get; private set; }
     public int? LastWorkStationBeforeCharge { get; set; }
+
+    public int LowBatteryPercent => _thresholds.LowBatteryPercent;
+    public int FullBatteryPercent => _thresholds.FullBatteryPercent;
 
     public AgvServices(IConfiguration config, ISlotControlService slots, IDoorStateProvider doors)
     {
@@ -56,9 +73,9 @@ public sealed class AgvServices : IDisposable
         try
         {
             _client = AgvDispatchClient.Create(_options);
-            Move = new ManualMoveService(_client, _options, slots, doors);
-            Charge = new LowBatteryChargeService(_client, _thresholds);
             ControlLoop = new AgvControlLoop(_client, _options, doors);
+            Move = new ManualMoveService(_client, _options, slots, ControlLoop);
+            Charge = new LowBatteryChargeService(_client, _thresholds, () => HasActiveOrder);
         }
         catch (Exception ex)
         {
@@ -86,18 +103,27 @@ public sealed class AgvServices : IDisposable
         }
     }
 
+    public async Task EnsureTokenFreshAsync(CancellationToken ct = default)
+    {
+        if (_client is null || !IsConnected) return;
+
+        var interval = TimeSpan.FromHours(_options.TokenRefreshIntervalHours);
+        var obtained = _client.TokenObtainedAtUtc;
+        if (obtained is null || DateTime.UtcNow - obtained.Value >= interval)
+        {
+            await _client.ForceReLoginAsync(ct).ConfigureAwait(false);
+        }
+    }
+
     public async Task RefreshStatusAsync(CancellationToken ct = default)
     {
         if (_client is null || !IsConnected) return;
         try
         {
+            await EnsureTokenFreshAsync(ct).ConfigureAwait(false);
             var snap = await _client.GetVehicleSnapshotAsync(cancellationToken: ct).ConfigureAwait(false);
-            LastBatteryPercent = snap.Vehicle.Battery;
-            LastPosition = snap.Vehicle.CurrentPosition;
-            LastSysState = snap.Vehicle.SysState ?? "—";
-            LastMoveState = snap.Vehicle.EffectiveMoveState ?? "—";
-            if (Move is not null)
-                await Move.RefreshAsync(ct).ConfigureAwait(false);
+            ApplySnapshot(snap);
+            Move?.RefreshFromSnapshot(snap);
         }
         catch (Exception ex)
         {
@@ -110,6 +136,12 @@ public sealed class AgvServices : IDisposable
         if (Move is null) return (false, "RCS 未就绪");
         if (!IsConnected && !await ConnectAsync(ct).ConfigureAwait(false))
             return (false, LastError ?? "RCS 登录失败");
+
+        if (HasActiveOrder)
+            return (false, "已有进行中订单，请先取消或等待完成。");
+
+        if (!CanPlaceMoveOrChargeOrder)
+            return (false, "仅系统 IDLE 且无进行中订单时可下发移动单。");
 
         var ws = Stations.EnabledWorkStations.FirstOrDefault(s => s.RcsDestination == destination);
         LastWorkStationBeforeCharge = destination;
@@ -128,6 +160,12 @@ public sealed class AgvServices : IDisposable
         if (!IsConnected && !await ConnectAsync(ct).ConfigureAwait(false))
             return (false, LastError ?? "RCS 登录失败");
 
+        if (HasActiveOrder)
+            return (false, "已有进行中订单，请先取消或等待完成。");
+
+        if (!CanPlaceMoveOrChargeOrder)
+            return (false, "仅系统 IDLE 且无进行中订单时可下充电单。");
+
         if (LastPosition > 0 && Stations.EnabledWorkStations.Any(s => s.RcsDestination == LastPosition))
             LastWorkStationBeforeCharge = LastPosition;
 
@@ -142,6 +180,70 @@ public sealed class AgvServices : IDisposable
         {
             return (false, ex.Message);
         }
+    }
+
+    public async Task<(bool Ok, string Message)> CancelActiveOrderAsync(CancellationToken ct = default)
+    {
+        if (_client is null || string.IsNullOrWhiteSpace(LastOrderTaskId))
+            return (false, "当前无进行中订单。");
+        if (!CanCancelActiveOrder)
+            return (false, "仅暂停或挂起中的任务可取消。");
+
+        try
+        {
+            await _client.CancelOrderAsync(LastOrderTaskId, ct).ConfigureAwait(false);
+            ControlLoop?.ResetCallState();
+            Move?.ResetSession();
+            await RefreshStatusAsync(ct).ConfigureAwait(false);
+            return (true, "已取消当前订单。");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    public async Task<(bool Ok, string Message)> ReleaseEmergencyAsync(CancellationToken ct = default)
+    {
+        if (_client is null) return (false, "RCS 未就绪");
+        if (!CanReleaseEmergency)
+            return (false, "当前无需解除急停。");
+
+        try
+        {
+            await _client.CancelEmergencyAsync(cancellationToken: ct).ConfigureAwait(false);
+            await RefreshStatusAsync(ct).ConfigureAwait(false);
+            return (true, "已下发解除急停。");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>后台轮询：刷新状态、自动回充；到站时回调。</summary>
+    public async Task<string?> PollCycleAsync(
+        AgvArrivalNavigator? navigator,
+        Action<WorkStationConfig>? onArrivedAtStation,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+
+        if (!IsConnected)
+            await ConnectAsync(ct).ConfigureAwait(false);
+
+        await RefreshStatusAsync(ct).ConfigureAwait(false);
+        var policyMsg = await RunAutoChargePolicyAsync(ct).ConfigureAwait(false);
+
+        if (navigator is not null && onArrivedAtStation is not null)
+        {
+            navigator.ResetIfLeftStation(LastPosition);
+            var station = navigator.TryGetArrivedStation(this);
+            if (station is not null)
+                onArrivedAtStation(station);
+        }
+
+        return policyMsg;
     }
 
     public async Task<string?> RunAutoChargePolicyAsync(CancellationToken ct = default)
@@ -164,6 +266,88 @@ public sealed class AgvServices : IDisposable
     {
         if (_client is IDisposable d) d.Dispose();
         _client = null;
+    }
+
+    private void ApplySnapshot(VehicleSnapshot snap)
+    {
+        var v = snap.Vehicle;
+        LastBatteryPercent = v.Battery;
+        LastPosition = v.CurrentPosition;
+        LastPositionDisplay = FormatPosition(v.CurrentPosition);
+        LastSysState = v.SysState ?? "—";
+        LastMoveState = v.EffectiveMoveState ?? "—";
+        LastProgress = v.Progress;
+        LastOrderTaskId = v.OrderTaskId;
+        LastOrderName = v.OrderName;
+        LastEmergencyState = v.EmergencyState;
+        LastLocationState = v.LocationState;
+        LastLocationDisplay = LocationStateDisplay.Format(v.LocationState, _options.StateThresholds);
+        LastTaskTargetDisplay = FormatTaskTarget(v, snap.Order);
+        HasActiveOrder = !string.IsNullOrWhiteSpace(v.OrderTaskId);
+        EvaluateUiGates(snap);
+        LastEmergencyDisplay = FormatEmergency(v);
+    }
+
+    private void EvaluateUiGates(VehicleSnapshot snap)
+    {
+        var v = snap.Vehicle;
+        var thresholds = _options.StateThresholds;
+
+        CanPlaceMoveOrChargeOrder = IsConnected
+                                    && string.Equals(v.SysState, "IDLE", StringComparison.OrdinalIgnoreCase)
+                                    && !HasActiveOrder;
+
+        CanCancelActiveOrder = HasActiveOrder && (
+            (v.EffectiveMoveState?.Contains("PAUSED", StringComparison.OrdinalIgnoreCase) ?? false)
+            || string.Equals(v.SysState, "PAUSE", StringComparison.OrdinalIgnoreCase)
+            || (snap.Order is not null && snap.Order.EffectiveOrderState == thresholds.OrderStatePending));
+
+        var sysError = thresholds.ErrorSysStates.Contains(v.SysState ?? "", StringComparer.OrdinalIgnoreCase);
+        var emgActive = !string.IsNullOrWhiteSpace(v.EmergencyState)
+                        && thresholds.EmergencyActiveContains.Any(e =>
+                            v.EmergencyState!.Contains(e, StringComparison.OrdinalIgnoreCase));
+        CanReleaseEmergency = sysError || emgActive;
+    }
+
+    private string FormatPosition(int position)
+    {
+        if (position <= 0) return "—";
+        var ws = Stations.EnabledWorkStations.FirstOrDefault(s => s.RcsDestination == position);
+        if (ws is not null) return $"{ws.Name}（{position}）";
+        if (Stations.ChargeStation is { RcsDestination: var chg } && chg == position)
+            return $"{Stations.ChargeStation.Name}（{position}）";
+        return position.ToString();
+    }
+
+    private string FormatTaskTarget(VehicleInfoDto v, OrderDetailDto? order)
+    {
+        if (string.IsNullOrWhiteSpace(v.OrderTaskId))
+            return "无进行中任务";
+
+        var dest = order?.Mission?.FirstOrDefault(m =>
+            string.Equals(m.Type, "move", StringComparison.OrdinalIgnoreCase))?.Destination;
+        if (dest is null or 0)
+            dest = v.EndStationNo > 0 ? v.EndStationNo : null;
+
+        var name = !string.IsNullOrWhiteSpace(v.EndStationName)
+            ? v.EndStationName
+            : dest is int d ? FormatPosition(d) : "—";
+
+        var orderLabel = string.IsNullOrWhiteSpace(v.OrderName) ? v.OrderTaskId : $"{v.OrderName}（{v.OrderTaskId}）";
+        return dest is int station
+            ? $"{orderLabel} → {name}（站点 {station}）"
+            : $"{orderLabel} → {name}";
+    }
+
+    private string FormatEmergency(VehicleInfoDto v)
+    {
+        if (!CanReleaseEmergency && string.IsNullOrWhiteSpace(v.EmergencyState))
+            return "正常";
+        if (!string.IsNullOrWhiteSpace(v.EmergencyState))
+            return v.EmergencyState;
+        if (_options.StateThresholds.ErrorSysStates.Contains(v.SysState ?? "", StringComparer.OrdinalIgnoreCase))
+            return "系统 ERROR";
+        return "—";
     }
 
     private static bool IsAgvConfigComplete(IConfiguration config)

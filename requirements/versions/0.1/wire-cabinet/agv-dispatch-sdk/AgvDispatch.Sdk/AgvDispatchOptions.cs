@@ -47,6 +47,9 @@ public sealed class AgvDispatchOptions
     /// <summary>推荐轮询间隔（文档/LLM 用，SDK 不强制）。</summary>
     public int RecommendedPollIntervalMs { get; set; } = 500;
 
+    /// <summary>Bearer token 主动重登间隔（小时）；RCS token 约 24h 过期，默认 20h 留余量。</summary>
+    public double TokenRefreshIntervalHours { get; set; } = 20;
+
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(BaseUrl))

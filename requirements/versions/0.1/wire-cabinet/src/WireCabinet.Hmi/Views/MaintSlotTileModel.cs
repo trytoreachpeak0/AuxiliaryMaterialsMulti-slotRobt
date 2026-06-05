@@ -4,7 +4,7 @@ using WireCabinet.Slots.Hardware;
 
 namespace WireCabinet.Hmi.Views;
 
-/// <summary>维护视图格口卡片：IO 点位 + 锁 DI 门态（无门磁、无焊丝规格）。</summary>
+/// <summary>维护视图格口卡片：启用/禁用 × 门开/关（底色=启用态，边框=门态）。</summary>
 public sealed class MaintSlotTileModel
 {
     public bool IsPlaceholder { get; init; }
@@ -77,18 +77,63 @@ public sealed class MaintSlotTileModel
             };
         }
 
-        // 无门磁：门态仅由锁反馈 DI 推断（锁释放 = 门开）
-        if (hw.LockClosed == false)
+        var isOpen = hw.LockClosed == false;
+        return BuildEnabledDoorTile(state, middle, state.IsEnabled, isOpen);
+    }
+
+    private static MaintSlotTileModel BuildEnabledDoorTile(
+        SlotDoorState state,
+        string middle,
+        bool isEnabled,
+        bool isOpen)
+    {
+        if (isEnabled)
+        {
+            if (isOpen)
+            {
+                return new MaintSlotTileModel
+                {
+                    SlotId = state.SlotId,
+                    SlotNo = state.SlotNo,
+                    DisplayNo = FormatDisplayNo(state.SlotNo),
+                    MiddleText = middle,
+                    ShowMiddleRow = true,
+                    StatusText = "启用·门开",
+                    BackgroundKey = "SlotOpenBrush",
+                    BorderKey = "SlotOpenBorderBrush",
+                    BorderThickness = 2.5,
+                    NoForegroundKey = "TextPrimaryBrush",
+                    StatusForegroundKey = "SlotOpenBorderBrush",
+                    StatusBold = true
+                };
+            }
+
+            return new MaintSlotTileModel
+            {
+                SlotId = state.SlotId,
+                SlotNo = state.SlotNo,
+                DisplayNo = FormatDisplayNo(state.SlotNo),
+                MiddleText = middle,
+                ShowMiddleRow = true,
+                StatusText = "启用·门关",
+                BackgroundKey = "SlotLoadedBrush",
+                BorderKey = "SlotLoadedBorderBrush",
+                NoForegroundKey = "TextPrimaryBrush",
+                StatusForegroundKey = "SlotLoadedBorderBrush"
+            };
+        }
+
+        if (isOpen)
         {
             return new MaintSlotTileModel
             {
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
-                DisplayNo = displayNo,
+                DisplayNo = FormatDisplayNo(state.SlotNo),
                 MiddleText = middle,
                 ShowMiddleRow = true,
-                StatusText = "锁释放（门开）",
-                BackgroundKey = "SlotOpenBrush",
+                StatusText = "禁用·门开",
+                BackgroundKey = "SlotDisabledBrush",
                 BorderKey = "SlotOpenBorderBrush",
                 BorderThickness = 2.5,
                 NoForegroundKey = "TextPrimaryBrush",
@@ -101,14 +146,14 @@ public sealed class MaintSlotTileModel
         {
             SlotId = state.SlotId,
             SlotNo = state.SlotNo,
-            DisplayNo = displayNo,
+            DisplayNo = FormatDisplayNo(state.SlotNo),
             MiddleText = middle,
             ShowMiddleRow = true,
-            StatusText = hw.LockClosed == true ? "锁闭合（门关）" : "锁 DI 未知",
-            BackgroundKey = "SlotLoadedBrush",
-            BorderKey = "SlotLoadedBorderBrush",
+            StatusText = "禁用·门关",
+            BackgroundKey = "SlotDisabledBrush",
+            BorderKey = "SlotDisabledBorderBrush",
             NoForegroundKey = "TextPrimaryBrush",
-            StatusForegroundKey = "SlotLoadedBorderBrush"
+            StatusForegroundKey = "SlotDisabledBorderBrush"
         };
     }
 

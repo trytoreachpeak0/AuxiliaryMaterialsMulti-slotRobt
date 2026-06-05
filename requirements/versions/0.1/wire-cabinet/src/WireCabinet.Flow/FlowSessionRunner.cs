@@ -4,6 +4,8 @@ public enum FlowPauseReason
 {
     None,
     UserInput,
+    AwaitingAction,
+    AwaitingDoorClose,
     Terminal,
     Error
 }
@@ -26,12 +28,34 @@ public sealed class FlowSessionRunner
         PauseMessage = null;
     }
 
-    public TraceEntry? RunUntilPause()
+    public TraceEntry? RunUntilPause(string? pauseBeforeNodeId = null, bool pauseBeforeDoorClose = false)
     {
+        if (_engine.Finished)
+        {
+            PauseReason = FlowPauseReason.Error;
+            PauseMessage = "流程已结束，请重新开始。";
+            return _engine.Trace.LastOrDefault();
+        }
+
         while (!_engine.Finished)
         {
             var node = _engine.CurrentNode;
             if (node is null) break;
+
+            if (pauseBeforeNodeId is not null
+                && string.Equals(node.Id, pauseBeforeNodeId, StringComparison.OrdinalIgnoreCase))
+            {
+                PauseReason = FlowPauseReason.AwaitingAction;
+                PauseMessage = node.Text;
+                return null;
+            }
+
+            if (pauseBeforeDoorClose && node.Type == NodeType.SlotClose)
+            {
+                PauseReason = FlowPauseReason.AwaitingDoorClose;
+                PauseMessage = node.Text;
+                return null;
+            }
 
             if (node.Type == NodeType.UserInput)
             {
@@ -52,7 +76,11 @@ public sealed class FlowSessionRunner
                 return entry;
             }
 
-            if (_engine.Finished || node.Type == NodeType.Terminal)
+            // user_input 已消费后清除，避免重复暂停在同一输入节点
+            if (node.Type == NodeType.UserInput)
+                _engine.Context?.UserInputs.Remove(node.Id);
+
+            if (_engine.Finished || entry.NodeType == "terminal")
             {
                 PauseReason = FlowPauseReason.Terminal;
                 PauseMessage = entry.Result;
@@ -71,4 +99,13 @@ public sealed class FlowSessionRunner
     }
 
     public void ResetUserInputs() => _engine.Context?.UserInputs.Clear();
+
+    /// <summary>批号校验失败后回到归还批号输入节点，允许同一会话内重新查询。</summary>
+    public void RewindToNode(string nodeId)
+    {
+        _engine.RewindToNode(nodeId);
+        _engine.Context?.UserInputs.Remove(nodeId);
+        PauseReason = FlowPauseReason.None;
+        PauseMessage = null;
+    }
 }

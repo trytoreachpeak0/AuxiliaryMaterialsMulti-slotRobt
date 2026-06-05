@@ -8,6 +8,7 @@ public sealed class SlotDoorState
     public string BizState { get; set; } = "";
     public bool IsOpen { get; set; }
     public bool IsLocked { get; set; } = true;
+    public bool IsEnabled { get; set; } = true;
     public string? WireLotNo { get; set; }
     public string? WireSpec { get; set; }
 }
@@ -18,6 +19,8 @@ public interface ISlotController
     event EventHandler? Changed;
     IReadOnlyList<SlotDoorState> Slots { get; }
     void Reload();
+    Task<bool> OpenDoorAsync(long slotId, CancellationToken ct = default);
+    Task CloseDoorAsync(long slotId, CancellationToken ct = default);
     void OpenDoor(long slotId);
     void CloseDoor(long slotId);
     long? CloseNextOpenDoor();

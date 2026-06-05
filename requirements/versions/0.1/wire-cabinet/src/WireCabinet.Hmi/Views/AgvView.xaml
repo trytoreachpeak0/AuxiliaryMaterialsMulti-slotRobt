@@ -3,92 +3,137 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource WindowBgBrush}">
     <Grid Margin="20,16,20,12">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="20"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- 左：车辆状态 -->
-        <Border Grid.Column="0" Background="{StaticResource PanelBgBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
+        <!-- 上：当前移动任务 -->
+        <Border Grid.Row="0" Background="{StaticResource PanelBgBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,12">
             <StackPanel>
-                <TextBlock Text="AGV 状态" Style="{StaticResource SectionTitle}"/>
+                <TextBlock Text="当前移动任务" Style="{StaticResource SectionTitle}"/>
                 <TextBlock x:Name="RcsConfigText" Text="RCS 未配置" Style="{StaticResource LabelText}"
-                           TextWrapping="Wrap" Margin="0,0,0,12"/>
-
-                <Grid Margin="0,4">
+                           TextWrapping="Wrap" Margin="0,4,0,8"/>
+                <TextBlock x:Name="TaskSummaryText" Text="无进行中任务" Style="{StaticResource ValueText}"
+                           TextWrapping="Wrap" FontSize="15"/>
+                <Grid Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="100"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="电量" Style="{StaticResource LabelText}"/>
-                    <TextBlock x:Name="BatteryText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    <TextBlock Text="进度" Style="{StaticResource LabelText}"/>
+                    <TextBlock x:Name="TaskProgressText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
                 </Grid>
-                <Grid Margin="0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="当前站点" Style="{StaticResource LabelText}"/>
-                    <TextBlock x:Name="PositionText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
-                </Grid>
-                <Grid Margin="0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="系统状态" Style="{StaticResource LabelText}"/>
-                    <TextBlock x:Name="SysStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
-                </Grid>
-                <Grid Margin="0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="移动状态" Style="{StaticResource LabelText}"/>
-                    <TextBlock x:Name="MoveStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
-                </Grid>
-                <Grid Margin="0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="控车会话" Style="{StaticResource LabelText}"/>
-                    <TextBlock x:Name="SessionStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
-                </Grid>
-
-                <Button Content="刷新状态 / 重新登录" Style="{StaticResource SecondaryButton}"
-                        Height="44" Margin="0,16,0,0" Click="RefreshBtn_Click"/>
+                <Button x:Name="CancelOrderBtn" Content="取消当前任务" Style="{StaticResource SecondaryButton}"
+                        Height="40" Margin="0,10,0,0" IsEnabled="False" Click="CancelOrderBtn_Click"/>
             </StackPanel>
         </Border>
 
-        <!-- 右：手动控车 -->
-        <Border Grid.Column="2" Background="{StaticResource PanelBgBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
-            <StackPanel>
-                <TextBlock Text="手动控车与回充" Style="{StaticResource SectionTitle}"/>
-                <TextBlock Text="选择作业站后下发移动单；充电中仅禁开格口，仍可控车离站。"
-                           Style="{StaticResource LabelText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+        <!-- 下：左状态 / 右控车 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <TextBlock Text="目标作业站" Style="{StaticResource LabelText}" Margin="0,0,0,6"/>
-                <ComboBox x:Name="StationCombo" Height="44" FontSize="15"
-                          DisplayMemberPath="Name" Margin="0,0,0,12"/>
+            <Border Grid.Column="0" Background="{StaticResource PanelBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="AGV 状态" Style="{StaticResource SectionTitle}"/>
 
-                <Button x:Name="MoveBtn" Content="前往所选作业站" Style="{StaticResource PrimaryButton}"
-                        Height="46" Margin="0,0,0,10" Click="MoveBtn_Click"/>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="电量" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="BatteryText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="当前站点" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="PositionText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"
+                                   TextWrapping="Wrap"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="定位状态" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="LocationText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="系统状态" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="SysStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="移动状态" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="MoveStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="急停状态" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="EmergencyText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"
+                                   TextWrapping="Wrap"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="控车会话" Style="{StaticResource LabelText}"/>
+                        <TextBlock x:Name="SessionStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                    </Grid>
 
-                <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,4,0,12"/>
+                    <Button x:Name="ReleaseEmergencyBtn" Content="解除急停" Style="{StaticResource WarningButton}"
+                            Height="44" Margin="0,12,0,0" IsEnabled="False" Click="ReleaseEmergencyBtn_Click"/>
+                </StackPanel>
+            </Border>
 
-                <TextBlock x:Name="ChargeTargetText" Text="充电点：未配置" Style="{StaticResource LabelText}"
-                           Margin="0,0,0,8"/>
-                <Button x:Name="ChargeBtn" Content="前往充电点（下充电单）" Style="{StaticResource WarningButton}"
-                        Height="46" Margin="0,0,0,10" Click="ChargeBtn_Click"/>
+            <Border Grid.Column="2" Background="{StaticResource PanelBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="手动控车与回充" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="RCS 由后台自动连接；仅 IDLE 且无进行中订单时可下单。"
+                               Style="{StaticResource LabelText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
-                <TextBlock Text="低电量自动回充在后台轮询中；充满后回充点前作业站。"
-                           Style="{StaticResource LabelText}" TextWrapping="Wrap" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
-            </StackPanel>
-        </Border>
+                    <TextBlock Text="目标作业站" Style="{StaticResource LabelText}" Margin="0,0,0,6"/>
+                    <ComboBox x:Name="StationCombo" Height="44" FontSize="15"
+                              DisplayMemberPath="Name" Margin="0,0,0,12"/>
+
+                    <Button x:Name="MoveBtn" Content="前往所选作业站" Style="{StaticResource PrimaryButton}"
+                            Height="46" Margin="0,0,0,10" IsEnabled="False" Click="MoveBtn_Click"/>
+
+                    <Rectangle Height="1" Fill="{StaticResource DividerBrush}" Margin="0,4,0,12"/>
+
+                    <TextBlock x:Name="ChargeTargetText" Text="充电点：未配置" Style="{StaticResource LabelText}"
+                               Margin="0,0,0,6"/>
+                    <TextBlock x:Name="ChargePolicyText" Text="" Style="{StaticResource LabelText}"
+                               TextWrapping="Wrap" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10"/>
+
+                    <Button x:Name="ChargeBtn" Content="前往充电点（下充电单）" Style="{StaticResource WarningButton}"
+                            Height="46" Margin="0,0,0,0" IsEnabled="False" Click="ChargeBtn_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

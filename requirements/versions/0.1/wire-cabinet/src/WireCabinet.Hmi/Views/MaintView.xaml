@@ -76,11 +76,26 @@
                             <TextBlock Text="锁反馈" Style="{StaticResource MaintDataLabel}" Width="72"/>
                             <TextBlock x:Name="DetailLockText" Style="{StaticResource MaintDataValue}"/>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="启用状态" Style="{StaticResource MaintDataLabel}" Width="72"/>
+                            <TextBlock x:Name="DetailEnabledText" Style="{StaticResource MaintDataValue}"/>
+                        </StackPanel>
                         <TextBlock Text="本柜无门磁，门态由锁反馈 DI 推断。"
                                    Style="{StaticResource MaintDataLabel}" TextWrapping="Wrap" Margin="0,0,0,4"/>
                         <TextBlock x:Name="DetailReadTimeText" Style="{StaticResource MaintDataLabel}" Margin="0,0,0,8"/>
-                        <Button x:Name="BtnTrialOpen" Content="试开此格" Style="{StaticResource PrimaryButton}"
-                                Height="46" Visibility="Collapsed" Click="BtnTrialOpen_Click"/>
+                        <Grid x:Name="DetailActionPanel" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnTrialOpen" Grid.Column="0" Content="试开此格"
+                                    Style="{StaticResource PrimaryButton}" Height="46"
+                                    Click="BtnTrialOpen_Click"/>
+                            <Button x:Name="BtnToggleDisable" Grid.Column="2" Content="禁用此格"
+                                    Style="{StaticResource SecondaryButton}" Height="46"
+                                    Click="BtnToggleDisable_Click"/>
+                        </Grid>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -101,6 +116,6 @@
         </Grid>
 
         <views:CabinetSlotGridPanel x:Name="SlotGrid" Grid.Column="2" PanelTitle="格口传感器状态"
-                                    EnableClearSelection="True"/>
+                                    EnableClearSelection="True" LegendMode="Maint"/>
     </Grid>
 </UserControl>

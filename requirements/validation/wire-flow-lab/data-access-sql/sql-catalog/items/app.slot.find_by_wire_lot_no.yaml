@@ -1,0 +1,26 @@
+id: app.slot.find_by_wire_lot_no
+dialect: sqlite
+datasource: app.sqlite
+operation: read
+business_meaning: >-
+  物料员存入可用焊丝前，查询应用数据库是否已有相同焊丝批号绑定到格口（批号唯一，禁止重复录入）。
+sql: |
+  SELECT slot_id,
+         slot_no,
+         biz_state
+  FROM app_slot
+  WHERE wire_lot_no = :wire_lot_no
+    AND TRIM(COALESCE(wire_lot_no, '')) <> ''
+  LIMIT 1;
+params:
+  - name: wire_lot_no
+    note: 待存入的焊丝批号
+outputs:
+  - slot_id
+  - slot_no
+  - biz_state
+result_cardinality: 0..1
+sample_result:
+  - slot_id: 3
+    slot_no: A03
+    biz_state: available_wire

@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using WireCabinet.Hmi.Services;
@@ -8,6 +9,9 @@ namespace WireCabinet.Hmi;
 
 public partial class App : Application
 {
+    private static Mutex? _singleInstanceMutex;
+    private bool _servicesInitialized;
+
     public static AppBootstrap Bootstrap { get; private set; } = null!;
     public static FlowCoordinator Flows { get; private set; } = null!;
     public static WireCabinet.Rcs.StationArrivalGate? StationGate { get; private set; }
@@ -17,19 +21,23 @@ public partial class App : Application
     public static MhDoorOnlyService MhDoors { get; private set; } = null!;
     public static DoorOperationGate DoorOps { get; private set; } = null!;
     public static MaintAccessGate MaintAccess { get; private set; } = null!;
+    public static HmiUiGateService UiGate { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // #region agent log
+        _singleInstanceMutex = new Mutex(true, @"Global\WireCabinet.Hmi", out var createdNew);
+        if (!createdNew)
+        {
+            Shutdown(0);
+            return;
+        }
+
         DispatcherUnhandledException += (_, args) =>
         {
-            WireCabinet.Core.DebugLog.Write("H5", "App.DispatcherUnhandledException", args.Exception.Message,
-                new { type = args.Exception.GetType().Name, stack = args.Exception.StackTrace });
             MessageBox.Show($"启动失败：{args.Exception.Message}", "WireCabinet", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
             Shutdown(-1);
         };
-        // #endregion
 
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -45,6 +53,7 @@ public partial class App : Application
         StationGate = new WireCabinet.Rcs.StationArrivalGate(stations);
         var doors = new WireCabinet.Slots.CabinetDoorStateProvider(Bootstrap.SlotControl);
         Agv = new AgvServices(config, Bootstrap.SlotControl, doors);
+        UiGate = new HmiUiGateService();
         IoHealth = new IoModuleHealthMonitor(Bootstrap.Hardware, Bootstrap.SlotIo);
         SlotHardwarePoll = new SlotHardwarePollService(Bootstrap.Hardware, Bootstrap.SlotIo.HealthCheckIntervalMs);
         MhDoors = new MhDoorOnlyService(
@@ -53,15 +62,36 @@ public partial class App : Application
             Bootstrap.AppDbGateway,
             Bootstrap.Catalog);
 
+        var doorReconciler = new DoorStateReconciler(Bootstrap.SlotControl, Bootstrap.Hardware);
+        SlotHardwarePoll.SetAfterPoll(async snapshots =>
+        {
+            var closed = await doorReconciler.ReconcileAsync(snapshots);
+            if (closed.Count > 0)
+            {
+                await MhDoors.NotifySlotsClosedAsync(closed);
+                Bootstrap.FlowSlots.Reload();
+            }
+            else
+                MhDoors.TryAutoEndDoorOnlySession();
+        });
+
         base.OnStartup(e);
+        _servicesInitialized = true;
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        Agv.Dispose();
-        IoHealth.Dispose();
-        SlotHardwarePoll.Dispose();
-        Bootstrap.Dispose();
+        _singleInstanceMutex?.ReleaseMutex();
+        _singleInstanceMutex?.Dispose();
+        _singleInstanceMutex = null;
+
+        if (_servicesInitialized)
+        {
+            Agv.Dispose();
+            IoHealth.Dispose();
+            SlotHardwarePoll.Dispose();
+            Bootstrap.Dispose();
+        }
         base.OnExit(e);
     }
 }

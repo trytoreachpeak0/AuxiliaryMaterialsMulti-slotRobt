@@ -34,12 +34,15 @@ public partial class MaintView : UserControl
         App.SlotHardwarePoll.Updated += OnHardwareUpdated;
         App.IoHealth.Updated += OnIoHealthUpdated;
         App.DoorOps.BusyChanged += OnDoorOpsBusyChanged;
-        App.SlotHardwarePoll.Start();
+        if (!App.SlotHardwarePoll.IsRunning)
+            App.SlotHardwarePoll.Start();
         _pollTimer.Start();
         UpdateConnectionSummary();
         ClearSlotSelection();
         RefreshPanel(reloadFromDb: true);
         ApplyDoorButtonStates();
+        if (Window.GetWindow(this) is MainWindow mw)
+            mw.AgvPollUpdated += OnAgvPollUpdated;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -48,9 +51,13 @@ public partial class MaintView : UserControl
         App.SlotHardwarePoll.Updated -= OnHardwareUpdated;
         App.IoHealth.Updated -= OnIoHealthUpdated;
         App.DoorOps.BusyChanged -= OnDoorOpsBusyChanged;
-        App.SlotHardwarePoll.Stop();
         _pollTimer.Stop();
+        if (Window.GetWindow(this) is MainWindow mw)
+            mw.AgvPollUpdated -= OnAgvPollUpdated;
     }
+
+    private void OnAgvPollUpdated() =>
+        Dispatcher.Invoke(ApplyDoorButtonStates);
 
     private void OnDoorOpsBusyChanged(object? sender, EventArgs e) =>
         Dispatcher.Invoke(ApplyDoorButtonStates);
@@ -94,6 +101,7 @@ public partial class MaintView : UserControl
             }
             SlotGrid.BindTiles([], enableSelection: true);
             SlotGrid.SetRefreshTime(DateTime.Now);
+            ApplySummaryCounts([]);
             ClearSlotSelection();
             return;
         }
@@ -106,6 +114,7 @@ public partial class MaintView : UserControl
             App.SlotHardwarePoll.Snapshots);
         SlotGrid.BindTiles(visuals, enableSelection: true);
         SlotGrid.SetRefreshTime(DateTime.Now);
+        ApplySummaryCounts(all);
 
         if (_selectedSlotId is > 0 &&
             all.Any(s => s.SlotId == _selectedSlotId.Value))
@@ -138,7 +147,7 @@ public partial class MaintView : UserControl
         _selectedSlotNo = null;
         DetailHintText.Visibility = Visibility.Visible;
         DetailPanel.Visibility = Visibility.Collapsed;
-        BtnTrialOpen.Visibility = Visibility.Collapsed;
+        DetailActionPanel.Visibility = Visibility.Collapsed;
     }
 
     private void UpdateDetailForSlot(long slotId, string? slotNo)
@@ -152,9 +161,10 @@ public partial class MaintView : UserControl
 
         DetailHintText.Visibility = Visibility.Collapsed;
         DetailPanel.Visibility = Visibility.Visible;
-        BtnTrialOpen.Visibility = Visibility.Visible;
+        DetailActionPanel.Visibility = Visibility.Visible;
 
         var map = App.Bootstrap.SlotIo.FindMapping(slot.SlotNo);
+        var wired = map?.Wired == true;
         App.SlotHardwarePoll.Snapshots.TryGetValue(slot.SlotNo, out var hw);
 
         DetailSlotNoText.Text = slot.SlotNo;
@@ -168,14 +178,19 @@ public partial class MaintView : UserControl
             _ when hw?.ReadOk == false => "读数失败",
             _ => App.Bootstrap.Hardware.IsConfigured ? "未知" : "硬件未联调"
         };
+        DetailEnabledText.Text = slot.IsEnabled ? "已启用" : "已禁用";
         DetailReadTimeText.Text = hw?.ReadOk == true
             ? $"硬件读数：{hw.ReadAt.ToLocalTime():HH:mm:ss}"
             : "硬件读数：—";
+
+        BtnToggleDisable.Visibility = wired ? Visibility.Visible : Visibility.Collapsed;
+        BtnToggleDisable.Content = slot.IsEnabled ? "禁用此格" : "启用此格";
+        ApplyDoorButtonStates();
     }
 
     private async void BtnOpenAllMaint_Click(object sender, RoutedEventArgs e)
     {
-        if (!ConfirmMaintOpen("确认打开所有格口", "将打开所有已启用且已接线的格口。"))
+        if (!ConfirmMaintOpen("确认打开所有格口", "将打开所有已接线格口（含已禁用格）。"))
             return;
 
         await RunMaintActionAsync((Button)sender, () => App.MhDoors.OpenAllMaintTrialAsync());
@@ -183,7 +198,7 @@ public partial class MaintView : UserControl
 
     private async void BtnOpenFrontMaint_Click(object sender, RoutedEventArgs e)
     {
-        if (!ConfirmMaintOpen("确认打开前柜所有格口", "将打开前柜所有已启用且已接线的格口。"))
+        if (!ConfirmMaintOpen("确认打开前柜所有格口", "将打开前柜所有已接线格口（含已禁用格）。"))
             return;
 
         await RunMaintActionAsync((Button)sender, () => App.MhDoors.OpenFrontMaintTrialAsync());
@@ -191,7 +206,7 @@ public partial class MaintView : UserControl
 
     private async void BtnOpenRearMaint_Click(object sender, RoutedEventArgs e)
     {
-        if (!ConfirmMaintOpen("确认打开后柜所有格口", "将打开后柜所有已启用且已接线的格口。"))
+        if (!ConfirmMaintOpen("确认打开后柜所有格口", "将打开后柜所有已接线格口（含已禁用格）。"))
             return;
 
         await RunMaintActionAsync((Button)sender, () => App.MhDoors.OpenRearMaintTrialAsync());
@@ -206,6 +221,54 @@ public partial class MaintView : UserControl
             DetailLockText.Text = "指令已下发，等待锁反馈…";
 
         await RunMaintActionAsync((Button)sender, () => App.MhDoors.OpenSingleMaintTrialAsync(_selectedSlotNo!), isTrial: true);
+    }
+
+    private async void BtnToggleDisable_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSlotId is not > 0)
+            return;
+
+        var slot = App.Bootstrap.FlowSlots.Slots.FirstOrDefault(s => s.SlotId == _selectedSlotId.Value);
+        if (slot is null)
+            return;
+
+        var enabling = !slot.IsEnabled;
+        var action = enabling ? "启用" : "禁用";
+        var message = enabling
+            ? $"确认启用格口 {_selectedSlotNo}？\n启用后该格口可用于存料。"
+            : $"确认禁用格口 {_selectedSlotNo}？\n禁用后不可用于存料，但格内已有焊丝仍可取出。";
+        if (MessageBox.Show(message, $"确认{action}格口", MessageBoxButton.YesNo, MessageBoxImage.Question) !=
+            MessageBoxResult.Yes)
+            return;
+
+        var trigger = (Button)sender;
+        var originalContent = trigger.Content?.ToString() ?? "";
+        trigger.Content = enabling ? "启用中…" : "禁用中…";
+        trigger.IsEnabled = false;
+
+        try
+        {
+            var (ok, resultMessage) = await App.Bootstrap.SlotControl.SetSlotEnabledAsync(
+                _selectedSlotId.Value, enabling);
+            if (!ok)
+            {
+                SetStatus(resultMessage);
+                return;
+            }
+
+            App.Bootstrap.FlowSlots.Reload();
+            SetStatus(resultMessage);
+            RefreshPanel(reloadFromDb: false);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"操作失败：{ex.Message}");
+        }
+        finally
+        {
+            trigger.Content = originalContent;
+            ApplyDoorButtonStates();
+        }
     }
 
     private static bool ConfirmMaintOpen(string title, string actionLine)
@@ -256,17 +319,27 @@ public partial class MaintView : UserControl
 
     private void ApplyDoorButtonStates()
     {
-        var enabled = !App.DoorOps.IsBusy;
-        BtnOpenAllMaint.IsEnabled = enabled;
-        BtnOpenFrontMaint.IsEnabled = enabled;
-        BtnOpenRearMaint.IsEnabled = enabled;
-        if (BtnTrialOpen.Visibility == Visibility.Visible)
-            BtnTrialOpen.IsEnabled = enabled;
+        var doorOpsEnabled = !App.DoorOps.IsBusy && !App.UiGate.BlocksSlotDoorControls;
+        BtnOpenAllMaint.IsEnabled = doorOpsEnabled;
+        BtnOpenFrontMaint.IsEnabled = doorOpsEnabled;
+        BtnOpenRearMaint.IsEnabled = doorOpsEnabled;
+        if (DetailActionPanel.Visibility == Visibility.Visible)
+        {
+            BtnTrialOpen.IsEnabled = doorOpsEnabled;
+            if (BtnToggleDisable.Visibility == Visibility.Visible)
+                BtnToggleDisable.IsEnabled = true;
+        }
     }
 
     private void SetStatus(string message)
     {
         if (Window.GetWindow(this) is MainWindow mw)
             mw.SetStatus(message);
+    }
+
+    private void ApplySummaryCounts(IReadOnlyList<SlotDoorState> all)
+    {
+        var counts = SlotSummaryHelper.ComputeMaint(all);
+        SlotGrid.SetSummaryCounts(counts.Total, counts.Enabled, counts.Disabled);
     }
 }

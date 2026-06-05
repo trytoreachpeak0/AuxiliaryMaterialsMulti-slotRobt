@@ -5,6 +5,12 @@ using System.Windows.Media;
 
 namespace WireCabinet.Hmi.Views;
 
+public enum SlotGridLegendMode
+{
+    Mh,
+    Maint
+}
+
 public sealed class CabinetSlotSelectedEventArgs : EventArgs
 {
     public long? SlotId { get; init; }
@@ -22,6 +28,10 @@ public partial class CabinetSlotGridPanel : UserControl
         DependencyProperty.Register(nameof(EnableClearSelection), typeof(bool), typeof(CabinetSlotGridPanel),
             new PropertyMetadata(false, OnEnableClearSelectionChanged));
 
+    public static readonly DependencyProperty LegendModeProperty =
+        DependencyProperty.Register(nameof(LegendMode), typeof(SlotGridLegendMode), typeof(CabinetSlotGridPanel),
+            new PropertyMetadata(SlotGridLegendMode.Mh, OnLegendModeChanged));
+
     private static void OnEnableClearSelectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is CabinetSlotGridPanel panel)
@@ -32,6 +42,15 @@ public partial class CabinetSlotGridPanel : UserControl
     {
         if (d is CabinetSlotGridPanel panel && e.NewValue is string t && panel.TitleText != null)
             panel.TitleText.Text = t;
+    }
+
+    private static void OnLegendModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is CabinetSlotGridPanel panel)
+        {
+            panel.UpdateLegendVisibility();
+            panel.UpdateSummaryLabels();
+        }
     }
 
     public string PanelTitle
@@ -46,6 +65,12 @@ public partial class CabinetSlotGridPanel : UserControl
         set => SetValue(EnableClearSelectionProperty, value);
     }
 
+    public SlotGridLegendMode LegendMode
+    {
+        get => (SlotGridLegendMode)GetValue(LegendModeProperty);
+        set => SetValue(LegendModeProperty, value);
+    }
+
     public event EventHandler<CabinetSlotSelectedEventArgs>? SlotSelected;
     public event EventHandler? SelectionCleared;
     public event EventHandler? SideChanged;
@@ -57,6 +82,32 @@ public partial class CabinetSlotGridPanel : UserControl
         InitializeComponent();
         TitleText.Text = PanelTitle;
         UpdateClearSelectionHitTargets();
+        UpdateLegendVisibility();
+        UpdateSummaryLabels();
+    }
+
+    private void UpdateSummaryLabels()
+    {
+        if (Count2Label is null || Count3Label is null || Count4Label is null ||
+            Count3Text is null || Count4Text is null)
+            return;
+
+        var isMaint = LegendMode == SlotGridLegendMode.Maint;
+        Count2Label.Text = isMaint ? "启用" : "空闲";
+        Count3Label.Text = isMaint ? "禁用" : "有料";
+        Count4Label.Visibility = isMaint ? Visibility.Collapsed : Visibility.Visible;
+        Count4Text.Visibility = isMaint ? Visibility.Collapsed : Visibility.Visible;
+        Count3Text.Foreground = isMaint
+            ? (Brush)FindResource("TextPrimaryBrush")
+            : (Brush)FindResource("SuccessBrush");
+    }
+
+    private void UpdateLegendVisibility()
+    {
+        if (LegendPanelMh is null || LegendPanelMaint is null) return;
+        var isMaint = LegendMode == SlotGridLegendMode.Maint;
+        LegendPanelMh.Visibility = isMaint ? Visibility.Collapsed : Visibility.Visible;
+        LegendPanelMaint.Visibility = isMaint ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void UpdateClearSelectionHitTargets()
@@ -74,6 +125,15 @@ public partial class CabinetSlotGridPanel : UserControl
 
     public void SetRefreshTime(DateTime time) =>
         LastRefreshText.Text = $"刷新时间：{time:HH:mm:ss}";
+
+    public void SetSummaryCounts(int total, int second, int third, int fourth = 0)
+    {
+        TotalCountText.Text = total.ToString();
+        Count2Text.Text = second.ToString();
+        Count3Text.Text = third.ToString();
+        if (LegendMode == SlotGridLegendMode.Mh)
+            Count4Text.Text = fourth.ToString();
+    }
 
     public void BindTiles(IReadOnlyList<CabinetSlotTileVisual> tiles, bool enableSelection = false)
     {
@@ -108,6 +168,7 @@ public partial class CabinetSlotGridPanel : UserControl
     {
         if (!EnableClearSelection) return;
         if (IsClickOnSideButton(e.OriginalSource as DependencyObject)) return;
+        if (IsClickOnLegend(e.OriginalSource as DependencyObject)) return;
         if (TryGetValidSlotTile(e.OriginalSource as DependencyObject) is not null) return;
         RaiseSelectionCleared();
         e.Handled = true;
@@ -118,6 +179,16 @@ public partial class CabinetSlotGridPanel : UserControl
         for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
         {
             if (node is Button { Name: "BtnFrontSide" or "BtnRearSide" })
+                return true;
+        }
+        return false;
+    }
+
+    private bool IsClickOnLegend(DependencyObject? source)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node == LegendPanelMh || node == LegendPanelMaint)
                 return true;
         }
         return false;
@@ -180,7 +251,7 @@ public partial class CabinetSlotGridPanel : UserControl
                 TextWrapping = TextWrapping.Wrap,
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                MaxWidth = 120
+                MaxWidth = 168
             };
             Grid.SetRow(midText, 1);
             grid.Children.Add(midText);

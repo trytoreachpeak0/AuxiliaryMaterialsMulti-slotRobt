@@ -1,4 +1,6 @@
+using WireCabinet.Hmi.Services;
 using WireCabinet.Slots;
+using WireCabinet.Slots.Hardware;
 
 namespace WireCabinet.Hmi.Views;
 
@@ -11,7 +13,7 @@ public sealed class MhSlotTileModel
 
     public string DisplayNo { get; init; } = "—";
     public string? TypeText { get; init; }
-    /// <summary>是否在格口卡片中显示规格行（有料/退回/开门等）。</summary>
+    /// <summary>是否在格口卡片中显示批号行（有料/退回/开门等）。</summary>
     public bool ShowSpecRow { get; init; }
     public string StatusText { get; init; } = "—";
 
@@ -24,22 +26,29 @@ public sealed class MhSlotTileModel
 
     public static MhSlotTileModel Placeholder() => new() { IsPlaceholder = true };
 
-    public static MhSlotTileModel From(SlotDoorState state)
+    public static MhSlotTileModel From(
+        SlotDoorState state,
+        SlotHardwareSnapshot? hw = null,
+        bool hardwareConfigured = false)
     {
         var displayNo = FormatDisplayNo(state.SlotNo);
-        var spec = WireSpecDisplay(state);
-        var showSpec = ShouldShowSpecRow(state);
+        var lotText = WireLotDisplay(state);
+        var isOpen = SlotDoorDisplay.IsDisplayOpen(state, hw, hardwareConfigured);
+        var showSpec = ShouldShowLotRow(state, isOpen);
 
-        if (state.IsOpen)
+        if (!state.IsEnabled)
+            return BuildDisabledTile(state, displayNo, lotText, showSpec, isOpen);
+
+        if (isOpen)
         {
             return new MhSlotTileModel
             {
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
                 DisplayNo = displayNo,
-                TypeText = spec,
+                TypeText = lotText,
                 ShowSpecRow = showSpec,
-                StatusText = "● 仓门已开",
+                StatusText = "● 格口已开",
                 BackgroundKey = "SlotOpenBrush",
                 BorderKey = "SlotOpenBorderBrush",
                 BorderThickness = 2.5,
@@ -56,9 +65,9 @@ public sealed class MhSlotTileModel
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
                 DisplayNo = displayNo,
-                TypeText = spec,
+                TypeText = lotText,
                 ShowSpecRow = true,
-                StatusText = "待发放",
+                StatusText = WireSpecDisplay(state),
                 BackgroundKey = "SlotLoadedBrush",
                 BorderKey = "SlotLoadedBorderBrush",
                 NoForegroundKey = "TextPrimaryBrush",
@@ -69,21 +78,20 @@ public sealed class MhSlotTileModel
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
                 DisplayNo = displayNo,
-                TypeText = spec,
+                TypeText = lotText,
                 ShowSpecRow = true,
-                StatusText = "退回",
+                StatusText = WireSpecDisplay(state),
                 BackgroundKey = "SlotReturnedBrush",
                 BorderKey = "SlotReturnedBorderBrush",
                 NoForegroundKey = "TextPrimaryBrush",
-                StatusForegroundKey = "SlotReturnedBorderBrush",
-                StatusBold = true
+                StatusForegroundKey = "SlotReturnedBorderBrush"
             },
             "processing" => new MhSlotTileModel
             {
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
                 DisplayNo = displayNo,
-                TypeText = spec,
+                TypeText = lotText,
                 ShowSpecRow = true,
                 StatusText = "处理中",
                 BackgroundKey = "SlotOpenBrush",
@@ -98,7 +106,7 @@ public sealed class MhSlotTileModel
                 SlotId = state.SlotId,
                 SlotNo = state.SlotNo,
                 DisplayNo = displayNo,
-                TypeText = spec,
+                TypeText = lotText,
                 ShowSpecRow = showSpec,
                 StatusText = "空闲",
                 BackgroundKey = "SlotEmptyBrush",
@@ -109,19 +117,43 @@ public sealed class MhSlotTileModel
         };
     }
 
-    private static string? WireSpecDisplay(SlotDoorState state)
+    private static MhSlotTileModel BuildDisabledTile(
+        SlotDoorState state,
+        string displayNo,
+        string? lotText,
+        bool showSpec,
+        bool isOpen)
     {
-        if (!string.IsNullOrWhiteSpace(state.WireSpec))
-            return state.WireSpec.Trim();
-        if (!string.IsNullOrWhiteSpace(state.WireLotNo))
-            return state.WireLotNo.Trim();
-        return null;
+        var hasRetrievableWire = state.BizState is "available_wire" or "returned_wire";
+        var statusText = hasRetrievableWire ? "已禁用·可取" : "已禁用";
+
+        return new MhSlotTileModel
+        {
+            SlotId = state.SlotId,
+            SlotNo = state.SlotNo,
+            DisplayNo = displayNo,
+            TypeText = lotText,
+            ShowSpecRow = showSpec && hasRetrievableWire,
+            StatusText = isOpen ? $"● {statusText}" : statusText,
+            BackgroundKey = "SlotDisabledBrush",
+            BorderKey = isOpen ? "SlotOpenBorderBrush" : "SlotDisabledBorderBrush",
+            BorderThickness = isOpen ? 2.5 : 1.5,
+            NoForegroundKey = "TextPrimaryBrush",
+            StatusForegroundKey = isOpen ? "SlotOpenBorderBrush" : "SlotDisabledBorderBrush",
+            StatusBold = isOpen
+        };
     }
 
-    private static bool ShouldShowSpecRow(SlotDoorState state) =>
-        state.IsOpen
+    private static string? WireLotDisplay(SlotDoorState state) =>
+        string.IsNullOrWhiteSpace(state.WireLotNo) ? null : state.WireLotNo.Trim();
+
+    private static string WireSpecDisplay(SlotDoorState state) =>
+        SlotWireInfoFormatter.FormatSpec(state);
+
+    private static bool ShouldShowLotRow(SlotDoorState state, bool isOpen) =>
+        isOpen
         || state.BizState is "available_wire" or "returned_wire" or "processing"
-        || WireSpecDisplay(state) is not null;
+        || WireLotDisplay(state) is not null;
 
     private static string FormatDisplayNo(string slotNo)
     {

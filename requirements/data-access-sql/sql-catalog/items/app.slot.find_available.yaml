@@ -3,20 +3,33 @@ dialect: sqlite
 datasource: app.sqlite
 operation: read
 business_meaning: >-
-  物料员存入可用焊丝时，按预留规则查找一个可用空闲格口。预留规则：usage_type 为 available 或 shared
-  的空闲(idle)且门已关闭的格口；为保证至少给归还流程预留一个 returned 格口，这里只在 available/shared 中选。
+  物料员存入可用焊丝时，查找一个可开门的空闲格口：须已启用、已接线、门已关、biz_state=idle，
+  usage_type 为 available 或 shared。永远保留当前所有空闲非禁用格口中 slot_index 最大的一个
+  给操作员归还焊丝（find_return_slot），存料不可占用该保留格。按 slot_index 升序取第一个可用格。
 sql: |
-  SELECT slot_id        AS available_slot_id,
-         slot_no
-  FROM app_slot
-  WHERE usage_type IN ('available', 'shared')
-    AND biz_state = 'idle'
-    AND door_state = 'closed'
-  ORDER BY slot_no
+  SELECT s.slot_id AS available_slot_id,
+         s.slot_no
+  FROM app_slot s
+  WHERE s.usage_type IN ('available', 'shared')
+    AND s.biz_state = 'idle'
+    AND s.door_state = 'closed'
+    AND s.is_enabled = 1
+    AND s.io_wired = 1
+    AND s.slot_id != (
+      SELECT r.slot_id
+      FROM app_slot r
+      WHERE r.biz_state = 'idle'
+        AND r.door_state = 'closed'
+        AND r.is_enabled = 1
+        AND r.io_wired = 1
+      ORDER BY r.slot_index DESC, r.slot_no DESC
+      LIMIT 1
+    )
+  ORDER BY s.slot_index, s.slot_no
   LIMIT 1;
 params:
   - name: slot_usage_policy
-    note: 预留规则，已固化在 WHERE 条件中（占位，便于与正式节点 input_mappings 对齐）。
+    note: 预留规则已固化在 WHERE 条件中（占位，便于与正式节点 input_mappings 对齐）。
 outputs:
   - available_slot_id
   - slot_no

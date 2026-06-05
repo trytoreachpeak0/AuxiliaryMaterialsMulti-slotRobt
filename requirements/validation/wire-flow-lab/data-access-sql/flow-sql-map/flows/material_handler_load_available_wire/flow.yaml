@@ -8,6 +8,8 @@ node_order:
   - queryWireSpecByLotNo
   - checkWireLotNoExists
   - checkWireSpecExists
+  - queryAppWireLotNo
+  - checkAppWireLotNoAlreadyExists
   - openAvailableSlot
   - closeAvailableSlotDoor
   - updateDB
@@ -55,7 +57,26 @@ nodes:
     text: 焊丝规格是否存在
     type: decision
     check: { kind: field_not_empty, ref: queryWireSpecByLotNo.spec }
-    routing: { yes: openAvailableSlot, no: showWireSpecNotExistsMessage }
+    routing: { yes: queryAppWireLotNo, no: showWireSpecNotExistsMessage }
+
+  queryAppWireLotNo:
+    text: 查询应用数据库该批号是否已绑定格口
+    type: query
+    data_source: app
+    sql_id: app.slot.find_by_wire_lot_no
+    inputs:
+      - { name: wire_lot_no, from: node:inputAvailableWireLotNo.available_wire_lot_no }
+    routing:
+      single: checkAppWireLotNoAlreadyExists
+      empty: checkAppWireLotNoAlreadyExists
+      multiple: showWireLotNoAlreadyInCabinetMessage
+      error: showWireLotNoAlreadyInCabinetMessage
+
+  checkAppWireLotNoAlreadyExists:
+    text: 焊丝批号是否已在柜内
+    type: decision
+    check: { kind: exists, node: queryAppWireLotNo }
+    routing: { yes: showWireLotNoAlreadyInCabinetMessage, no: openAvailableSlot }
 
   openAvailableSlot:
     text: 打开空闲格口
@@ -92,5 +113,6 @@ nodes:
   showNoAvailableSlotMessage: { text: 提示无空闲格口, type: terminal, terminal_kind: fail }
   showWireLotNoInputInvalidOrNotExistsMessage: { text: 提示焊丝批号无效或不存在, type: terminal, terminal_kind: fail }
   showWireSpecNotExistsMessage: { text: 提示焊丝规格不存在, type: terminal, terminal_kind: fail }
+  showWireLotNoAlreadyInCabinetMessage: { text: 提示焊丝批号已在柜内, type: terminal, terminal_kind: fail }
   endSuccess: { text: 存入完成, type: terminal, terminal_kind: success }
   endFail: { text: 存入失败, type: terminal, terminal_kind: fail }

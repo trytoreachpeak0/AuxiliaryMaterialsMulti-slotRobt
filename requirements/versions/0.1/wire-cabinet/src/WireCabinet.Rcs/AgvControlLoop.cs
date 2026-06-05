@@ -22,6 +22,10 @@ public sealed class AgvControlLoop
     public async Task<AgvLoopTickResult> TickAsync(int? dispatchDestinationIfAllowed = null, CancellationToken ct = default)
     {
         var snapshot = await _client.GetVehicleSnapshotAsync(cancellationToken: ct).ConfigureAwait(false);
+        // 订单已在 RCS 侧结束/取消后，清除“呼叫进行中”门禁，否则无法二次下单。
+        if (string.IsNullOrWhiteSpace(snapshot.Vehicle.OrderTaskId))
+            _callInProgress = false;
+
         var doorInput = await _doors.GetDoorStateAsync(ct).ConfigureAwait(false);
         var eval = AgvReadinessPolicy.Evaluate(snapshot.Vehicle, snapshot.Order, doorInput, _options.StateThresholds, _pausedForDoor, _callInProgress);
 

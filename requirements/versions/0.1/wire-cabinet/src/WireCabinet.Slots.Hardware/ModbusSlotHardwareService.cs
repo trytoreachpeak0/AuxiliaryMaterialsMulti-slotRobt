@@ -7,6 +7,8 @@ namespace WireCabinet.Slots.Hardware;
 
 public sealed class ModbusSlotHardwareService : ISlotHardwareService, IDisposable
 {
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(2);
+
     private readonly SlotIoConfig _config;
     private readonly ConcurrentDictionary<string, bool> _health = new();
     private readonly ConcurrentDictionary<string, IModbusMaster> _masters = new();
@@ -50,10 +52,20 @@ public sealed class ModbusSlotHardwareService : ISlotHardwareService, IDisposabl
         var mod = _config.FindModule(map.ModuleKey);
         if (mod is null || !mod.Enabled) return false;
 
-        var master = GetMaster(mod);
-        var coil = (ushort)(_config.DoStart + map.DoIndex - 1);
-        await master.WriteSingleCoilAsync(mod.UnitId, coil, true);
-        return true;
+        var master = await GetMasterAsync(mod, ct).ConfigureAwait(false);
+        if (master is null) return false;
+
+        try
+        {
+            var coil = (ushort)(_config.DoStart + map.DoIndex - 1);
+            await master.WriteSingleCoilAsync(mod.UnitId, coil, true).ConfigureAwait(false);
+            return true;
+        }
+        catch
+        {
+            DropMaster(mod.Key);
+            return false;
+        }
     }
 
     public async Task<bool?> ReadLockClosedAsync(string slotCode, CancellationToken ct = default)
@@ -63,12 +75,22 @@ public sealed class ModbusSlotHardwareService : ISlotHardwareService, IDisposabl
         var mod = _config.FindModule(map.ModuleKey);
         if (mod is null || !mod.Enabled) return null;
 
-        var master = GetMaster(mod);
-        var input = (ushort)(_config.DiStart + map.DiIndex - 1);
-        var inputs = await master.ReadInputsAsync(mod.UnitId, input, 1);
-        if (inputs.Length == 0) return null;
-        var diOn = inputs[0];
-        return _config.DiActiveMeansLocked ? diOn : !diOn;
+        var master = await GetMasterAsync(mod, ct).ConfigureAwait(false);
+        if (master is null) return null;
+
+        try
+        {
+            var input = (ushort)(_config.DiStart + map.DiIndex - 1);
+            var inputs = await master.ReadInputsAsync(mod.UnitId, input, 1).ConfigureAwait(false);
+            if (inputs.Length == 0) return null;
+            var diOn = inputs[0];
+            return _config.DiActiveMeansLocked ? diOn : !diOn;
+        }
+        catch
+        {
+            DropMaster(mod.Key);
+            return null;
+        }
     }
 
     public async Task<IReadOnlyDictionary<string, SlotHardwareSnapshot>> ReadAllWiredSnapshotsAsync(CancellationToken ct = default)
@@ -101,16 +123,24 @@ public sealed class ModbusSlotHardwareService : ISlotHardwareService, IDisposabl
         {
             try
             {
-                var master = GetMaster(mod);
+                var master = await GetMasterAsync(mod, ct).ConfigureAwait(false);
+                if (master is null)
+                {
+                    diByModule[mod.Key] = null;
+                    doByModule[mod.Key] = null;
+                    continue;
+                }
+
                 var diStart = (ushort)_config.DiStart;
                 var doStart = (ushort)_config.DoStart;
-                var di = await master.ReadInputsAsync(mod.UnitId, diStart, 16);
-                var coils = await master.ReadCoilsAsync(mod.UnitId, doStart, 16);
+                var di = await master.ReadInputsAsync(mod.UnitId, diStart, 16).ConfigureAwait(false);
+                var coils = await master.ReadCoilsAsync(mod.UnitId, doStart, 16).ConfigureAwait(false);
                 diByModule[mod.Key] = di;
                 doByModule[mod.Key] = coils;
             }
             catch
             {
+                DropMaster(mod.Key);
                 diByModule[mod.Key] = null;
                 doByModule[mod.Key] = null;
             }
@@ -154,14 +184,35 @@ public sealed class ModbusSlotHardwareService : ISlotHardwareService, IDisposabl
         return result;
     }
 
-    private IModbusMaster GetMaster(IoModuleConfig mod)
+    private void DropMaster(string moduleKey)
     {
-        return _masters.GetOrAdd(mod.Key, _ =>
+        if (_masters.TryRemove(moduleKey, out var master) && master is IDisposable disposable)
+            disposable.Dispose();
+    }
+
+    private async Task<IModbusMaster?> GetMasterAsync(IoModuleConfig mod, CancellationToken ct = default)
+    {
+        if (_masters.TryGetValue(mod.Key, out var cached))
+            return cached;
+
+        try
         {
-            var client = new TcpClient(mod.Host, mod.Port);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(ConnectTimeout);
+            var client = new TcpClient();
+            await client.ConnectAsync(mod.Host, mod.Port, cts.Token).ConfigureAwait(false);
             var factory = new ModbusFactory();
-            return factory.CreateMaster(client);
-        });
+            var master = factory.CreateMaster(client);
+
+            var added = _masters.GetOrAdd(mod.Key, master);
+            if (!ReferenceEquals(added, master) && master is IDisposable extra)
+                extra.Dispose();
+            return added;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public void Dispose()

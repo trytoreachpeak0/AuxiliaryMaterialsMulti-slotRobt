@@ -84,7 +84,9 @@ public sealed class SlotControlService : ISlotControlService
     {
         var slot = await ResolveSlotAsync(request, ct);
         if (slot is null)
-            return new OpenSlotResult { Success = false, Message = "格口不存在或未启用。" };
+            return new OpenSlotResult { Success = false, Message = "格口不存在。" };
+        if (slot.Value.RejectMessage is not null)
+            return new OpenSlotResult { Success = false, SlotId = slot.Value.Id, SlotNo = slot.Value.No, Message = slot.Value.RejectMessage };
 
         lock (_gate) _unlockInProgress.Add(slot.Value.Id);
 
@@ -104,6 +106,29 @@ public sealed class SlotControlService : ISlotControlService
         {
             lock (_gate) _unlockInProgress.Remove(slot.Value.Id);
         }
+    }
+
+    public async Task<(bool Success, string Message)> SetSlotEnabledAsync(long slotId, bool enabled, CancellationToken ct = default)
+    {
+        var row = await GetSlotRowAsync(slotId, ct);
+        if (row is null)
+            return (false, "格口不存在。");
+        if (!row.Value.Wired)
+            return (false, "未接线格口不可切换启用状态。");
+
+        using var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            UPDATE app_slot SET is_enabled=$e, updated_at=datetime('now')
+            WHERE slot_id=$id AND io_wired=1
+            """;
+        cmd.Parameters.AddWithValue("$e", enabled ? 1 : 0);
+        cmd.Parameters.AddWithValue("$id", slotId);
+        var affected = await cmd.ExecuteNonQueryAsync(ct);
+        if (affected == 0)
+            return (false, "格口状态更新失败。");
+
+        return (true, enabled ? "格口已启用。" : "格口已禁用。");
     }
 
     private static string ResolveOperationLabel(OpenSlotRequest request) =>
@@ -192,11 +217,51 @@ public sealed class SlotControlService : ISlotControlService
 
     public async Task<DoorStateInput> GetDoorStateForAgvAsync(CancellationToken ct = default)
     {
-        var open = OpenSlotIds().Count;
-        var allClosed = open == 0 && !HasUnlockInProgress();
-        await Task.CompletedTask;
-        return new DoorStateInput { AllDoorsClosed = allClosed, AnyDoorOpen = open > 0 };
+        var interlock = await ListInterlockSlotsAsync(ct);
+        if (interlock.Count == 0)
+        {
+            var openOnly = OpenSlotIds().Count;
+            return new DoorStateInput
+            {
+                AllDoorsClosed = openOnly == 0 && !HasUnlockInProgress(),
+                AnyDoorOpen = openOnly > 0
+            };
+        }
+
+        IReadOnlyDictionary<string, SlotHardwareSnapshot> snapshots =
+            new Dictionary<string, SlotHardwareSnapshot>(StringComparer.OrdinalIgnoreCase);
+        if (_hardware.IsConfigured)
+            snapshots = await _hardware.ReadAllWiredSnapshotsAsync(ct);
+
+        var anyOpen = false;
+        foreach (var slot in interlock)
+        {
+            var dbOpen = slot.DoorState == "open";
+            var diOpen = false;
+            if (_hardware.IsConfigured
+                && snapshots.TryGetValue(slot.SlotNo, out var hw)
+                && hw.ReadOk
+                && hw.LockClosed == false)
+                diOpen = true;
+
+            if (dbOpen || diOpen)
+            {
+                anyOpen = true;
+                break;
+            }
+        }
+
+        return new DoorStateInput
+        {
+            AllDoorsClosed = !anyOpen && !HasUnlockInProgress(),
+            AnyDoorOpen = anyOpen
+        };
     }
+
+    private async Task<IReadOnlyList<SlotStatusDto>> ListInterlockSlotsAsync(CancellationToken ct) =>
+        (await ListSlotsAsync(new SlotListFilter { EnabledOnly = true }, ct))
+        .Where(s => s.IoWired)
+        .ToList();
 
     private async Task UpdateDoorStateAsync(long slotId, bool open, CancellationToken ct)
     {
@@ -211,26 +276,39 @@ public sealed class SlotControlService : ISlotControlService
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
-    private async Task<(long Id, string No)?> ResolveSlotAsync(OpenSlotRequest request, CancellationToken ct)
+    private async Task<(long Id, string No, string? RejectMessage)?> ResolveSlotAsync(OpenSlotRequest request, CancellationToken ct)
     {
         using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         if (request.SlotId is > 0)
         {
-            cmd.CommandText = "SELECT slot_id, slot_no FROM app_slot WHERE slot_id=$id AND is_enabled=1";
+            cmd.CommandText = "SELECT slot_id, slot_no, biz_state, is_enabled FROM app_slot WHERE slot_id=$id";
             cmd.Parameters.AddWithValue("$id", request.SlotId.Value);
         }
         else if (!string.IsNullOrWhiteSpace(request.SlotNo))
         {
-            cmd.CommandText = "SELECT slot_id, slot_no FROM app_slot WHERE slot_no=$no AND is_enabled=1";
+            cmd.CommandText = "SELECT slot_id, slot_no, biz_state, is_enabled FROM app_slot WHERE slot_no=$no";
             cmd.Parameters.AddWithValue("$no", request.SlotNo);
         }
         else return null;
 
         using var r = await cmd.ExecuteReaderAsync(ct);
         if (!await r.ReadAsync(ct)) return null;
-        return (r.GetInt64(0), r.GetString(1));
+
+        var id = r.GetInt64(0);
+        var no = r.GetString(1);
+        var bizState = r.GetString(2);
+        var isEnabled = r.GetInt64(3) == 1;
+
+        if (!isEnabled && !CanOpenDisabledSlot(request.Source, bizState))
+            return (id, no, "格口已禁用，不可用于存料。");
+
+        return (id, no, null);
     }
+
+    private static bool CanOpenDisabledSlot(string source, string bizState) =>
+        string.Equals(source, "maint_trial", StringComparison.OrdinalIgnoreCase)
+        || bizState is "available_wire" or "returned_wire";
 
     private async Task<(long Id, string No, string Usage, string Biz, string Door, string Lock, bool En, bool Wired)?> GetSlotRowAsync(long slotId, CancellationToken ct)
     {

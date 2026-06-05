@@ -55,3 +55,14 @@ CREATE TABLE IF NOT EXISTS agv_move_log (
     is_charge       INTEGER DEFAULT 0,
     message         TEXT
 );
+
+-- MH 存料流程异常中断快照（单行，重启弹窗提示用；不自动补账）
+CREATE TABLE IF NOT EXISTS mh_interrupted_load (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    flow_id         TEXT NOT NULL,
+    slot_id         INTEGER NOT NULL,
+    slot_no         TEXT NOT NULL,
+    wire_lot_no     TEXT NOT NULL,
+    wire_spec       TEXT,
+    interrupted_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);

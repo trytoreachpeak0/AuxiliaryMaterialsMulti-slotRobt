@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using WireCabinet.Hmi.Services;
 using WireCabinet.Hmi.Views;
+using WireCabinet.Rcs;
 
 namespace WireCabinet.Hmi;
 
@@ -14,6 +15,11 @@ public partial class MainWindow : Window
     private readonly MaintView _maintView = new();
     private readonly AgvView _agvView = new();
     private readonly DispatcherTimer _clockTimer;
+    private DispatcherTimer? _agvPollTimer;
+    private readonly AgvArrivalNavigator _agvArrivalNav = new();
+    private bool _agvPolling;
+
+    public event Action? AgvPollUpdated;
 
     private string _roleLabel = "操作员 OP";
     private string? _flowStatus;
@@ -42,12 +48,85 @@ public partial class MainWindow : Window
         App.IoHealth.Start();
         RenderIoModules(App.IoHealth.Statuses);
         ApplyStatusText();
+        StartAgvBackgroundPoll();
+        _ = ShowInterruptedLoadAlertIfNeededAsync();
+    }
+
+    private async Task ShowInterruptedLoadAlertIfNeededAsync()
+    {
+        try
+        {
+            await App.SlotHardwarePoll.PollAsync();
+            MhInterruptedLoadStartupAlert.TryShow(this);
+        }
+        catch
+        {
+            // 弹窗失败不阻塞主界面
+        }
     }
 
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         App.IoHealth.Updated -= OnIoHealthUpdated;
         _clockTimer.Stop();
+        _agvPollTimer?.Stop();
+    }
+
+    private void StartAgvBackgroundPoll()
+    {
+        if (!App.Agv.IsConfigured) return;
+
+        _agvPollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _agvPollTimer.Tick += async (_, _) => await AgvPollTickAsync();
+        _agvPollTimer.Start();
+        _ = AgvPollTickAsync();
+    }
+
+    private async Task AgvPollTickAsync()
+    {
+        if (_agvPolling) return;
+        _agvPolling = true;
+        try
+        {
+            var policyMsg = await App.Agv.PollCycleAsync(_agvArrivalNav, station =>
+            {
+                // PollCycleAsync 在 ConfigureAwait(false) 后于线程池调用回调，必须切回 UI 线程
+                Dispatcher.BeginInvoke(() => OnAgvArrivedAtStation(station));
+            }).ConfigureAwait(true);
+
+            if (Dispatcher.CheckAccess())
+            {
+                AgvPollUpdated?.Invoke();
+                if (policyMsg is not null)
+                    SetStatus(policyMsg);
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    AgvPollUpdated?.Invoke();
+                    if (policyMsg is not null)
+                        SetStatus(policyMsg);
+                });
+            }
+        }
+        finally
+        {
+            _agvPolling = false;
+        }
+    }
+
+    private void OnAgvArrivedAtStation(WorkStationConfig station)
+    {
+        var dualRole = station.AllowedRoles.Count > 1;
+        NavigateToWorkStation(station);
+        var hint = dualRole ? "（本站双角色，已切至 OP）" : "";
+        if (App.DoorOps.IsBusy)
+            SetStatus($"已到站 {station.Name}，已切换工作站界面{hint}；门操作进行中，请注意。");
+        else
+            SetStatus($"已到站 {station.Name}，已切换工作站界面{hint}。");
+
+        AgvPollUpdated?.Invoke();
     }
 
     private void OnIoHealthUpdated() =>
@@ -69,6 +148,7 @@ public partial class MainWindow : Window
             _flowStatus = null;
             _lastRoleRadio = RbOp;
             ApplyStatusText();
+            AgvPollUpdated?.Invoke();
         });
     }
 
@@ -84,6 +164,7 @@ public partial class MainWindow : Window
             _flowStatus = null;
             _lastRoleRadio = RbMh;
             ApplyStatusText();
+            AgvPollUpdated?.Invoke();
         });
     }
 
@@ -213,7 +294,54 @@ public partial class MainWindow : Window
 
     public void SetStatus(string message)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => SetStatus(message));
+            return;
+        }
+
         _flowStatus = message;
         ApplyStatusText();
+    }
+
+    /// <summary>车辆到达作业站后切换到 OP/MH 工作站界面（任意当前界面，含 MAINT）。</summary>
+    public void NavigateToWorkStation(WorkStationConfig station)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => NavigateToWorkStation(station));
+            return;
+        }
+
+        App.MaintAccess.Lock();
+
+        _suppressRoleRevert = true;
+        try
+        {
+            var preferOp = station.AllowedRoles.Any(r =>
+                string.Equals(r, "OP", StringComparison.OrdinalIgnoreCase));
+
+            if (preferOp)
+            {
+                MainContent!.Content = _opView;
+                _roleLabel = "操作员 OP";
+                RbOp.IsChecked = true;
+                _lastRoleRadio = RbOp;
+            }
+            else
+            {
+                MainContent!.Content = _mhView;
+                _roleLabel = "物料员 MH";
+                RbMh.IsChecked = true;
+                _lastRoleRadio = RbMh;
+            }
+
+            _flowStatus = null;
+            ApplyStatusText();
+        }
+        finally
+        {
+            _suppressRoleRevert = false;
+        }
     }
 }

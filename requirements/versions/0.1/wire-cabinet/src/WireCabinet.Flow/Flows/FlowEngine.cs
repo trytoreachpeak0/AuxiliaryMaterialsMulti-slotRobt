@@ -35,6 +35,15 @@ public sealed class FlowEngine
         _svc.Slot.Reload();
     }
 
+    /// <summary>失败或重试时回到指定 user_input 节点，清除 Finished 以便继续推进。</summary>
+    public void RewindToNode(string nodeId)
+    {
+        if (Flow is null || !Flow.Nodes.ContainsKey(nodeId))
+            return;
+        CurrentNodeId = nodeId;
+        Finished = false;
+    }
+
     /// <summary>执行当前节点并前进一步，返回该步 trace。</summary>
     public TraceEntry StepOnce()
     {
@@ -103,8 +112,8 @@ public sealed class FlowEngine
             string val;
             if (f.From is not null)
                 val = Resolve(f.From)?.ToString() ?? "";
-            else if (provided is not null && provided.TryGetValue(f.Name, out var v))
-                val = v;
+            else if (provided is not null)
+                val = provided.TryGetValue(f.Name, out var v) ? v : "";
             else
                 val = f.Default;
             row[f.Name] = val;
@@ -120,7 +129,7 @@ public sealed class FlowEngine
     private TraceEntry ExecQuery(FlowNode node)
     {
         var (parameters, display) = BuildParams(node);
-        var item = node.SqlId is null ? null : _svc.Catalog.Find(node.SqlId);
+        var item = node.SqlId is null ? null : ResolveSqlItem(node.SqlId);
         var findings = new List<Finding>();
 
         if (item is null)
@@ -159,7 +168,7 @@ public sealed class FlowEngine
 
         if (node.SqlId is not null)
         {
-            var item = _svc.Catalog.Find(node.SqlId);
+            var item = ResolveSqlItem(node.SqlId);
             if (item is not null)
             {
                 (prms, _) = BuildParams(node);
@@ -239,14 +248,18 @@ public sealed class FlowEngine
         var ok = slotId > 0;
         if (ok)
         {
-            _svc.Slot.OpenDoor(slotId);
-            if (node.SqlId is not null && _svc.Catalog.Find(node.SqlId) is { } item)
+            ok = _svc.Slot.OpenDoorAsync(slotId).GetAwaiter().GetResult();
+            if (!ok)
+                findings.Add(Err(node, "开门", $"格口 {slotId} 开锁失败（已禁用、硬件无响应或格口不存在）。"));
+            else if (node.SqlId is not null && _svc.Catalog.Find(node.SqlId) is { } item)
             {
                 var r = _svc.AppDb.Run(item, new Dictionary<string, object?> { ["slot_id"] = slotId });
                 sql = r.RenderedSql;
                 if (r.HasError) { ok = false; findings.Add(Err(node, "开门SQL", r.Error!)); }
             }
-            Context!.NodeResults[node.Id] = new(StringComparer.OrdinalIgnoreCase) { ["opened_slot_id"] = slotId };
+
+            if (ok)
+                Context!.NodeResults[node.Id] = new(StringComparer.OrdinalIgnoreCase) { ["opened_slot_id"] = slotId };
         }
         else
         {
@@ -277,9 +290,18 @@ public sealed class FlowEngine
 
         var list = _svc.AppDb.Run(listItem, parameters);
         var ids = list.Rows.Select(r => ToLong(r.GetValueOrDefault("slot_id"))).Where(x => x > 0).ToList();
+        var opened = 0;
+        var batchOk = true;
         foreach (var id in ids)
         {
-            _svc.Slot.OpenDoor(id);
+            if (!_svc.Slot.OpenDoorAsync(id).GetAwaiter().GetResult())
+            {
+                batchOk = false;
+                findings.Add(Err(node, "批量开门", $"格口 {id} 开锁失败，中止批量。"));
+                break;
+            }
+
+            opened++;
             if (openItem is not null)
                 _svc.AppDb.Run(openItem, new Dictionary<string, object?> { ["slot_id"] = id });
         }
@@ -287,10 +309,12 @@ public sealed class FlowEngine
         if (ids.Count == 0)
             findings.Add(Info(node, "空集合", "过滤条件未匹配到任何格口，直接进入关门判定。"));
 
-        var (next, rf) = Route(node, "success");
+        var key = batchOk ? "success" : "error";
+        var (next, rf) = Route(node, key);
         findings.AddRange(rf);
-        return Build(node, "success", next, list.RenderedSql,
-            $"打开 {ids.Count} 个格口: [{string.Join(", ", ids)}]", findings, Severity.Info, parameters);
+        return Build(node, key, next, list.RenderedSql,
+            batchOk ? $"打开 {opened} 个格口: [{string.Join(", ", ids.Take(opened))}]" : $"批量开门中止（已成功 {opened}/{ids.Count}）",
+            findings, batchOk ? Severity.Info : Severity.Error, parameters);
     }
 
     private TraceEntry ExecSlotClose(FlowNode node)
@@ -377,6 +401,20 @@ public sealed class FlowEngine
         if (string.IsNullOrWhiteSpace(v)) return true;
         if (v.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase)) return true;
         return v.Contains("ORA-01403", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Oracle 模式优先使用 formal catalog 中的 mes.* 条目，避免 mes_mock 默认值干扰。</summary>
+    private SqlCatalogItem? ResolveSqlItem(string sqlId)
+    {
+        if (_svc.Mes.Mode == MesMode.Oracle
+            && sqlId.StartsWith("mes_mock.", StringComparison.OrdinalIgnoreCase))
+        {
+            var formalId = "mes." + sqlId["mes_mock.".Length..];
+            var formal = _svc.Catalog.Find(formalId);
+            if (formal is not null)
+                return formal;
+        }
+        return _svc.Catalog.Find(sqlId);
     }
 
     // ---------- 参数与取值 ----------

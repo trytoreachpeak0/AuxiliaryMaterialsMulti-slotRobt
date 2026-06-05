@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AgvDispatch.Sdk</name>
+    </assembly>
+    <members>
+        <member name="M:AgvDispatch.Sdk.AgvDispatchClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{AgvDispatch.Sdk.AgvDispatchOptions})">
+            <summary>供 DI / IHttpClientFactory 使用。</summary>
+        </member>
+        <member name="M:AgvDispatch.Sdk.AgvDispatchClient.Create(AgvDispatch.Sdk.AgvDispatchOptions)">
+            <summary>无 DI 时手动创建（自行 Dispose）。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.AgvDispatchOptions">
+            <summary>
+            SDK 全量配置（禁止在代码中写死环境相关常量）。
+            </summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.BaseUrl">
+            <summary>调度 API 根地址，如 http://host:8888（无尾部斜杠）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.DefaultDeviceKey">
+            <summary>默认车辆 deviceKey（原 SBcon / RobotInfo.ID）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.DefaultOrderName">
+            <summary>下单默认订单名（原 order006）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.VehicleQueryDeviceIds">
+            <summary>查询多车列表时的 deviceId 列表（原 49,48）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.ChargeOccupiedStationNames">
+            <summary>判断充电桩占用：终点站名包含即视为占用。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.ChargeOccupiedPositions">
+            <summary>判断充电桩占用：当前位置站点号。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.RecommendedPollIntervalMs">
+            <summary>推荐轮询间隔（文档/LLM 用，SDK 不强制）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvDispatchOptions.TokenRefreshIntervalHours">
+            <summary>Bearer token 主动重登间隔（小时）；RCS token 约 24h 过期，默认 20h 留余量。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.AgvStateThresholds">
+            <summary>
+            状态判断阈值（全部可配置，对应原 MainFrm 字符串比较）。
+            </summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.OnlineTrueValues">
+            <summary>视为调度在线、可参与判断的 enable / is_online 值（原 "true"）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.IdleSysStates">
+            <summary>系统空闲，可接单（原 sys_state == IDLE）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.NonIdleSysStatesForDoorPause">
+            <summary>非空闲时需结合门状态暂停（原 toolStripStatusLabel6 != "空闲" 对应 EXECUTING 等）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.ReadyMoveStates">
+            <summary>移动已结束或未定义（原 AT_FINISHED / AT_NA）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.ReadyProcStates">
+            <summary>进程空闲（原 IDLE / INNER_FORCE_IDLE）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.OrderStateCanceled">
+            <summary>订单异常需取消（原 order_state == 9）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.OrderStatePending">
+            <summary>订单已下待执行（原 order_state == 1）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.ChargingSysStates">
+            <summary>充电中不可下单（原 CHARGING）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.ErrorSysStates">
+            <summary>急停/错误（原 ERROR）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.ExpectedDoorCount">
+            <summary>期望仓门位数量（原 closeFlag.Length == 24）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.DoorClosedChar">
+            <summary>门关闭字符（原 '1'）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.DoorOpenChar">
+            <summary>门打开字符（原 '0'）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.SuccessLocationStates">
+            <summary>定位成功（locationState 精确匹配，忽略大小写）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.FailedLocationStateContains">
+            <summary>定位失败（locationState 包含任一子串，忽略大小写）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.RunningLocationStates">
+            <summary>定位进行中（locationState 精确匹配，忽略大小写）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.AgvStateThresholds.EmergencyActiveContains">
+            <summary>急停态（emergencyState 包含任一子串，忽略大小写）。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.IAgvDispatchClient">
+            <summary>
+            AGV 调度 REST 客户端（.NET 8+）。
+            </summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Models.DispatchApiResponse`1">
+            <summary>调度通用响应包装。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Models.OrderDetailDto">
+            <summary>订单详情（原 Root / VehicleOrderInfoStr）。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Models.VehicleInfoDto">
+            <summary>
+            单车状态（调度 getVehicleInfoByDeviceKey / 列表项共用字段）。
+            常用字段见文档；其余为调度扩展字段。
+            </summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Models.VehicleInfoDto.OnlineAsString">
+            <summary>调度 JSON 中 enable 有时为 bool，原 WinForms 用字符串 is_online。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Models.VehicleInfoDto.ActionState">
+            <summary>调度字段 actionState（原 MainFrm 映射为 move_state）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Models.VehicleInfoDto.EffectiveMoveState">
+            <summary>优先 actionState，否则 movementState。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Models.VehicleListItemDto">
+            <summary>多车列表项（原 ResultItem，在 VehicleInfoDto 基础上含扩展字段）。</summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Operations.AgvOperationEvaluator">
+            <summary>
+            从 MainFrm getVehstatus / AGVWork 提取的可配置运行规则（纯逻辑）。
+            </summary>
+        </member>
+        <member name="T:AgvDispatch.Sdk.Operations.DoorStateInput">
+            <summary>
+            外设仓门状态（由业务项目提供，SDK 不读 Modbus）。
+            </summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Operations.DoorStateInput.AllDoorsClosed">
+            <summary>全部关闭时 true（等价 closeFlag 全为 DoorClosedChar）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Operations.DoorStateInput.AnyDoorOpen">
+            <summary>任一门打开时 true（等价 closeFlag 含 DoorOpenChar）。</summary>
+        </member>
+        <member name="P:AgvDispatch.Sdk.Operations.DoorStateInput.CloseFlag">
+            <summary>原始门状态串，如 24 位 "111..."。</summary>
+        </member>
+    </members>
+</doc>

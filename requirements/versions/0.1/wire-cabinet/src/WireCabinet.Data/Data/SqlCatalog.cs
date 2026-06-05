@@ -34,7 +34,7 @@ public sealed class SqlCatalog
     public static SqlCatalog Load()
     {
         var catalog = new SqlCatalog();
-        foreach (var itemsDir in new[] { CabinetPaths.FormalSqlCatalogDir, CabinetPaths.LabSqlCatalogDir })
+        foreach (var itemsDir in new[] { CabinetPaths.LabSqlCatalogDir, CabinetPaths.FormalSqlCatalogDir })
         {
             if (!Directory.Exists(itemsDir)) continue;
             LoadDirectory(catalog, itemsDir);

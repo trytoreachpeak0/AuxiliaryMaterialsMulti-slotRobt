@@ -1,0 +1,24 @@
+subgraph_id: inputWireLotNo
+node_id: checkAppWireLotNoAlreadyExists
+node_text: 焊丝批号是否已在柜内
+access_type: decision
+sql_ids: []
+business_meaning: 根据应用数据库查询结果判断焊丝批号是否已被其他格口占用。
+input_mappings:
+  - name: slot_id
+    source_node: queryAppWireLotNo
+    source_field: slot_id
+    source_text: 已绑定该批号的格口 ID。
+decision_rule:
+  success_when:
+    - condition: is_null_or_empty
+      field: slot_id
+      meaning: 未查询到绑定记录时允许继续开门存料。
+  failure_when:
+    - condition: otherwise
+      meaning: 已存在绑定记录时提示批号重复，禁止开门。
+outcome_routing:
+  yes:
+    next: openAvailableSlot
+  no:
+    next: showWireLotNoAlreadyInCabinetMessage
