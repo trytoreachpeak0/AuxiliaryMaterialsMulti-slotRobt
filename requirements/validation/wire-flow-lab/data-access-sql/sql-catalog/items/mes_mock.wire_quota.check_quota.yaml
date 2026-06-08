@@ -4,8 +4,8 @@ dialect: sqlite
 datasource: mes.mock.sqlite
 operation: function
 business_meaning: >-
-  调用 MES 存储函数 Get_Mat_QuotaCheck 核对焊丝用量配额，返回配额差值（result）。
-  result < 500 允许归还；result >= 500 禁止。
+  调用 MES 存储函数 Get_Mat_QuotaCheck 核对焊丝用量配额，返回实际与理论消耗差值（米）。
+  成功返回任意数值即校验通过；ORA-20007 表示校验不通过。
 mock:
   kind: configurable_number
   result_field: quota_diff
@@ -22,12 +22,12 @@ oracle_sql: |
   END;
 params:
   - { name: V_STEP, source_type: constant, value: 焊线 }
-  - { name: V_MatLot, source: queryWireSpecByLotNo.matlot }
-  - { name: V_thzl, source: queryWireReturnedWeightBySpec.return_weight }
-  - { name: V_thph, source: inputReturnedWireLotNo.returned_wire_lot_no }
-  - { name: V_sycl, source: inputRemainingQty.remaining_qty }
+  - { name: V_MatLot, source: inputReturnedWireLotNo.returned_wire_lot_no }
+  - { name: V_thzl, source: queryWireReturnedWeightBySpec.return_weight, type: string }
+  - { name: V_thph, source: queryLastProductLotNo.lot }
+  - { name: V_sycl, source: inputRemainingQty.remaining_qty, type: number }
   - { name: V_eqp, source: inputEqpNo.eqp_no }
 outputs:
   - quota_diff
 result_cardinality: 1
-business_rule: quota_diff <= 500 → 允许提交归还；否则提示数量有误。
+business_rule: 成功返回任意 quota_diff（米）即允许提交归还；ORA-20007 时提示数量有误并重输。

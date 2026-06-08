@@ -6,29 +6,24 @@ datasource: mes.mock.sqlite
 operation: function
 business_meaning: >-
   调用 MES 存储函数 FWMES.FUN_MAT_TRANS_NEW 提交物料事务（归还 / 领用）。
-  返回字符串：空 / 'SUCCESS' / 含 'ORA-01403' 视为成功；'ERROR: ...' 视为失败。
+  返回字符串：空或 SUCCESS 视为成功；其他非空文本视为失败；异常由应用层捕获并回滚。
 mock:
   kind: configurable_result
   result_field: submit_result
-  source: "由界面「MES 函数 mock 结果」面板配置（成功返回 SUCCESS，失败返回 ERROR: ...）。"
+  source: "由界面「MES 函数 mock 结果」面板配置（成功返回 SUCCESS 或空，失败返回具体错误文本）。"
 oracle_sql: |
   DECLARE
     v_result VARCHAR2(4000);
   BEGIN
-    BEGIN
-      v_result := FWMES.FUN_MAT_TRANS_NEW(
-        :V_Step, :v_Task, :v_Eqp, :v_Code,
-        :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
-        :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
-        :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
-      );
-    EXCEPTION
-      WHEN OTHERS THEN
-        v_result := 'ERROR: ' || SQLERRM;
-    END;
+    v_result := FWMES.FUN_MAT_TRANS_NEW(
+      :V_Step, :v_Task, :v_Eqp, :v_Code,
+      :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
+      :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
+      :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
+    );
     :result := v_result;
   END;
 outputs:
   - submit_result
 result_cardinality: 1
-success_rule: 空 / SUCCESS / 含 ORA-01403 视为成功；否则失败。
+success_rule: 空或 SUCCESS 为成功；其他非空返回文本为失败；执行异常由应用层回滚并提示 SQLERRM。

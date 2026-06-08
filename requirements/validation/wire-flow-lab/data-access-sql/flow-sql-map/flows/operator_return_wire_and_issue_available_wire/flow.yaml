@@ -25,7 +25,6 @@ node_order:
   - checkLastProductLotNoExists
   - inputRemainingQty
   - queryWireQuotaCheck
-  - checkWireQuotaLE500
   - showRemainingQtyWrongHint
   - submitWireReturn
   - checkSubmitWireReturnSuccess
@@ -203,26 +202,21 @@ nodes:
     routing: { success: queryWireQuotaCheck }
 
   queryWireQuotaCheck:
-    text: 调用 MES 核对焊丝用量配额
+    text: 调用 MES Get_Mat_QuotaCheck 查询实际与理论消耗差值（米）
     type: query
     data_source: mes
     sql_id: mes_mock.wire_quota.check_quota
     inputs:
       - { name: V_STEP, from: const:焊线 }
-      - { name: V_MatLot, from: node:queryWireSpecByLotNo.matlot }
+      - { name: V_MatLot, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
       - { name: V_thzl, from: node:queryWireReturnedWeightBySpec.return_weight }
-      - { name: V_thph, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
+      - { name: V_thph, from: node:queryLastProductLotNo.lot }
       - { name: V_sycl, from: node:inputRemainingQty.remaining_qty }
       - { name: V_eqp, from: node:inputEqpNo.eqp_no }
     routing:
-      single: checkWireQuotaLE500
-      empty: checkWireQuotaLE500
-
-  checkWireQuotaLE500:
-    text: 配额差值是否 <= 500
-    type: decision
-    check: { kind: numeric_le, ref: queryWireQuotaCheck.quota_diff, value: 500 }
-    routing: { yes: submitWireReturn, no: showRemainingQtyWrongHint }
+      single: submitWireReturn
+      empty: submitWireReturn
+      quota_reject: showRemainingQtyWrongHint
 
   showRemainingQtyWrongHint:
     text: 显示剩余待焊芯片数量不正确，重新输入的提示

@@ -53,7 +53,6 @@ sections:
     node_ids:
       - inputRemainingQty
       - queryWireQuotaCheck
-      - checkWireQuotaLE500
       - showRemainingQtyWrongHint
   - subgraph_id: submitWireReturnSection
     title: 1.2.7 提交归还焊丝请求
@@ -120,7 +119,6 @@ node_order:
   - checkLastProductLotNoExists
   - inputRemainingQty
   - queryWireQuotaCheck
-  - checkWireQuotaLE500
   - showRemainingQtyWrongHint
   - submitWireReturn
   - checkSubmitWireReturnSuccess
@@ -163,7 +161,6 @@ node_files:
   checkLastProductLotNoExists: nodes/queryLastProductLotNoSection/checkLastProductLotNoExists.yaml
   inputRemainingQty: nodes/inputRemainingQtySection/inputRemainingQty.yaml
   queryWireQuotaCheck: nodes/inputRemainingQtySection/queryWireQuotaCheck.yaml
-  checkWireQuotaLE500: nodes/inputRemainingQtySection/checkWireQuotaLE500.yaml
   showRemainingQtyWrongHint: nodes/inputRemainingQtySection/showRemainingQtyWrongHint.yaml
   submitWireReturn: nodes/submitWireReturnSection/submitWireReturn.yaml
   checkSubmitWireReturnSuccess: nodes/submitWireReturnSection/checkSubmitWireReturnSuccess.yaml

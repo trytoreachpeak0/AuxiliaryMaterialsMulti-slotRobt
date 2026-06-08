@@ -4,7 +4,7 @@ node_text: 显示剩余待焊芯片数量不正确，重新输入的提示
 access_type: ui_message
 sql_ids: []
 business_meaning: >-
-  MES 用量核对差值大于 500 颗时提示操作员数量有误，确认后回到 inputRemainingQty 重新输入（与流程图 §2.2.6 回环一致）。
+  MES 报 ORA-20007（剩余产量不能大于待完工产量）时提示操作员数量有误，确认后回到 inputRemainingQty 重新输入（与流程图 §2.2.6 回环一致）。
 outcome_routing:
   success:
     next: inputRemainingQty

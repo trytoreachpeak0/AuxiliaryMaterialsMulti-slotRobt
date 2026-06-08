@@ -79,22 +79,17 @@ inputs:
 outputs:
   - name: result
     type: string
-    meaning: FUN_MAT_TRANS_NEW 返回结果；空字符串或 SUCCESS 可按成功处理，ERROR/其他错误文本按失败处理。
+    meaning: FUN_MAT_TRANS_NEW 返回结果；空字符串或 SUCCESS 为成功，其他非空文本为业务失败；匿名块或存储函数抛出的异常由应用层捕获。
 sql: |
   DECLARE
     v_result VARCHAR2(4000);
   BEGIN
-    BEGIN
-      v_result := FWMES.FUN_MAT_TRANS_NEW(
-        :V_Step, :v_Task, :v_Eqp, :v_Code,
-        :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
-        :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
-        :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
-      );
-    EXCEPTION
-      WHEN OTHERS THEN
-        v_result := 'ERROR: ' || SQLERRM;
-    END;
+    v_result := FWMES.FUN_MAT_TRANS_NEW(
+      :V_Step, :v_Task, :v_Eqp, :v_Code,
+      :v_Matlot, :v_MatFromLot, :v_Qty, :v_Count,
+      :v_PrdLot, :v_PrdQty, TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS'), :V_Opr,
+      :V_Remark, :V_Workgroup, :V_Shift, :v_Writer, :V_SESSION
+    );
     :result := v_result;
   END;
 result_cardinality: 1
@@ -103,19 +98,22 @@ outcomes:
     means: 取得存储函数返回的执行结果 result。
     action: 按 business_rule 判断成功或失败；成功则继续开格口/更新本地业务状态，失败则回滚本地事务并提示。
   error:
-    means: 匿名块执行异常、数据库连接异常或事务提交失败。
-    action: 回滚本地事务，提示“提交焊丝领用/归还失败，请重试或联系管理员”，记录日志。
+    means: 匿名块执行异常、数据库连接异常或应用侧事务回滚失败。
+    action: 应用层回滚 Oracle 事务，将 SQLERRM 或连接错误原文提示给操作员，记录日志。
     severity: error
 transaction:
   required: true
   idempotent: false
   affected_rows: 由 FWMES.FUN_MAT_TRANS_NEW 决定
-  rollback_on: 存储函数返回失败、匿名块返回 ERROR 或应用侧抛出异常
+  rollback_on: result 为非空且非 SUCCESS、匿名块/存储函数抛出异常、或应用侧捕获到数据库错误
+  commit_on: result 为空或等于 SUCCESS
 business_rule: |
   该 SQL 同时服务焊丝领用和焊丝归还，业务类型由 v_Task 决定。
-  焊丝领用参考 SubmitWireDraw：v_Task 默认“领用”；V_Remark 传空字符串；v_PrdQty 传 productQty；如果 result 为空、SUCCESS 或包含 ORA-01403，可按成功处理。
-  焊丝归还参考 SubmitWireReturn：v_Task 使用归还流程传入值；V_Remark 传 reason；v_Qty 传 returnQty；v_PrdQty 传 remainingQty；result 为空时可按 SUCCESS 处理。
-  除上述兼容口径外，返回 ERROR 或其他错误文本时应视为失败并提示。
+  成功：result 为空字符串或精确等于 SUCCESS 时，应用层提交 Oracle 事务并继续流程。
+  失败：result 为非空且不等于 SUCCESS 的任意文本时，应用层回滚 Oracle 事务，并将该文本原样提示操作员。
+  异常：匿名块或 FWMES.FUN_MAT_TRANS_NEW 抛出异常时，不在 PL/SQL 内捕获；应用层回滚事务，并将 SQLERRM 原样提示操作员。
+  焊丝领用：v_Task 默认“领用”；V_Remark 传空字符串；v_PrdQty 传 productQty。
+  焊丝归还：v_Task 使用归还流程传入值；V_Remark 传 reason；v_Qty 传 returnQty；v_PrdQty 传 remainingQty。
 usage_examples:
   wire_draw:
     meaning: 焊丝领用
@@ -123,14 +121,14 @@ usage_examples:
     qty_source: qty
     prd_qty_source: productQty
     remark_source: 空字符串
-    success_result: 空字符串、SUCCESS、包含 ORA-01403
+    success_result: 空字符串或 SUCCESS
   wire_return:
     meaning: 焊丝归还
     task_source: 归还流程传入 task
     qty_source: returnQty
     prd_qty_source: remainingQty
     remark_source: reason
-    success_result: 空字符串或 MES 返回成功标识
+    success_result: 空字符串或 SUCCESS
 tables:
   - name: FWMES.FUN_MAT_TRANS_NEW
     type: function
@@ -172,15 +170,15 @@ interface:
       type: string
     - name: V_SESSION
       type: string
-  returns: result (string) — 存储函数执行结果；空/SUCCESS/特定兼容错误可按业务成功处理
+  returns: result (string) — 存储函数执行结果；空或 SUCCESS 为成功，其他非空文本为失败
 aliases:
   - submitWireDraw
   - submitWireReturn
 notes: |
   - C# 调用里所有入参均按 OracleDbType.Varchar2 绑定，catalog 也按 string 记录，避免数量字段被误建成 integer。
-  - 当前 SQL 在匿名块内部捕获存储函数异常并写入 result，便于应用侧统一按 result 判断。
+  - 本 SQL 不在匿名块内使用 EXCEPTION 吞掉错误；由应用层开启 Oracle 事务，按 result 或异常决定 COMMIT/ROLLBACK。
   - V_ShelfLife 当前 SQL 使用 TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS')；如果实际传入 "18-DEC-25" 这类 DD-MON-RR 格式，需要先在应用侧转换，或另行确认 MES 函数可接受的日期格式。
   - 现有 id 仍保留为 mes.mat_trans.submit_return，以兼容已有引用；语义上它已覆盖领用和归还两类物料转移。
 meta:
-  last_updated: 2026-06-03
+  last_updated: 2026-06-08
   author: ZhengyuShao

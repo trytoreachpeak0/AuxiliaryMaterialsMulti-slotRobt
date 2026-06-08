@@ -1,16 +1,16 @@
 subgraph_id: inputRemainingQtySection
 node_id: queryWireQuotaCheck
-node_text: 查询 MES 数据库剩余待焊芯片数量和预计剩余待焊芯片数量的差值
+node_text: 调用 MES Get_Mat_QuotaCheck 查询实际与理论消耗差值（米）
 access_type: mes_function
 sql_ids:
   - mes.wire_quota.check_quota
-business_meaning: 调用 MES 函数核对焊线用量差值，判断是否允许提交归还请求。
+business_meaning: 调用 MES 函数 Get_Mat_QuotaCheck 核对焊线用量；成功返回任意数值即允许提交归还请求。
 output_fields:
   - name: result
     source_type: sql_catalog
     source_ref: mes.wire_quota.check_quota
     catalog_field: result
-    source_text: 真实用量与预计用量差值，供配额判定。
+    source_text: 实际消耗与理论消耗的差值（米）。
 input_mappings:
   - name: V_STEP
     source_type: constant
@@ -19,24 +19,26 @@ input_mappings:
   - name: V_MatLot
     source_node: inputReturnedWireLotNo
     source_field: returned_wire_lot_no
-    source_text: 归还焊丝批号。
+    source_text: 归还焊丝批号（退还批号），传入 Get_Mat_QuotaCheck 的 V_MatLot。
   - name: V_thzl
     source_node: queryWireReturnedWeightBySpec
     source_field: return_weight
-    source_text: 应用数据库配置的该规格归还重量。
+    source_text: 应用数据库配置的该规格归还重量；传入 MES 前转为 string。
   - name: V_thph
-    source_node: inputReturnedWireLotNo
-    source_field: returned_wire_lot_no
-    source_text: 退还批号；当前按归还焊丝批号传入，待 MES 最终确认。
+    source_node: queryLastProductLotNo
+    source_field: lot
+    source_text: 机台最近生产产品批号（mes.product.get_latest_product_lot_by_eqp 的 lot），传入 V_thph。
   - name: V_sycl
     source_node: inputRemainingQty
     source_field: remaining_qty
-    source_text: 操作员输入产品剩余待焊芯片数量。
+    source_text: 工单的待焊芯片数量（操作员输入）；传入 Oracle 时绑定为 NUMBER。
   - name: V_eqp
     source_node: inputEqpNo
     source_field: eqp_no
     source_text: 已校验存在的机台号。
 outcome_routing:
   single:
-    next: checkWireQuotaLE500
-  # MES/执行失败：应用层统一异常提示，不进入本提示回环节点
+    next: submitWireReturn
+  quota_reject:
+    next: showRemainingQtyWrongHint
+  # 其他 MES/执行失败：应用层统一异常提示，不进入本提示回环节点

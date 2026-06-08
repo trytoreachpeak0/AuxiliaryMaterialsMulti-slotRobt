@@ -19,7 +19,7 @@
 - `checksubmitWireReturnSuccess` 大小写不一致，已改为 `checkSubmitWireReturnSuccess`。
 - `switchMHUI` 和 `switchOPUI` 使用缩写，建议确认是否全项目统一；如需更清晰，可使用 `switchMaterialHandlerUI`、`switchOperatorUI`。
 - `showLoadWireAndCloseDoorMessage1`、`showUnloadWireAndCloseDoorMessage2` 通过数字区分语义，建议改为更具体的名称，如 `showLoadReturnedWireAndCloseDoorMessage`、`showUnloadIssueWireAndCloseDoorMessage`。
-- `checkWireQuotaLE500` 保留节点 ID，中文文案已统一为“小于等于 500 颗”。
+- `checkWireQuotaLE500` 已移除；用量校验改由 `queryWireQuotaCheck`（Get_Mat_QuotaCheck）直接判定，ORA-20007 时走 `showRemainingQtyWrongHint`。
 
 ## Mermaid 形状建议
 

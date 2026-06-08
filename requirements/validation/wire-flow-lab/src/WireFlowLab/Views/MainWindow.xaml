@@ -133,8 +133,10 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="配额差值 (≤500 允许归还):"/>
+                                <TextBlock Text="配额差值 (米，任意数值=通过):"/>
                                 <TextBox Text="{Binding QuotaDiff}"/>
+                                <TextBlock Text="配额错误 (模拟 ORA-20007，留空=成功):" Margin="0,4,0,0"/>
+                                <TextBox Text="{Binding QuotaError}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="提交结果 (SUCCESS / ERROR:...):"/>

@@ -21,7 +21,7 @@ decision_rule:
       meaning: 只有输出参数为 null，或 MES 明确返回 SUCCESS 时，按成功处理。
   failure_when:
     - condition: otherwise
-      meaning: 其他非空返回文本按失败原因处理并提示。
+      meaning: 其他非空返回文本按失败原因原样提示操作员。
 outcome_routing:
   yes:
     next: showWireReturnSuccessMessage

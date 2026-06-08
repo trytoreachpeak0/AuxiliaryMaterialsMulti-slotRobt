@@ -72,7 +72,7 @@ flows/flow-sql-map/flows/*.yaml ──(sql_ids)──> data-access-sql/sql-catal
 | `sample_result` | list | 否 | 脱敏的样例返回结果，便于理解数据形状、写测试。 | - |
 | `transaction` | map | 否 | 写操作的事务契约（见 2.9），仅 `operation` 为 `write`/`update` 时需要。 | - |
 | `meta` | map | 否 | 元信息（见 2.10），如 `last_updated`、`author`。 | - |
-| `business_rule` | string | 否 | 不完全由 SQL 决定的业务规则。 | `diff_qty < 500 时允许提交` |
+| `business_rule` | string | 否 | 不完全由 SQL 决定的业务规则。 | `成功返回数值即允许提交；ORA-20007 须重输` |
 | `notes` | string | 否 | 补充说明、JOIN 口径、取舍等。 | - |
 | `empty_result_means` | string | 否(旧) | 旧字段：查询为空代表什么。推荐改用 `outcomes.empty`。 | - |
 | `error_handling` | string | 否(旧) | 旧字段：异常/空结果怎么处理。推荐改用 `outcomes`。 | - |
@@ -305,7 +305,7 @@ queryOPById[("查询 MES 数据库该操作人员")]
 3. 如果 SQL 会写入数据库，必须把 `operation` 标记为 `write` 或 `update`，并补充写入影响范围。
 4. 如果同一条 SQL 被多个流程使用，只维护一条 SQL 清单，并在 [`../flows/flow-sql-map/`](../flows/flow-sql-map/) 对应节点中引用同一个 `sql_id`。
 5. 如果字段来自多个表，建议在 `notes` 中说明 JOIN 关系和业务口径。
-6. 如果业务判断不完全由 SQL 决定，例如“差值小于 500 颗”，请写在 `business_rule` 中。
+6. 如果业务判断不完全由 SQL 决定，例如“ORA-20007 时须重输待焊芯片数”，请写在 `business_rule` 中。
 7. `outputs.name` 是逻辑字段名（契约），建议用 SQL 别名与真实列名对齐，或用 `column` 记录真实列名。
 8. 新增或重构条目时，结果处理优先用 `result_cardinality` + `outcomes`，逐步替代 `empty_result_means` / `error_handling` / `on_success_next` / `on_empty_or_error` 等旧字段。
 

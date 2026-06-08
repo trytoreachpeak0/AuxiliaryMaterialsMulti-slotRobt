@@ -211,9 +211,7 @@
                     <ColumnDefinition Width="14"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="1.4*"/>
+                    <ColumnDefinition Width="1.6*"/>
                     <ColumnDefinition Width="10"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -230,14 +228,11 @@
                 </StackPanel>
 
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="剩余待焊芯片（颗）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="4" Text="预计用量（颗）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="6" Text="实际用量差 (颗)" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="4" Text="实际用量差 (米)" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
 
                 <TextBox x:Name="RemainingQtyBox" Grid.Row="1" Grid.Column="2" Style="{StaticResource IndustrialTextBox}"
                          IsEnabled="False" TextChanged="RemainingQtyBox_TextChanged"/>
-                <TextBox x:Name="ExpectedQtyText" Grid.Row="1" Grid.Column="4" Style="{StaticResource IndustrialTextBox}"
-                         IsEnabled="False" Text="—"/>
-                <Border x:Name="QuotaPanel" Grid.Row="1" Grid.Column="6"
+                <Border x:Name="QuotaPanel" Grid.Row="1" Grid.Column="4"
                         Background="#FFEEF8F0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1"
                         Height="42">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -247,7 +242,7 @@
                                    Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
-                <Button x:Name="ConfirmQuotaBtn" Grid.Row="1" Grid.Column="8" Content="用量校验"
+                <Button x:Name="ConfirmQuotaBtn" Grid.Row="1" Grid.Column="6" Content="用量校验"
                         Style="{StaticResource SecondaryButton}" MinWidth="96" IsEnabled="False"
                         Click="ConfirmQuotaBtn_Click"/>
             </Grid>

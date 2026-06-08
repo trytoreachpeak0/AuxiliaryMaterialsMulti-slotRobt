@@ -10,7 +10,7 @@ output_fields:
     source_type: sql_catalog
     source_ref: mes.mat_trans.submit_return
     catalog_field: result
-    source_text: MES 归还事务返回结果；空或 SUCCESS 为成功。
+    source_text: MES 归还事务返回结果；空或 SUCCESS 为成功，其他非空文本为失败并原样提示。
 input_mappings:
   - name: V_Step
     source_type: constant

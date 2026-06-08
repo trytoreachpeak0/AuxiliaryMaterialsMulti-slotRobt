@@ -1,12 +1,12 @@
 id: mes.wire_quota.check_quota
 title: 查询 MES 焊线用量并核对差值
 system: MES
-operation: read
+operation: function
 dialect: oracle
 risk_level: low
 status: verified
 datasource: mes.oracle.main
-purpose: 调用 MES 存储函数 Get_Mat_QuotaCheck 进行焊线用量配额核对，返回核对结果码，供业务判断是否允许提交焊丝退还请求。
+purpose: 调用 MES 存储函数 Get_Mat_QuotaCheck 进行焊线用量配额核对，返回实际与理论消耗差值（米），供业务判断是否允许提交焊丝退还请求。
 inputs:
   - name: V_STEP
     type: string
@@ -15,7 +15,7 @@ inputs:
   - name: V_MatLot
     type: string
     required: true
-    source: 物料批号（焊丝批号）
+    source: 归还焊丝批号（操作员输入的 returned_wire_lot_no）
   - name: V_thzl
     type: string
     required: true
@@ -23,19 +23,19 @@ inputs:
   - name: V_thph
     type: string
     required: true
-    source: 退还批号
+    source: 机台最近生产产品批号（mes.product.get_latest_product_lot_by_eqp 的 lot）
   - name: V_sycl
-    type: integer
+    type: number
     required: true
-    source: 剩余待焊芯片数量
+    source: 工单的待焊芯片数量（操作员在步骤④输入）
   - name: V_eqp
     type: string
     required: true
     source: 机台号
 outputs:
   - name: result
-    type: integer
-    meaning: 真实用量与预计用量的差值（恒 >= 0），由存储函数 Get_Mat_QuotaCheck 计算返回
+    type: number
+    meaning: 实际消耗与理论消耗的差值（单位：米），由存储函数 Get_Mat_QuotaCheck 计算返回
 sql: |
   DECLARE
     v_result NUMBER;
@@ -49,16 +49,16 @@ sql: |
 result_cardinality: 1
 outcomes:
   single:
-    means: 取得真实用量与预计用量的差值 result。
-    action: 按 business_rule 比较 result 与阈值，决定是否允许提交焊丝退还请求。
+    means: 取得实际消耗与理论消耗的差值 result（米）。
+    action: 展示差值并继续提交焊丝退还请求。
   error:
     means: 数据库异常、存储函数报错或查询超时。
-    action: 提示“系统繁忙，请稍后重试”，记录日志。
+    action: ORA-20007（剩余产量不能大于待完工产量）时提示重输待焊芯片数量；其他异常提示“系统繁忙，请稍后重试”，记录日志。
     severity: error
 business_rule: |
-  result 为真实用量与预计用量的差值（integer，恒 >= 0）。
-  result < 500 时允许继续提交焊丝退还请求；result >= 500 说明用量偏差过大，禁止放行，转人工处理。
-  差值由存储函数 Get_Mat_QuotaCheck 计算返回，应用侧只负责与阈值 500 比较。
+  result 为实际消耗与理论消耗的差值（number，单位米），由存储函数 Get_Mat_QuotaCheck 计算返回。
+  成功返回任意数值即校验通过，允许继续提交焊丝退还请求。
+  若报 ORA-20007: 剩余产量不能大于待完工产量！则校验不通过，提示操作员重新输入待焊芯片数量。
 tables:
   - name: Get_Mat_QuotaCheck
     type: function
@@ -75,11 +75,13 @@ interface:
     - name: V_thph
       type: string
     - name: V_sycl
-      type: string
+      type: number
     - name: V_eqp
       type: string
-  returns: result (integer) — 真实用量与预计用量的差值（恒 >= 0）
+  returns: result (number) — 实际消耗与理论消耗的差值（单位：米）
 notes: |
   - 这是调用 Oracle 存储函数的 PL/SQL 匿名块，:result 为输出（OUT）绑定变量，需在应用层注册为输出参数。
-  - 入参 V_thzl / V_thph / V_sycl 的业务含义待与 MES 确认后补全各自的 meaning。
-  - result 是 integer（用量差值），不是枚举，无需登记到 schema/enums/。
+  - V_thzl 须以 string 传入 Oracle（如 "17.54"），不可绑定为 numeric/double。
+  - V_sycl 须以 Oracle NUMBER 传入（工单的待焊芯片数量，操作员输入，如 0、3000），应用层绑定为 Decimal。
+  - V_MatLot 传归还焊丝批号，V_thph 传机台最近产品批号（与早期流程映射已对调确认）。
+  - result 是 number（用量差值，米），不是枚举，无需登记到 schema/enums/。

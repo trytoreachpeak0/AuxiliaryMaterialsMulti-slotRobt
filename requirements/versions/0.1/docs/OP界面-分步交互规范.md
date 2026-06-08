@@ -42,12 +42,13 @@
 | ① | 操作员 ID / 班组 / 班次 | `queryOPById` + `checkOPIdExists` 通过，姓名已展示 | `inputOperatorInfo` |
 | ② | 归还焊丝批号 + 结果区 | 批号、规格、匹配可用、归还重量均通过 | `inputReturnedWireLotNoSection` + `queryReturnedWeightSection` |
 | ③ | 机台号 + 结果区 | 机台存在且最近产品批存在 | `inputEqpNoSection` + `queryLastProductLotNoSection` |
-| ④ | 剩余芯片 / 用量差 | `checkWireQuotaLE500` 通过 | `inputRemainingQtySection` |
+| ④ | 剩余芯片 / 用量差 | `queryWireQuotaCheck` 成功（返回差值，米） | `inputRemainingQtySection` |
 | ⑤ | 提交归还 + 开门放料 | `submitWireReturn` 成功；含 `findReturnSlot`→`openReturnSlot`→关门→`bind_returned_wire` | `submitWireReturnSection` + `loadReturnedWireSection` |
 | ⑥ | 提交领用 + 开门取料 | `submitWireIssue` 成功；含 `openIssueSlot`→关门→`complete_issue_pickup` | `issueWire` 子图（`submitWireIssueSection` 等） |
 
 步骤②结果区在 Demo 中合并展示；实现时可在一次「查询」链式调用后锁定整步。  
-步骤⑤⑥在 Demo 上各有一个主按钮，**正式实现须按** [需求范围 §3.2](../需求范围.md) 执行完整开门/关门/格口 SQL 子步骤，不得仅 UI 占位成功。
+步骤⑤⑥在 Demo 上各有一个主按钮，**正式实现须按** [需求范围 §3.2](../需求范围.md) 执行完整开门/关门/格口 SQL 子步骤，不得仅 UI 占位成功。  
+`submitWireReturn` / `submitWireIssue` 失败时，界面须展示 MES 存储函数返回的具体错误文本或 Oracle 异常信息（`SQLERRM`），不得仅显示笼统的「提交失败」。
 
 ## 4. 实现建议
 

@@ -289,9 +289,10 @@ public partial class OpView : UserControl
             return;
         }
 
+        var eqpNo = EqpNoBox.Text.Trim();
         await RunFlowActionAsync(async () =>
         {
-            var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpEqpValidate(EqpNoBox.Text.Trim()));
+            var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpEqpValidate(eqpNo));
             if (!ok)
             {
                 ClearEqpResults();
@@ -336,10 +337,12 @@ public partial class OpView : UserControl
             return;
         }
 
+        var remainingQty = RemainingQtyBox.Text.Trim();
         await RunFlowActionAsync(async () =>
         {
             var (ok, msg, reason) = await Task.Run(() =>
-                App.Flows.AdvanceOpQuotaCheck(RemainingQtyBox.Text.Trim()));
+                App.Flows.AdvanceOpQuotaCheck(remainingQty));
+
             if (!ok)
             {
                 ClearQuotaResults();
@@ -597,10 +600,8 @@ public partial class OpView : UserControl
 
     private void BindQuotaResults()
     {
-        var remaining = RemainingQtyBox.Text.Trim();
-        ExpectedQtyText.Text = remaining;
-
-        var diffObj = App.Flows.GetField("queryWireQuotaCheck.quota_diff");
+        var diffObj = App.Flows.GetField("queryWireQuotaCheck.quota_diff")
+                      ?? App.Flows.GetField("queryWireQuotaCheck.result");
         var diff = diffObj switch
         {
             double d => d,
@@ -620,12 +621,9 @@ public partial class OpView : UserControl
         }
 
         QuotaDeltaText.Text = diff.ToString(CultureInfo.InvariantCulture);
-        var pass = diff <= 500;
-        QuotaHintText.Text = pass ? "(≤500 校验通过)" : "(超出允许范围)";
-        QuotaPanel.Background = pass
-            ? new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0))
-            : new SolidColorBrush(Color.FromRgb(0xFF, 0xEB, 0xEE));
-        QuotaPanel.SetResourceReference(Border.BorderBrushProperty, pass ? "SuccessBrush" : "DangerBrush");
+        QuotaHintText.Text = "(校验通过)";
+        QuotaPanel.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0));
+        QuotaPanel.SetResourceReference(Border.BorderBrushProperty, "SuccessBrush");
     }
 
     private async Task RunFlowActionAsync(Func<Task<(bool Ok, string Message)>> action)
@@ -701,7 +699,6 @@ public partial class OpView : UserControl
 
     private void ClearQuotaResults()
     {
-        ExpectedQtyText.Text = "—";
         QuotaDeltaText.Text = "—";
         QuotaHintText.Text = "";
         QuotaPanel.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0));

@@ -1,3 +1,4 @@
+using WireCabinet.Data;
 using WireCabinet.Flows;
 using WireCabinet.Hmi;
 using WireCabinet.Hmi.Views;
@@ -76,7 +77,7 @@ public sealed class FlowCoordinator
 
         var entry = _runner.RunUntilPause(pauseBeforeNodeId, pauseBeforeDoorClose);
         if (_runner.PauseReason == FlowPauseReason.Error)
-            return (false, _runner.PauseMessage ?? entry?.Result ?? "流程错误", FlowPauseReason.Error);
+            return (false, PickFlowErrorMessage(_runner.PauseMessage, entry?.Result, "流程错误"), FlowPauseReason.Error);
 
         if (_runner.PauseReason == FlowPauseReason.Terminal)
         {
@@ -208,7 +209,7 @@ public sealed class FlowCoordinator
         if (string.Equals(CurrentNodeId, "showRemainingQtyWrongHint", StringComparison.OrdinalIgnoreCase)
             || (result.Reason == FlowPauseReason.UserInput
                 && string.Equals(CurrentNodeId, "inputRemainingQty", StringComparison.OrdinalIgnoreCase)))
-            return (false, "剩余待焊芯片数量不正确，请重新输入。", FlowPauseReason.Error);
+            return (false, "剩余待焊芯片数量不正确（剩余产量不能大于待完工产量），请重新输入。", FlowPauseReason.Error);
 
         if (result.Reason == FlowPauseReason.AwaitingAction
             && string.Equals(CurrentNodeId, "submitWireReturn", StringComparison.OrdinalIgnoreCase))
@@ -392,13 +393,48 @@ public sealed class FlowCoordinator
         "showReturnedWeightNotExists" => "未配置归还重量，请转人工归还",
         "showEqpNoNotExistsMessage" => "机台号不存在",
         "showLastProductLotNoNotExistsMessage" => "未查询到最近产品批号",
-        "showWireReturnFailMessage" => "归还提交失败",
+        "showWireReturnFailMessage" => ResolveSubmitFailMessage("submitWireReturn", "归还提交失败"),
         "showNoReturnSlotAvailableMessage" => "无空闲归还格口，请转人工归还",
-        "showWireIssueFailMessage" => "领用提交失败",
+        "showWireIssueFailMessage" => ResolveSubmitFailMessage("submitWireIssue", "领用提交失败"),
         "showNoAvailableSlotMessage" => "无空闲格口",
         "showWireLotNoAlreadyInCabinetMessage" => BuildAlreadyInCabinetMessage(),
         _ => _runner?.PauseMessage ?? "流程未通过。"
     };
+
+    private string ResolveSubmitFailMessage(string submitNodeId, string fallback)
+    {
+        var pause = PickFlowErrorMessage(_runner?.PauseMessage, null, "");
+        if (!string.IsNullOrWhiteSpace(pause))
+            return pause;
+
+        var submitEntry = _runner?.Engine.Trace.LastOrDefault(t =>
+            string.Equals(t.NodeId, submitNodeId, StringComparison.OrdinalIgnoreCase));
+        var fromTrace = PickFlowErrorMessage(submitEntry?.Result, null, "");
+        if (!string.IsNullOrWhiteSpace(fromTrace))
+            return fromTrace;
+
+        var submitResult = GetField($"{submitNodeId}.{MatTransResult.SubmitResultField}")?.ToString();
+        if (!string.IsNullOrWhiteSpace(submitResult) && !MatTransResult.IsSuccess(submitResult))
+            return submitResult;
+
+        return fallback;
+    }
+
+    private static string PickFlowErrorMessage(string? primary, string? secondary, string fallback)
+    {
+        var msg = NormalizeFlowError(primary);
+        if (!string.IsNullOrWhiteSpace(msg)) return msg;
+        msg = NormalizeFlowError(secondary);
+        if (!string.IsNullOrWhiteSpace(msg)) return msg;
+        return fallback;
+    }
+
+    private static string NormalizeFlowError(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return "";
+        const string prefix = "错误: ";
+        return message.StartsWith(prefix, StringComparison.Ordinal) ? message[prefix.Length..].Trim() : message.Trim();
+    }
 
     private string BuildAlreadyInCabinetMessage()
     {

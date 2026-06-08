@@ -148,6 +148,11 @@ public sealed class FlowEngine
         ctx.RowCounts[node.Id] = result.Count;
 
         string key = result.HasError ? "error" : result.Count switch { 0 => "empty", 1 => "single", _ => "multiple" };
+        if (result.HasError
+            && string.Equals(node.Id, "queryWireQuotaCheck", StringComparison.OrdinalIgnoreCase)
+            && IsQuotaReject(result.Error))
+            key = "quota_reject";
+
         var (next, routeFindings) = Route(node, key);
         findings.AddRange(routeFindings);
 
@@ -155,7 +160,9 @@ public sealed class FlowEngine
             ? $"错误: {result.Error}"
             : $"{result.Count} 行" + (result.First is not null ? " | " + RowText(result.First) : "");
 
-        var status = result.HasError ? Severity.Error : (routeFindings.Count > 0 ? Severity.Warning : Severity.Info);
+        var status = string.Equals(key, "quota_reject", StringComparison.OrdinalIgnoreCase)
+            ? Severity.Warning
+            : result.HasError ? Severity.Error : (routeFindings.Count > 0 ? Severity.Warning : Severity.Info);
         return Build(node, key, next, result.RenderedSql, resultText, findings, status, parameters);
     }
 
@@ -396,12 +403,12 @@ public sealed class FlowEngine
         }
     }
 
-    private static bool IsSubmitSuccess(string? v)
-    {
-        if (string.IsNullOrWhiteSpace(v)) return true;
-        if (v.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase)) return true;
-        return v.Contains("ORA-01403", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsSubmitSuccess(string? v) => MatTransResult.IsSuccess(v);
+
+    private static bool IsQuotaReject(string? error) =>
+        !string.IsNullOrWhiteSpace(error)
+        && (error.Contains("ORA-20007", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Oracle 模式优先使用 formal catalog 中的 mes.* 条目，避免 mes_mock 默认值干扰。</summary>
     private SqlCatalogItem? ResolveSqlItem(string sqlId)
@@ -426,6 +433,16 @@ public sealed class FlowEngine
         foreach (var im in node.Inputs)
         {
             var val = Resolve(im.Source);
+            if (string.Equals(node.Id, "queryWireQuotaCheck", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(im.Name, "V_thzl", StringComparison.OrdinalIgnoreCase)
+                    && val is not null and not string)
+                    val = Convert.ToString(val, CultureInfo.InvariantCulture);
+                else if (string.Equals(im.Name, "V_sycl", StringComparison.OrdinalIgnoreCase)
+                         && val is not null
+                         && decimal.TryParse(val.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var qty))
+                    val = qty;
+            }
             dict[im.Name] = val;
             if (sb.Length > 0) sb.Append(", ");
             sb.Append($"{im.Name}={Display(val)}");

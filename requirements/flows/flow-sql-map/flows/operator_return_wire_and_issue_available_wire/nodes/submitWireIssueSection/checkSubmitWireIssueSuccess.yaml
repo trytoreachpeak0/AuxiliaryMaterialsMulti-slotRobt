@@ -18,12 +18,9 @@ decision_rule:
     - condition: equals
       value: SUCCESS
       meaning: result 等于 SUCCESS 时按成功处理。
-    - condition: contains
-      value: ORA-01403
-      meaning: 忽略 NO_DATA_FOUND；result 包含 ORA-01403 时按成功处理。
   failure_when:
     - condition: otherwise
-      meaning: 其他非空返回文本按失败原因处理并提示。
+      meaning: 其他非空返回文本按失败原因原样提示操作员。
 outcome_routing:
   yes:
     next: showWireIssueSuccessMessage

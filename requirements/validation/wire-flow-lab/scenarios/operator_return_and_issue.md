@@ -10,10 +10,10 @@
 | 归还焊丝批号 | `14Z1888-0160` |
 | 机台号 | `1QH029` |
 | 剩余芯片数量 | `3000` |
-| MES 配额差值 | `0`（≤500） |
+| MES 配额差值 | `0`（米，任意数值即通过） |
 | MES 提交结果 | `SUCCESS` |
 
-期望：依次通过操作员校验→批号/规格→匹配可用焊丝→归还重量→机台→产品批号→配额≤500→提交归还成功→**开归还格口/存料/关门**→领用 MES/产品信息→提交领用成功→**开领用格口/取料/关门**→`endSuccess`。
+期望：依次通过操作员校验→批号/规格→匹配可用焊丝→归还重量→机台→产品批号→配额校验通过→提交归还成功→**开归还格口/存料/关门**→领用 MES/产品信息→提交领用成功→**开领用格口/取料/关门**→`endSuccess`。
 
 ## 异常分支
 
@@ -24,12 +24,12 @@
 | 无匹配可用焊丝 | 批号用一个规格在柜内无 `available_wire` 的（如先把 A05/A07 占用或换规格） | `showNoMatchedWireMessage` |
 | 未配置归还重量 | 归还焊丝规格在 `welding_wire_materials` 无记录 | `showReturnedWeightNotExists` |
 | 机台不存在 | 机台填 `9XX999` | `showEqpNoNotExistsMessage` |
-| 配额超限 | MES 配额差值填 `600`（>500） | `showRemainingQtyWrongHint` 后回到 `inputRemainingQty` 重输（可改回 ≤500 再走通） |
-| 归还提交失败 | MES 提交结果填 `ERROR: quota` | `showWireReturnFailMessage` |
-| 领用提交失败 | 归还成功后把提交结果改为 `ERROR: xxx` 再继续 | `showWireIssueFailMessage` |
+| 配额校验失败 | MES 配额错误填 `ORA-20007: 剩余产量不能大于待完工产量！` | `showRemainingQtyWrongHint` 后回到 `inputRemainingQty` 重输（清空配额错误后可再走通） |
+| 归还提交失败 | MES 提交结果填 `库存不足` 等业务错误文本 | `showWireReturnFailMessage`（界面展示该文本） |
+| 领用提交失败 | 归还成功后把提交结果改为具体错误文本再继续 | `showWireIssueFailMessage`（界面展示该文本） |
 
 ## 已知问题映射
 
 - 最近产品批号判定恒为 yes（见 findings F-1）。
 - 归还/领用物理开门步骤已写入 formal `flow-sql-map` 与 lab `flow.yaml`（findings F-3 已关闭）。
-- 配额超限在验证版按终止处理，流程图为回环重输（findings F-4）。
+- 配额校验失败（ORA-20007）在验证版走 `quota_reject` → `showRemainingQtyWrongHint` 回环重输。

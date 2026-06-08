@@ -144,9 +144,8 @@ public partial class OpView : UserControl
             return;
         }
 
-        ExpectedQtyText.Text = (remaining + 40).ToString();
-        QuotaDeltaText.Text = "-40";
-        QuotaHintText.Text = "(≤500 校验通过)";
+        QuotaDeltaText.Text = "1.25";
+        QuotaHintText.Text = "(校验通过)";
         QuotaPanel.Background = (Brush)FindResource("SuccessBrush");
         _flow.CompleteStep(3);
         ApplyStepGating();
@@ -205,7 +204,6 @@ public partial class OpView : UserControl
 
     private void ClearQuotaResults()
     {
-        ExpectedQtyText.Text = "—";
         QuotaDeltaText.Text = "—";
         QuotaHintText.Text = "";
         QuotaPanel.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0));

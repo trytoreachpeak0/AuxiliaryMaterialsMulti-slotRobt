@@ -37,6 +37,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _useOracle;
     [ObservableProperty] private string _oracleConnString = "User Id=mes;Password=***;Data Source=host:1521/ORCLPDB";
     [ObservableProperty] private double _quotaDiff;
+    [ObservableProperty] private string _quotaError = "";
     [ObservableProperty] private string _submitResult = "SUCCESS";
     [ObservableProperty] private string _agvNo = "AGV-01";
     [ObservableProperty] private string _mesModeText = "当前 MES 模式: SQLite mock";
@@ -162,6 +163,7 @@ public partial class MainViewModel : ObservableObject
         else
         {
             _mesSettings.QuotaDiff = QuotaDiff;
+            _mesSettings.QuotaError = QuotaError;
             _mesSettings.SubmitResult = SubmitResult;
             _svc.Mes = new SqliteMockMesGateway(_db, _mesSettings);
             MesModeText = "当前 MES 模式: SQLite mock";
