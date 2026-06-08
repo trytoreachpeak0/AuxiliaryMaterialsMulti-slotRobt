@@ -4,7 +4,7 @@ node_text: 发货柜打开归还格口
 access_type: application_db_and_slot_control
 catalog_status: pending_catalog
 sql_ids: []
-business_meaning: 对 findReturnSlot 选出的格口下发开门指令并落库 door=open。
+business_meaning: 对步骤②已预分配的归还格口（findReturnSlot）下发开门指令并落库 door=open。
 output_fields:
   - name: opened_slot_id
     source_type: sql_catalog

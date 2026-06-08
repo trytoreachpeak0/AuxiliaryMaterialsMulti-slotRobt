@@ -48,7 +48,8 @@ public static class SelfTestRunner
                 AppDb = new SqliteAppDb(db),
                 Mes = new SqliteMockMesGateway(db, settings),
                 Slot = slot,
-                SystemAgvNo = "AGV-01"
+                SystemAgvNo = "AGV-01",
+                SystemMesWriter = "新厂前线物料多仓位2"
             };
             var engine = new FlowEngine(svc);
             engine.Begin(flow);

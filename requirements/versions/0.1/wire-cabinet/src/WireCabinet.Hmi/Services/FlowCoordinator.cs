@@ -8,8 +8,11 @@ namespace WireCabinet.Hmi.Services;
 public sealed class FlowCoordinator
 {
     private readonly AppBootstrap _app;
+    private readonly FlowTraceHub? _traceHub;
     private FlowSessionRunner? _runner;
     private FlowDefinition? _flow;
+    private int _publishedCount;
+    private string? _sessionId;
 
     private static readonly HashSet<string> AutoAckUserInputNodes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -21,7 +24,11 @@ public sealed class FlowCoordinator
         "unloadWire"
     };
 
-    public FlowCoordinator(AppBootstrap app) => _app = app;
+    public FlowCoordinator(AppBootstrap app, FlowTraceHub? traceHub = null)
+    {
+        _app = app;
+        _traceHub = traceHub;
+    }
 
     public bool TryBeginFlow(string flowId, out string message)
     {
@@ -38,14 +45,22 @@ public sealed class FlowCoordinator
 
         _runner = new FlowSessionRunner(_app.EngineServices);
         _runner.Begin(_flow);
+        _publishedCount = 0;
+        _sessionId = _traceHub?.BeginSession(_flow.FlowId, _flow.Title);
         message = "";
         return true;
     }
 
     public void EndFlow()
     {
+        FlushNewTraceEntries();
+        if (_traceHub is not null && _flow is not null && _sessionId is not null)
+            _traceHub.EndSession(_flow.FlowId, _flow.Title, _sessionId);
+
         _runner = null;
         _flow = null;
+        _sessionId = null;
+        _publishedCount = 0;
         _app.WireSession.End();
     }
 
@@ -76,6 +91,7 @@ public sealed class FlowCoordinator
             _runner.SetUserInput(_runner.Engine.CurrentNodeId, userInput);
 
         var entry = _runner.RunUntilPause(pauseBeforeNodeId, pauseBeforeDoorClose);
+        FlushNewTraceEntries();
         if (_runner.PauseReason == FlowPauseReason.Error)
             return (false, PickFlowErrorMessage(_runner.PauseMessage, entry?.Result, "流程错误"), FlowPauseReason.Error);
 
@@ -457,6 +473,14 @@ public sealed class FlowCoordinator
             return;
 
         _app.InterruptedLoad.Save(slotId, slotNo, lot, spec);
+    }
+
+    private void FlushNewTraceEntries()
+    {
+        if (_traceHub is null || _runner is null || _flow is null || _sessionId is null)
+            return;
+
+        _traceHub.PublishNewEntries(_runner.Engine, _flow.FlowId, _flow.Title, _sessionId, ref _publishedCount);
     }
 
     private static long ToLong(object? value) => value switch

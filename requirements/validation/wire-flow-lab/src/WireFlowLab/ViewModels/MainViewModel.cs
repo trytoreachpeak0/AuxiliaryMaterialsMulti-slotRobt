@@ -56,7 +56,8 @@ public partial class MainViewModel : ObservableObject
             AppDb = new SqliteAppDb(_db),
             Mes = new SqliteMockMesGateway(_db, _mesSettings),
             Slot = _slot,
-            SystemAgvNo = _agvNo
+            SystemAgvNo = _agvNo,
+            SystemMesWriter = "新厂前线物料多仓位2"
         };
         _engine = new FlowEngine(_svc);
 

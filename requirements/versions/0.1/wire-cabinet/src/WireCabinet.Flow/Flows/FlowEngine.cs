@@ -163,7 +163,7 @@ public sealed class FlowEngine
         var status = string.Equals(key, "quota_reject", StringComparison.OrdinalIgnoreCase)
             ? Severity.Warning
             : result.HasError ? Severity.Error : (routeFindings.Count > 0 ? Severity.Warning : Severity.Info);
-        return Build(node, key, next, result.RenderedSql, resultText, findings, status, parameters);
+        return Build(node, key, next, result.RenderedSql, resultText, findings, status, parameters, result.First);
     }
 
     private TraceEntry ExecDecision(FlowNode node)
@@ -242,7 +242,7 @@ public sealed class FlowEngine
             : (result.First is not null ? RowText(result.First) : $"影响 {result.RowsAffected} 行");
 
         return Build(node, key, next, result.RenderedSql, resultText, findings,
-            result.HasError ? Severity.Error : Severity.Info, parameters);
+            result.HasError ? Severity.Error : Severity.Info, parameters, result.First);
     }
 
     private TraceEntry ExecSlotOpen(FlowNode node)
@@ -428,8 +428,10 @@ public sealed class FlowEngine
 
     private (Dictionary<string, object?>, string) BuildParams(FlowNode node)
     {
+        var item = node.SqlId is null ? null : ResolveSqlItem(node.SqlId);
+        var isMatTrans = item is not null && MatTransResult.IsMatTransItem(item);
+
         var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        var sb = new StringBuilder();
         foreach (var im in node.Inputs)
         {
             var val = Resolve(im.Source);
@@ -443,11 +445,18 @@ public sealed class FlowEngine
                          && decimal.TryParse(val.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var qty))
                     val = qty;
             }
+            else if (isMatTrans
+                     && string.Equals(im.Name, "V_ShelfLife", StringComparison.OrdinalIgnoreCase))
+            {
+                val = MesDateTimeFormat.ToOracleString(val);
+            }
             dict[im.Name] = val;
-            if (sb.Length > 0) sb.Append(", ");
-            sb.Append($"{im.Name}={Display(val)}");
         }
-        return (dict, sb.ToString());
+
+        var isMes = string.Equals(node.DataSource, "mes", StringComparison.OrdinalIgnoreCase);
+        var isOracle = isMes && _svc.Mes.Mode == MesMode.Oracle;
+        var display = SqlBindTrace.FormatCompact(item, isOracle, dict);
+        return (dict, display);
     }
 
     private object? Resolve(ValueSource src)
@@ -457,7 +466,12 @@ public sealed class FlowEngine
             case ValueSource.Kind.Const:
                 return src.Literal;
             case ValueSource.Kind.System:
-                return src.Field == "configured_agv_no" ? _svc.SystemAgvNo : "";
+                return src.Field switch
+                {
+                    "configured_agv_no" => _svc.SystemAgvNo,
+                    "configured_mes_writer" => _svc.SystemMesWriter,
+                    _ => ""
+                };
             case ValueSource.Kind.Context:
                 return Context!.Runtime.TryGetValue(src.Field ?? "", out var cv) ? cv : null;
             case ValueSource.Kind.Node:
@@ -498,8 +512,16 @@ public sealed class FlowEngine
     // ---------- 工具 ----------
 
     private TraceEntry Build(FlowNode node, string outcome, string? next, string sql, string result,
-        List<Finding> findings, Severity status = Severity.Info, IDictionary<string, object?>? prms = null)
+        List<Finding> findings, Severity status = Severity.Info, IDictionary<string, object?>? prms = null,
+        Dictionary<string, object?>? outRow = null)
     {
+        var catalogItem = node.SqlId is not null ? ResolveSqlItem(node.SqlId) : null;
+        var isMes = string.Equals(node.DataSource, "mes", StringComparison.OrdinalIgnoreCase);
+        var isOracle = isMes && _svc.Mes.Mode == MesMode.Oracle;
+        var (compact, detail) = prms is null || prms.Count == 0
+            ? ("", "")
+            : SqlBindTrace.Format(catalogItem, isOracle, prms, outRow);
+
         return new TraceEntry
         {
             Step = _step,
@@ -509,7 +531,8 @@ public sealed class FlowEngine
             DataSource = node.DataSource ?? "",
             SqlId = node.SqlId,
             RenderedSql = sql,
-            Parameters = prms is null ? "" : string.Join(", ", prms.Select(p => $"{p.Key}={Display(p.Value)}")),
+            Parameters = compact,
+            ParametersDetail = detail,
             Result = result,
             Outcome = outcome,
             NextNode = next,
@@ -523,7 +546,12 @@ public sealed class FlowEngine
     private Finding Info(FlowNode n, string cat, string msg) => new() { Severity = Severity.Info, FlowId = Flow!.FlowId, NodeId = n.Id, Category = cat, Message = msg };
 
     private static bool IsEmpty(object? v) => v is null || string.IsNullOrWhiteSpace(v.ToString());
-    private static string Display(object? v) => v is null ? "NULL" : v.ToString() ?? "";
+    private static string Display(object? v)
+    {
+        if (v is null or DBNull) return "NULL";
+        if (v is string s && s.Length == 0) return "\"\"";
+        return v.ToString() ?? "\"\"";
+    }
     private static string RowText(Dictionary<string, object?> row) => string.Join(", ", row.Select(kv => $"{kv.Key}={Display(kv.Value)}"));
 
     private static long ToLong(object? v)

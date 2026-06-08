@@ -28,6 +28,7 @@ sections:
       - checkWireSpecExists
       - queryMatchedAvailableWire
       - checkMatchedWireExists
+      - findReturnSlot
   - subgraph_id: queryReturnedWeightSection
     title: 1.2.3 获取焊丝归还重量
     parent_subgraph_id: returnWire
@@ -65,8 +66,6 @@ sections:
     parent_subgraph_id: returnWire
     node_ids:
       - showWireReturnSuccessMessage
-      - findReturnSlot
-      - checkReturnSlotExists
       - openReturnSlot
       - showLoadWireAndCloseDoorMessage
       - loadReturnedWire
@@ -110,6 +109,7 @@ node_order:
   - checkWireSpecExists
   - queryMatchedAvailableWire
   - checkMatchedWireExists
+  - findReturnSlot
   - queryWireReturnedWeightBySpec
   - checkReturnedWeightExists
   - inputEqpNo
@@ -123,8 +123,6 @@ node_order:
   - submitWireReturn
   - checkSubmitWireReturnSuccess
   - showWireReturnSuccessMessage
-  - findReturnSlot
-  - checkReturnSlotExists
   - openReturnSlot
   - showLoadWireAndCloseDoorMessage
   - loadReturnedWire
@@ -152,6 +150,7 @@ node_files:
   checkWireSpecExists: nodes/inputReturnedWireLotNoSection/checkWireSpecExists.yaml
   queryMatchedAvailableWire: nodes/inputReturnedWireLotNoSection/queryMatchedAvailableWire.yaml
   checkMatchedWireExists: nodes/inputReturnedWireLotNoSection/checkMatchedWireExists.yaml
+  findReturnSlot: nodes/inputReturnedWireLotNoSection/findReturnSlot.yaml
   queryWireReturnedWeightBySpec: nodes/queryReturnedWeightSection/queryWireReturnedWeightBySpec.yaml
   checkReturnedWeightExists: nodes/queryReturnedWeightSection/checkReturnedWeightExists.yaml
   inputEqpNo: nodes/inputEqpNoSection/inputEqpNo.yaml
@@ -165,8 +164,6 @@ node_files:
   submitWireReturn: nodes/submitWireReturnSection/submitWireReturn.yaml
   checkSubmitWireReturnSuccess: nodes/submitWireReturnSection/checkSubmitWireReturnSuccess.yaml
   showWireReturnSuccessMessage: nodes/loadReturnedWireSection/showWireReturnSuccessMessage.yaml
-  findReturnSlot: nodes/loadReturnedWireSection/findReturnSlot.yaml
-  checkReturnSlotExists: nodes/loadReturnedWireSection/checkReturnSlotExists.yaml
   openReturnSlot: nodes/loadReturnedWireSection/openReturnSlot.yaml
   showLoadWireAndCloseDoorMessage: nodes/loadReturnedWireSection/showLoadWireAndCloseDoorMessage.yaml
   loadReturnedWire: nodes/loadReturnedWireSection/loadReturnedWire.yaml

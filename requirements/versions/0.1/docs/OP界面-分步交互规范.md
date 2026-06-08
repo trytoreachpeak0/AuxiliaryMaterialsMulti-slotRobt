@@ -40,10 +40,10 @@
 | UI 步骤 | 界面区块 | 完成条件（校验通过后锁定） | flow-sql-map 段落 |
 |---------|----------|---------------------------|-------------------|
 | ① | 操作员 ID / 班组 / 班次 | `queryOPById` + `checkOPIdExists` 通过，姓名已展示 | `inputOperatorInfo` |
-| ② | 归还焊丝批号 + 结果区 | 批号、规格、匹配可用、归还重量均通过 | `inputReturnedWireLotNoSection` + `queryReturnedWeightSection` |
+| ② | 归还焊丝批号 + 结果区 | 批号、规格、匹配可用焊丝、**预分配归还格口**、归还重量均通过 | `inputReturnedWireLotNoSection`（含 `findReturnSlot`）+ `queryReturnedWeightSection` |
 | ③ | 机台号 + 结果区 | 机台存在且最近产品批存在 | `inputEqpNoSection` + `queryLastProductLotNoSection` |
 | ④ | 剩余芯片 / 用量差 | `queryWireQuotaCheck` 成功（返回差值，米） | `inputRemainingQtySection` |
-| ⑤ | 提交归还 + 开门放料 | `submitWireReturn` 成功；含 `findReturnSlot`→`openReturnSlot`→关门→`bind_returned_wire` | `submitWireReturnSection` + `loadReturnedWireSection` |
+| ⑤ | 提交归还 + 开门放料 | `submitWireReturn` 成功；`openReturnSlot`（用步骤②预分配格口）→关门→`bind_returned_wire` | `submitWireReturnSection` + `loadReturnedWireSection` |
 | ⑥ | 提交领用 + 开门取料 | `submitWireIssue` 成功；含 `openIssueSlot`→关门→`complete_issue_pickup` | `issueWire` 子图（`submitWireIssueSection` 等） |
 
 步骤②结果区在 Demo 中合并展示；实现时可在一次「查询」链式调用后锁定整步。  

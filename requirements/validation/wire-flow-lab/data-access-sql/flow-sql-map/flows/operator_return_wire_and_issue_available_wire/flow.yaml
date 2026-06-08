@@ -16,6 +16,7 @@ node_order:
   - checkWireSpecExists
   - queryMatchedAvailableWire
   - checkMatchedWireExists
+  - findReturnSlot
   - queryWireReturnedWeightBySpec
   - checkReturnedWeightExists
   - inputEqpNo
@@ -29,8 +30,6 @@ node_order:
   - submitWireReturn
   - checkSubmitWireReturnSuccess
   - showWireReturnSuccessMessage
-  - findReturnSlot
-  - checkReturnSlotExists
   - openReturnSlot
   - showLoadWireAndCloseDoorMessage
   - loadReturnedWire
@@ -127,7 +126,16 @@ nodes:
     text: 是否存在匹配的可用焊丝
     type: decision
     check: { kind: field_not_empty, ref: queryMatchedAvailableWire.matched_available_wire_lot_no }
-    routing: { yes: queryWireReturnedWeightBySpec, no: showNoMatchedWireMessage }
+    routing: { yes: findReturnSlot, no: showNoMatchedWireMessage }
+
+  findReturnSlot:
+    text: 预分配归还焊丝空闲格口
+    type: query
+    data_source: app
+    sql_id: app.slot.find_return_slot
+    routing:
+      single: queryWireReturnedWeightBySpec
+      empty: showNoReturnSlotAvailableMessage
 
   queryWireReturnedWeightBySpec:
     text: 按规格查询归还重量
@@ -246,7 +254,7 @@ nodes:
       - { name: V_Remark, from: context:return_remark }
       - { name: V_Workgroup, from: node:inputOperatorWorkInfo.work_group }
       - { name: V_Shift, from: node:inputOperatorWorkInfo.shift }
-      - { name: v_Writer, from: system:configured_agv_no }
+      - { name: v_Writer, from: system:configured_mes_writer }
       - { name: V_SESSION, from: const:"" }
     routing:
       success: checkSubmitWireReturnSuccess
@@ -263,22 +271,7 @@ nodes:
     type: user_input
     outputs:
       - { name: acknowledged, label: 已阅读, default: true }
-    routing: { success: findReturnSlot }
-
-  findReturnSlot:
-    text: 查询可用于存放归还焊丝的空闲格口
-    type: query
-    data_source: app
-    sql_id: app.slot.find_return_slot
-    routing:
-      single: checkReturnSlotExists
-      empty: checkReturnSlotExists
-
-  checkReturnSlotExists:
-    text: 是否存在可用于归还的空闲格口
-    type: decision
-    check: { kind: field_not_empty, ref: findReturnSlot.return_slot_id }
-    routing: { yes: openReturnSlot, no: showNoReturnSlotAvailableMessage }
+    routing: { success: openReturnSlot }
 
   openReturnSlot:
     text: 发货柜打开归还格口
@@ -382,7 +375,7 @@ nodes:
       - { name: V_Remark, from: const:"" }
       - { name: V_Workgroup, from: node:inputOperatorWorkInfo.work_group }
       - { name: V_Shift, from: node:inputOperatorWorkInfo.shift }
-      - { name: v_Writer, from: system:configured_agv_no }
+      - { name: v_Writer, from: system:configured_mes_writer }
       - { name: V_SESSION, from: const:"" }
     routing:
       success: checkSubmitWireIssueSuccess

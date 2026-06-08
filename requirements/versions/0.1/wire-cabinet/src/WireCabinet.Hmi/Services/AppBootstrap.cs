@@ -25,7 +25,9 @@ public sealed class AppBootstrap : IDisposable
     public EngineServices EngineServices { get; }
     public IReadOnlyList<FlowDefinition> Flows { get; }
     public MesOptions MesOptions { get; }
+    public FlowTraceWindowOptions FlowTraceOptions { get; }
     public bool MesReady { get; }
+    public bool FlowTraceEnabled => FlowTraceOptions.Enabled;
 
     public AppBootstrap(IConfiguration config)
     {
@@ -45,7 +47,11 @@ public sealed class AppBootstrap : IDisposable
         InterruptedLoad.EnsureSchema();
 
         Catalog = SqlCatalog.Load();
-        MesOptions = new MesOptions { ConnectionString = NormalizeMesConnectionString(config["Mes:ConnectionString"]) };
+        MesOptions = new MesOptions
+        {
+            ConnectionString = NormalizeMesConnectionString(config["Mes:ConnectionString"]),
+            MatTransWriter = config["Mes:MatTransWriter"] ?? "新厂前线物料多仓位2"
+        };
         MesReady = MesOptions.IsConfigured;
         Mes = MesReady
             ? new OracleMesGateway(MesOptions.ConnectionString)
@@ -64,10 +70,14 @@ public sealed class AppBootstrap : IDisposable
             AppDb = AppDbGateway,
             Mes = Mes,
             Slot = FlowSlots,
-            SystemAgvNo = config["AgvDispatch:DefaultDeviceKey"] ?? "AGV-01"
+            SystemAgvNo = config["AgvDispatch:DefaultDeviceKey"] ?? "AGV-01",
+            SystemMesWriter = MesOptions.MatTransWriter
         };
 
         Flows = FlowLoader.LoadAll();
+
+        FlowTraceOptions = new FlowTraceWindowOptions();
+        config.GetSection("Debug:FlowTraceWindow").Bind(FlowTraceOptions);
     }
 
     public void Dispose() => (Hardware as IDisposable)?.Dispose();

@@ -213,30 +213,16 @@ public sealed class OracleMesGateway : IMesGateway
 
 
             foreach (var (key, value) in parameters)
-
             {
-
                 if (!sql.Contains(":" + key, StringComparison.Ordinal)) continue;
-
-                cmd.Parameters.Add(CreateBindParameter(key, value, isWireQuota));
-
+                cmd.Parameters.Add(OracleBindResolver.CreateInParameter(item, key, value));
             }
 
-
-
             if (useOutputParam)
-
             {
+                cmd.Parameters.Add(OracleBindResolver.CreateOutParameter(item));
 
-                var outParam = isWireQuota
-
-                    ? new OracleParameter("result", OracleDbType.Decimal) { Direction = System.Data.ParameterDirection.Output }
-
-                    : new OracleParameter("result", OracleDbType.Varchar2, 4000) { Direction = System.Data.ParameterDirection.Output };
-
-                cmd.Parameters.Add(outParam);
-
-
+                var outParam = (OracleParameter)cmd.Parameters["result"];
 
                 cmd.ExecuteNonQuery();
 
@@ -264,7 +250,22 @@ public sealed class OracleMesGateway : IMesGateway
 
                 {
 
-                    var submitResult = outParam.Value?.ToString();
+                    var submitResult = MatTransResult.ReadSubmitOutValue(outParam.Value);
+
+                    // #region agent log
+                    if (isMatTrans)
+                    {
+                        DebugAgentLog.Write("A", "MesGateway.Run:matTransOut",
+                            "FUN_MAT_TRANS_NEW OUT param",
+                            new
+                            {
+                                rawType = outParam.Value?.GetType().FullName,
+                                rawToString = outParam.Value?.ToString(),
+                                normalized = submitResult,
+                                isSuccess = MatTransResult.IsSuccess(submitResult)
+                            });
+                    }
+                    // #endregion
 
                     if (isMatTrans)
 
@@ -321,8 +322,7 @@ public sealed class OracleMesGateway : IMesGateway
                     var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
                     for (var i = 0; i < reader.FieldCount; i++)
-
-                        row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        row[reader.GetName(i)] = NormalizeMesReaderValue(reader.IsDBNull(i) ? null : reader.GetValue(i));
 
                     result.Rows.Add(row);
 
@@ -346,67 +346,8 @@ public sealed class OracleMesGateway : IMesGateway
 
     }
 
-
-
-    private static OracleParameter CreateBindParameter(string key, object? value, bool isWireQuota)
-
-    {
-
-        if (isWireQuota && string.Equals(key, "V_thzl", StringComparison.OrdinalIgnoreCase))
-
-        {
-
-            var s = value is null or DBNull ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
-
-            return new OracleParameter(key, OracleDbType.Varchar2) { Value = s ?? (object)DBNull.Value };
-
-        }
-
-
-
-        if (isWireQuota && string.Equals(key, "V_sycl", StringComparison.OrdinalIgnoreCase))
-
-        {
-
-            var n = ToNumber(value);
-
-            return new OracleParameter(key, OracleDbType.Decimal) { Value = n ?? (object)DBNull.Value };
-
-        }
-
-
-
-        return new OracleParameter(key, value ?? DBNull.Value);
-
-    }
-
-
-
-    private static decimal? ToNumber(object? value)
-
-    {
-
-        if (value is null or DBNull) return null;
-
-        if (value is decimal d) return d;
-
-        if (value is int i) return i;
-
-        if (value is long l) return l;
-
-        if (value is double db) return (decimal)db;
-
-        return decimal.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Number,
-
-            CultureInfo.InvariantCulture, out var n)
-
-            ? n
-
-            : null;
-
-    }
-
-
+    private static object? NormalizeMesReaderValue(object? value) =>
+        value is DateTime or DateTimeOffset ? MesDateTimeFormat.ToOracleString(value) : value;
 
     private static string StripTrailingStatementTerminator(string sql)
 

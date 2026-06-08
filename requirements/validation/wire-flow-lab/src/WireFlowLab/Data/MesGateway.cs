@@ -125,7 +125,7 @@ public sealed class OracleMesGateway : IMesGateway
                 }
                 else
                 {
-                    var submitResult = outParam.Value?.ToString();
+                    var submitResult = MatTransResult.ReadSubmitOutValue(outParam.Value);
                     if (isMatTrans)
                     {
                         if (MatTransResult.IsSuccess(submitResult))
@@ -154,7 +154,7 @@ public sealed class OracleMesGateway : IMesGateway
                 {
                     var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                     for (var i = 0; i < reader.FieldCount; i++)
-                        row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        row[reader.GetName(i)] = NormalizeMesReaderValue(reader.IsDBNull(i) ? null : reader.GetValue(i));
                     result.Rows.Add(row);
                 }
             }
@@ -166,4 +166,7 @@ public sealed class OracleMesGateway : IMesGateway
         }
         return result;
     }
+
+    private static object? NormalizeMesReaderValue(object? value) =>
+        value is DateTime or DateTimeOffset ? MesDateTimeFormat.ToOracleString(value) : value;
 }

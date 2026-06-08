@@ -3,6 +3,7 @@ using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using WireCabinet.Hmi.Services;
+using WireCabinet.Hmi.Views;
 using WireCabinet.Slots;
 
 namespace WireCabinet.Hmi;
@@ -22,6 +23,7 @@ public partial class App : Application
     public static DoorOperationGate DoorOps { get; private set; } = null!;
     public static MaintAccessGate MaintAccess { get; private set; } = null!;
     public static HmiUiGateService UiGate { get; private set; } = null!;
+    public static FlowTraceHub? FlowTrace { get; private set; }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -48,7 +50,13 @@ public partial class App : Application
         Bootstrap = new AppBootstrap(config);
         DoorOps = Bootstrap.DoorOps;
         MaintAccess = new MaintAccessGate(config["MaintAccess:Password"]);
-        Flows = new FlowCoordinator(Bootstrap);
+        if (Bootstrap.FlowTraceEnabled)
+        {
+            FlowTrace = new FlowTraceHub(Bootstrap.FlowTraceOptions, Dispatcher);
+            Flows = new FlowCoordinator(Bootstrap, FlowTrace);
+        }
+        else
+            Flows = new FlowCoordinator(Bootstrap);
         var stations = WireCabinet.Rcs.StationConfiguration.Load();
         StationGate = new WireCabinet.Rcs.StationArrivalGate(stations);
         var doors = new WireCabinet.Slots.CabinetDoorStateProvider(Bootstrap.SlotControl);
@@ -77,6 +85,9 @@ public partial class App : Application
 
         base.OnStartup(e);
         _servicesInitialized = true;
+
+        if (FlowTrace is not null)
+            new FlowTraceWindow(FlowTrace, Bootstrap.Flows).Show();
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -3,7 +3,7 @@ node_id: showWireReturnSuccessMessage
 node_text: 显示焊丝归还成功的提示
 access_type: ui_message
 sql_ids: []
-business_meaning: MES 归还提交成功后提示操作员，随后查找归还格口并开门存料。
+business_meaning: MES 归还提交成功后提示操作员，随后打开步骤②已预分配的归还格口。
 outcome_routing:
   success:
-    next: findReturnSlot
+    next: openReturnSlot

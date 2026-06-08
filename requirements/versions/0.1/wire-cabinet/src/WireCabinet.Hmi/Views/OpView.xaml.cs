@@ -585,7 +585,9 @@ public partial class OpView : UserControl
         };
 
         IssueSlotText.Text = FormatSlotDisplay(matchedSlot);
-        ReturnSlotText.Text = "待分配";
+
+        var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
+        ReturnSlotText.Text = FormatSlotDisplay(returnNo);
     }
 
     private void BindEqpQueryResults()
@@ -595,7 +597,9 @@ public partial class OpView : UserControl
 
         var issueNo = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
         IssueSlotHintText.Text = FormatSlotDisplay(issueNo);
-        ReturnSlotHintText.Text = "待分配";
+
+        var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
+        ReturnSlotHintText.Text = FormatSlotDisplay(returnNo);
     }
 
     private void BindQuotaResults()

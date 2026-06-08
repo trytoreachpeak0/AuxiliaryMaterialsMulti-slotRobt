@@ -33,25 +33,25 @@ inputs:
     required: true
     source: 来源物料批号 matFromLot。
   - name: v_Qty
-    type: string
+    type: number
     required: true
     source: 事务数量；领用传 qty，归还传 returnQty。
   - name: v_Count
-    type: string
+    type: number
     required: true
-    source: 件数/计数，当前业务固定传 "1"。
+    source: 件数/计数，当前业务固定传 1。
   - name: v_PrdLot
     type: string
     required: true
     source: 产品批号 productLot。
   - name: v_PrdQty
-    type: string
+    type: number
     required: true
     source: 产品数量；领用传 productQty，归还传 remainingQty。
   - name: V_ShelfLife
     type: string
     required: false
-    source: 焊丝保质期 shelfLife；SQL 中按 'YYYY-MM-DD HH24:MI:SS' 转 DATE，空值传 null 或空字符串。
+    source: 焊丝保质期 shelfLife；应用层须转为 yyyy-MM-dd HH:mm:ss（不依赖系统区域设置），再由 SQL TO_DATE 转 DATE；空值传 null 或空字符串。
   - name: V_Opr
     type: string
     required: true
@@ -71,7 +71,7 @@ inputs:
   - name: v_Writer
     type: string
     required: true
-    source: 写入人/设备编号 agvNo。
+    source: 系统配置 Mes:MatTransWriter（写入人/设备标识，如「新厂前线物料多仓位2」）。
   - name: V_SESSION
     type: string
     required: false
@@ -149,13 +149,13 @@ interface:
     - name: v_MatFromLot
       type: string
     - name: v_Qty
-      type: string
+      type: number
     - name: v_Count
-      type: string
+      type: number
     - name: v_PrdLot
       type: string
     - name: v_PrdQty
-      type: string
+      type: number
     - name: V_ShelfLife
       type: string
     - name: V_Opr
@@ -175,7 +175,9 @@ aliases:
   - submitWireDraw
   - submitWireReturn
 notes: |
-  - C# 调用里所有入参均按 OracleDbType.Varchar2 绑定，catalog 也按 string 记录，避免数量字段被误建成 integer。
+  - v_Qty、v_Count、v_PrdQty 须以 Oracle NUMBER 绑定（OracleDbType.Decimal）；其余字符串参数绑定 Varchar2。
+  - V_ShelfLife 应用层统一格式化为 yyyy-MM-dd HH:mm:ss（如 2026-11-04 00:00:00），忽略 Windows 区域设置；MES 读出的 M/d/yyyy 等格式会在提交前自动转换。
+  - v_Writer 来自 appsettings Mes:MatTransWriter，不是 AGV 设备 Key。
   - 本 SQL 不在匿名块内使用 EXCEPTION 吞掉错误；由应用层开启 Oracle 事务，按 result 或异常决定 COMMIT/ROLLBACK。
   - V_ShelfLife 当前 SQL 使用 TO_DATE(:V_ShelfLife, 'YYYY-MM-DD HH24:MI:SS')；如果实际传入 "18-DEC-25" 这类 DD-MON-RR 格式，需要先在应用侧转换，或另行确认 MES 函数可接受的日期格式。
   - 现有 id 仍保留为 mes.mat_trans.submit_return，以兼容已有引用；语义上它已覆盖领用和归还两类物料转移。

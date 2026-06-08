@@ -3,7 +3,7 @@ node_id: checkMatchedWireExists
 node_text: 发货柜内是否有匹配的同规格可用焊丝
 access_type: decision
 sql_ids: []
-business_meaning: 判断应用数据库是否查到同规格可用焊丝；查到则继续归还重量查询，未查到则提示到物料间领取。
+business_meaning: 判断应用数据库是否查到同规格可用焊丝；查到则预分配归还格口，未查到则提示到物料间领取。
 input_mappings:
   - name: matched_available_wire_lot_no
     source_node: queryMatchedAvailableWire
@@ -19,6 +19,6 @@ decision_rule:
       meaning: 未匹配到可用焊丝时提示到物料间领取。
 outcome_routing:
   yes:
-    next: queryWireReturnedWeightBySpec
+    next: findReturnSlot
   no:
     next: showNoMatchedWireMessage

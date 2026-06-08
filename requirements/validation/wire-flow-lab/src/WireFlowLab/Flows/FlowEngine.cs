@@ -390,11 +390,16 @@ public sealed class FlowEngine
 
     private (Dictionary<string, object?>, string) BuildParams(FlowNode node)
     {
+        var item = node.SqlId is null ? null : _svc.Catalog.Find(node.SqlId);
+        var isMatTrans = item is not null && MatTransResult.IsMatTransItem(item);
+
         var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         var sb = new StringBuilder();
         foreach (var im in node.Inputs)
         {
             var val = Resolve(im.Source);
+            if (isMatTrans && string.Equals(im.Name, "V_ShelfLife", StringComparison.OrdinalIgnoreCase))
+                val = MesDateTimeFormat.ToOracleString(val);
             dict[im.Name] = val;
             if (sb.Length > 0) sb.Append(", ");
             sb.Append($"{im.Name}={Display(val)}");
@@ -409,7 +414,12 @@ public sealed class FlowEngine
             case ValueSource.Kind.Const:
                 return src.Literal;
             case ValueSource.Kind.System:
-                return src.Field == "configured_agv_no" ? _svc.SystemAgvNo : "";
+                return src.Field switch
+                {
+                    "configured_agv_no" => _svc.SystemAgvNo,
+                    "configured_mes_writer" => _svc.SystemMesWriter,
+                    _ => ""
+                };
             case ValueSource.Kind.Context:
                 return Context!.Runtime.TryGetValue(src.Field ?? "", out var cv) ? cv : null;
             case ValueSource.Kind.Node:
@@ -475,7 +485,12 @@ public sealed class FlowEngine
     private Finding Info(FlowNode n, string cat, string msg) => new() { Severity = Severity.Info, FlowId = Flow!.FlowId, NodeId = n.Id, Category = cat, Message = msg };
 
     private static bool IsEmpty(object? v) => v is null || string.IsNullOrWhiteSpace(v.ToString());
-    private static string Display(object? v) => v is null ? "NULL" : v.ToString() ?? "";
+    private static string Display(object? v)
+    {
+        if (v is null or DBNull) return "NULL";
+        if (v is string s && s.Length == 0) return "\"\"";
+        return v.ToString() ?? "\"\"";
+    }
     private static string RowText(Dictionary<string, object?> row) => string.Join(", ", row.Select(kv => $"{kv.Key}={Display(kv.Value)}"));
 
     private static long ToLong(object? v)

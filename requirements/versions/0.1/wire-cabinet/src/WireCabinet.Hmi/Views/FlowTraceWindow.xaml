@@ -1,0 +1,78 @@
+<Window x:Class="WireCabinet.Hmi.Views.FlowTraceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="流程调试 Trace" Height="780" Width="1420"
+        FontFamily="Microsoft YaHei UI" FontSize="13" Background="#F4F6F8"
+        ShowInTaskbar="True">
+    <Window.Resources>
+        <Style x:Key="TraceRowStyle" TargetType="ListViewItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Error">
+                    <Setter Property="Background" Value="#FFEBEE"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Warning">
+                    <Setter Property="Background" Value="#FFF8E1"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSessionMarker}" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Padding" Value="12,5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="220"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="White" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                BorderBrush="#D0D7DE" BorderThickness="1">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Text="流程筛选:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="FlowFilterCombo" Width="360" VerticalAlignment="Center"
+                          SelectionChanged="FlowFilterCombo_SelectionChanged"/>
+                <CheckBox x:Name="AutoScrollCheck" Content="自动滚动" IsChecked="True"
+                          VerticalAlignment="Center" Margin="12,0,8,0"/>
+                <Button Content="清空" Click="Clear_Click"/>
+                <Button Content="导出文本" Click="Export_Click"/>
+            </WrapPanel>
+        </Border>
+
+        <GroupBox Grid.Row="1" Header="执行轨迹 Trace" Padding="6" BorderBrush="#D0D7DE">
+            <ListView x:Name="TraceListView" ItemContainerStyle="{StaticResource TraceRowStyle}"
+                      SelectionChanged="TraceListView_SelectionChanged"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="时间" Width="95" DisplayMemberBinding="{Binding TimeText}"/>
+                        <GridViewColumn Header="会话" Width="72" DisplayMemberBinding="{Binding SessionShort}"/>
+                        <GridViewColumn Header="#" Width="34" DisplayMemberBinding="{Binding Step}"/>
+                        <GridViewColumn Header="节点" Width="160" DisplayMemberBinding="{Binding NodeId}"/>
+                        <GridViewColumn Header="类型" Width="88" DisplayMemberBinding="{Binding NodeType}"/>
+                        <GridViewColumn Header="数据源" Width="56" DisplayMemberBinding="{Binding DataSource}"/>
+                        <GridViewColumn Header="SqlId" Width="180" DisplayMemberBinding="{Binding SqlId}"/>
+                        <GridViewColumn Header="参数" Width="320" DisplayMemberBinding="{Binding Parameters}"/>
+                        <GridViewColumn Header="SQL" Width="260" DisplayMemberBinding="{Binding RenderedSql}"/>
+                        <GridViewColumn Header="结果" Width="280" DisplayMemberBinding="{Binding Result}"/>
+                        <GridViewColumn Header="Outcome" Width="72" DisplayMemberBinding="{Binding Outcome}"/>
+                        <GridViewColumn Header="状态" Width="64" DisplayMemberBinding="{Binding Status}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </GroupBox>
+
+        <GroupBox Grid.Row="2" Header="选中行详情" Padding="6" Margin="0,8,0,0" BorderBrush="#D0D7DE">
+            <TextBox x:Name="DetailTextBox" IsReadOnly="True" TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"
+                     Background="#FAFAFA" BorderThickness="0"/>
+        </GroupBox>
+    </Grid>
+</Window>

@@ -21,6 +21,7 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
             "checkWireSpecExists",
             "queryMatchedAvailableWire",
             "checkMatchedWireExists",
+            "findReturnSlot",
         ],
         "queryReturnedWeightSection": [
             "queryWireReturnedWeightBySpec",
@@ -47,8 +48,6 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
         ],
         "loadReturnedWireSection": [
             "showWireReturnSuccessMessage",
-            "findReturnSlot",
-            "checkReturnSlotExists",
             "openReturnSlot",
             "showLoadWireAndCloseDoorMessage",
             "loadReturnedWire",

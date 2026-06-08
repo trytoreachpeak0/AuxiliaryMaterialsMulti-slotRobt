@@ -23,6 +23,7 @@ public sealed class TraceEntry
     public string? SqlId { get; init; }
     public string RenderedSql { get; init; } = "";
     public string Parameters { get; init; } = "";
+    public string ParametersDetail { get; init; } = "";
     public string Result { get; init; } = "";
     public string Outcome { get; init; } = "";
     public string? NextNode { get; init; }
