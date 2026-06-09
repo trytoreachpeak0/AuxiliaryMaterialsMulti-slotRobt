@@ -33,8 +33,6 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="8"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="8"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- 步骤① 操作员身份 -->
@@ -67,13 +65,13 @@
                     <TextBlock Text="操作员身份" Style="{StaticResource StepTitleText}"/>
                 </StackPanel>
 
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="操作员ID" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="操作员工号" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
                 <TextBlock Grid.Row="0" Grid.Column="4" Text="班组" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
                 <TextBlock Grid.Row="0" Grid.Column="6" Text="班次" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
                 <TextBlock Grid.Row="0" Grid.Column="8" Text="姓名（自动）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
 
                 <TextBox x:Name="OpIdBox" Grid.Row="1" Grid.Column="2" Style="{StaticResource IndustrialTextBox}"
-                         TextChanged="OpField_TextChanged"/>
+                         TextChanged="OpField_TextChanged" KeyDown="OpIdBox_KeyDown"/>
                 <ComboBox x:Name="TeamBox" Grid.Row="1" Grid.Column="4" Style="{StaticResource IndustrialComboBox}"
                           IsEnabled="False"/>
                 <ComboBox x:Name="ShiftBox" Grid.Row="1" Grid.Column="6" Style="{StaticResource IndustrialComboBox}"
@@ -91,13 +89,18 @@
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="1.55*"/>
                 <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="0.95*"/>
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <!-- 步骤② 焊丝批号 -->
-            <Border x:Name="Step1Panel" Grid.Column="0" Style="{StaticResource CardPanel}">
+            <!-- 步骤② 焊丝物料号 -->
+            <Border x:Name="Step1Panel" Grid.Column="0" Grid.RowSpan="3" Style="{StaticResource CardPanel}" MinHeight="280">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -110,50 +113,91 @@
                         <Border Style="{StaticResource StepBadge}">
                             <TextBlock Text="2" Style="{StaticResource StepBadgeText}"/>
                         </Border>
-                        <TextBlock Text="焊丝批号" Style="{StaticResource StepTitleText}"/>
+                        <TextBlock Text="焊丝物料号" Style="{StaticResource StepTitleText}"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="焊丝批号（扫码 / 手动）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="1" Text="焊丝物料号（扫码 / 手动）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBox x:Name="WireLotBox" Grid.Column="0" Style="{StaticResource IndustrialTextBox}"
-                                 IsEnabled="False" TextChanged="WireLotBox_TextChanged"/>
+                                 IsEnabled="False" TextChanged="WireLotBox_TextChanged" KeyDown="WireLotBox_KeyDown"/>
                         <Button x:Name="QueryWireBtn" Grid.Column="1" Content="查询" Style="{StaticResource SecondaryButton}"
                                 Margin="8,0,0,0" MinWidth="84" IsEnabled="False" Click="QueryWireBtn_Click"/>
                     </Grid>
 
                     <Border Grid.Row="3" Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1"
                             Padding="12,10" Margin="0,10,0,0">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="焊丝类型：" Style="{StaticResource LabelText}" Width="92"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="焊丝编号：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="WireCodeText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="焊丝规格：" Style="{StaticResource LabelText}" Width="92"/>
                                 <TextBlock x:Name="WireSpecText" Text="—" Style="{StaticResource ValueText}"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="匹配可用焊丝：" Style="{StaticResource LabelText}" Width="92"/>
                                 <TextBlock x:Name="MatchedWireText" Text="—" Style="{StaticResource ValueText}"
                                            Foreground="{StaticResource SuccessBrush}"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="上架时间：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="WireShelflifeText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="4" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="数量：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="WireQtyText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="状态：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="WireStateText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="5" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="归还重量：" Style="{StaticResource LabelText}" Width="92"/>
                                 <TextBlock x:Name="ReturnedWeightText" Text="—" Style="{StaticResource ValueText}"/>
                             </StackPanel>
-                        </StackPanel>
+                            <StackPanel Grid.Row="5" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="领用格口：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="IssueSlotPreviewText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="6" Grid.Column="0" Orientation="Horizontal">
+                                <TextBlock Text="归还格口：" Style="{StaticResource LabelText}" Width="92"/>
+                                <TextBlock x:Name="ReturnSlotPreviewText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </Grid>
             </Border>
 
             <!-- 步骤③ 机台信息 -->
-            <Border x:Name="Step2Panel" Grid.Column="2" Style="{StaticResource CardPanel}">
+            <Border x:Name="Step2Panel" Grid.Column="2" Grid.Row="0" Style="{StaticResource CardPanel}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
@@ -170,78 +214,60 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBox x:Name="EqpNoBox" Grid.Column="0" Style="{StaticResource IndustrialTextBox}"
-                                 IsEnabled="False" TextChanged="EqpNoBox_TextChanged"/>
+                                 IsEnabled="False" TextChanged="EqpNoBox_TextChanged" KeyDown="EqpNoBox_KeyDown"/>
                         <Button x:Name="ValidateEqpBtn" Grid.Column="1" Content="校验" Style="{StaticResource SecondaryButton}"
                                 Margin="8,0,0,0" MinWidth="84" IsEnabled="False" Click="ValidateEqpBtn_Click"/>
                     </Grid>
 
-                    <Border Grid.Row="3" Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1"
-                            Padding="12,10" Margin="0,10,0,0">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="工单批次号：" Style="{StaticResource LabelText}" Width="98"/>
-                                <TextBlock x:Name="ProductLotText" Text="—" Style="{StaticResource ValueText}"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="领用格口：" Style="{StaticResource LabelText}" Width="98"/>
-                                <TextBlock x:Name="IssueSlotHintText" Text="—" Style="{StaticResource ValueText}"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="归还格口：" Style="{StaticResource LabelText}" Width="98"/>
-                                <TextBlock x:Name="ReturnSlotHintText" Text="—" Style="{StaticResource ValueText}"/>
-                            </StackPanel>
-                        </StackPanel>
+                    <TextBlock Grid.Row="3" Text="工单批次号" Style="{StaticResource LabelText}" Margin="0,10,0,4"/>
+                    <Border Grid.Row="4" Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1"
+                            Height="34" Padding="10,0">
+                        <TextBlock x:Name="ProductLotText" Text="—" Style="{StaticResource ValueText}"
+                                   VerticalAlignment="Center"/>
                     </Border>
                 </Grid>
             </Border>
+
+            <!-- 步骤④ 剩余芯片 / 用量校验 -->
+            <Border x:Name="Step3Panel" Grid.Column="2" Grid.Row="2" Style="{StaticResource CardPanel}" Padding="12,8">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="4" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="剩余芯片 / 用量校验" Style="{StaticResource StepTitleText}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="剩余待焊芯片（颗）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="RemainingQtyBox" Grid.Column="0" Style="{StaticResource IndustrialTextBox}"
+                                 IsEnabled="False" TextChanged="RemainingQtyBox_TextChanged"
+                                 KeyDown="RemainingQtyBox_KeyDown"/>
+                        <Button x:Name="ConfirmQuotaBtn" Grid.Column="1" Content="校验"
+                                Style="{StaticResource SecondaryButton}" MinWidth="84" Margin="8,0,0,0"
+                                IsEnabled="False" Click="ConfirmQuotaBtn_Click"/>
+                    </Grid>
+
+                    <TextBlock Text="实际用量差 (米)" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <Border x:Name="QuotaPanel"
+                            Background="#FFEEF8F0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1"
+                            Height="34" Padding="8,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock x:Name="QuotaDeltaText" Text="—" Foreground="{StaticResource SuccessBrush}"
+                                       FontWeight="Bold" FontSize="14"/>
+                            <TextBlock x:Name="QuotaHintText" Foreground="{StaticResource SuccessBrush}" FontSize="11"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <!-- 步骤④ 剩余芯片 / 用量校验 -->
-        <Border x:Name="Step3Panel" Grid.Row="4" Style="{StaticResource CardPanel}" Padding="14,10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="14"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="1.6*"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Style="{StaticResource StepBadge}">
-                        <TextBlock Text="4" Style="{StaticResource StepBadgeText}"/>
-                    </Border>
-                    <TextBlock Text="剩余芯片 / 用量校验" Style="{StaticResource StepTitleText}"/>
-                </StackPanel>
-
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="剩余待焊芯片（颗）" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="4" Text="实际用量差 (米)" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
-
-                <TextBox x:Name="RemainingQtyBox" Grid.Row="1" Grid.Column="2" Style="{StaticResource IndustrialTextBox}"
-                         IsEnabled="False" TextChanged="RemainingQtyBox_TextChanged"/>
-                <Border x:Name="QuotaPanel" Grid.Row="1" Grid.Column="4"
-                        Background="#FFEEF8F0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1"
-                        Height="42">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock x:Name="QuotaDeltaText" Text="—" Foreground="{StaticResource SuccessBrush}"
-                                   FontWeight="Bold" FontSize="18"/>
-                        <TextBlock x:Name="QuotaHintText" Foreground="{StaticResource SuccessBrush}" FontSize="14"
-                                   Margin="6,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
-                <Button x:Name="ConfirmQuotaBtn" Grid.Row="1" Grid.Column="6" Content="用量校验"
-                        Style="{StaticResource SecondaryButton}" MinWidth="96" IsEnabled="False"
-                        Click="ConfirmQuotaBtn_Click"/>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="6">
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="8"/>
@@ -249,65 +275,59 @@
             </Grid.ColumnDefinitions>
 
             <Border x:Name="Step4Panel" Grid.Column="0" Style="{StaticResource CardPanel}" Padding="14,10">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <Border Style="{StaticResource StepBadge}">
                             <TextBlock Text="5" Style="{StaticResource StepBadgeText}"/>
                         </Border>
                         <TextBlock Text="存入归还焊丝" Style="{StaticResource StepTitleText}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,0,10">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <TextBlock Text="归还格口：" Style="{StaticResource LabelText}" Width="74"/>
                             <TextBlock x:Name="ReturnSlotText" Text="—" Style="{StaticResource ValueText}"/>
                         </StackPanel>
-                        <TextBlock Text="发货柜将打开归还格口，请放入归还焊丝并关闭格口门。" Style="{StaticResource HintText}"/>
+                        <TextBlock Text="发货柜将打开归还格口，请放入归还焊丝并关闭格口门。" Style="{StaticResource HintText}"
+                                   TextWrapping="Wrap"/>
+                        <Border x:Name="ReturnResultPanel" Visibility="Collapsed" Margin="0,8,0,0"
+                                Padding="10,8" BorderThickness="1" CornerRadius="2">
+                            <TextBlock x:Name="ReturnResultText" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
+                        </Border>
                     </StackPanel>
 
-                    <Button x:Name="SubmitReturnBtn" Grid.Column="4" Content="提交归还焊丝"
-                            Style="{StaticResource PrimaryButton}" Width="150" VerticalAlignment="Center"
-                            IsEnabled="False" Click="SubmitReturnBtn_Click"/>
-                </Grid>
+                    <Button x:Name="SubmitReturnBtn" Content="提交归还焊丝"
+                            Style="{StaticResource PrimaryButton}" Height="46" FontSize="15"
+                            HorizontalAlignment="Stretch" IsEnabled="False" Click="SubmitReturnBtn_Click"/>
+                </StackPanel>
             </Border>
 
             <Border x:Name="Step5Panel" Grid.Column="2" Style="{StaticResource CardPanel}" Padding="14,10">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <Border Style="{StaticResource StepBadge}">
                             <TextBlock Text="6" Style="{StaticResource StepBadgeText}"/>
                         </Border>
                         <TextBlock Text="取出可用焊丝" Style="{StaticResource StepTitleText}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,0,10">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <TextBlock Text="领用格口：" Style="{StaticResource LabelText}" Width="74"/>
                             <TextBlock x:Name="IssueSlotText" Text="—" Style="{StaticResource ValueText}"/>
                         </StackPanel>
-                        <TextBlock Text="发货柜将打开领用格口，请取出可用焊丝并关闭格口门。" Style="{StaticResource HintText}"/>
+                        <TextBlock Text="发货柜将打开领用格口，请取出可用焊丝并关闭格口门。" Style="{StaticResource HintText}"
+                                   TextWrapping="Wrap"/>
+                        <Border x:Name="IssueResultPanel" Visibility="Collapsed" Margin="0,8,0,0"
+                                Padding="10,8" BorderThickness="1" CornerRadius="2">
+                            <TextBlock x:Name="IssueResultText" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
+                        </Border>
                     </StackPanel>
 
-                    <Button x:Name="SubmitIssueBtn" Grid.Column="4" Content="提交领用焊丝"
-                            Style="{StaticResource PrimaryButton}" Width="150" VerticalAlignment="Center"
-                            IsEnabled="False" Click="SubmitIssueBtn_Click"/>
-                </Grid>
+                    <Button x:Name="SubmitIssueBtn" Content="提交领用焊丝"
+                            Style="{StaticResource PrimaryButton}" Height="46" FontSize="15"
+                            HorizontalAlignment="Stretch" IsEnabled="False" Click="SubmitIssueBtn_Click"/>
+                </StackPanel>
             </Border>
         </Grid>
     </Grid>

@@ -20,6 +20,16 @@ public static class SlotWireInfoFormatter
         return slotNo;
     }
 
+    /// <summary>操作员界面格口短标签，与 slot-config display_name_short 一致（前-A01 / 后-A01）。</summary>
+    public static string FormatCabinetShortLabel(string slotNo)
+    {
+        if (slotNo.StartsWith("F-", StringComparison.OrdinalIgnoreCase))
+            return $"前-{slotNo[2..]}";
+        if (slotNo.StartsWith("R-", StringComparison.OrdinalIgnoreCase))
+            return $"后-{slotNo[2..]}";
+        return slotNo;
+    }
+
     public static string FormatWireStatus(
         SlotDoorState state,
         SlotHardwareSnapshot? hw,

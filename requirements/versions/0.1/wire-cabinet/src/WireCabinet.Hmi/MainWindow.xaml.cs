@@ -120,6 +120,13 @@ public partial class MainWindow : Window
     {
         var dualRole = station.AllowedRoles.Count > 1;
         NavigateToWorkStation(station);
+        var preferOp = station.AllowedRoles.Any(r =>
+            string.Equals(r, "OP", StringComparison.OrdinalIgnoreCase));
+        if (preferOp)
+            _opView.FocusStationPrimaryInput();
+        else
+            _mhView.FocusStationPrimaryInput();
+
         var hint = dualRole ? "（本站双角色，已切至 OP）" : "";
         if (App.DoorOps.IsBusy)
             SetStatus($"已到站 {station.Name}，已切换工作站界面{hint}；门操作进行中，请注意。");

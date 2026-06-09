@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
+using WireCabinet.Data;
 using WireCabinet.Flows;
 using WireCabinet.Hmi.Services;
 using WireCabinet.Slots;
@@ -48,6 +50,8 @@ public partial class OpView : UserControl
             App.SlotHardwarePoll.Start();
         if (Window.GetWindow(this) is MainWindow mw)
             mw.AgvPollUpdated += OnAgvPollUpdated;
+        if (App.UiGate.CanUseOpPage)
+            FocusStationPrimaryInput();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -71,6 +75,8 @@ public partial class OpView : UserControl
                 var reason = App.UiGate.GetStationBlockReason("OP");
                 if (!string.IsNullOrEmpty(reason))
                     SetStatus(reason);
+                if (allowed)
+                    FocusStationPrimaryInput();
             }
 
             ApplyStepGating();
@@ -126,7 +132,7 @@ public partial class OpView : UserControl
     private void RestartBtn_Click(object sender, RoutedEventArgs e) =>
         ResetOpUi(endFlowIfActive: true, "已重新开始：请填写操作员信息并点「校验」。");
 
-    private void ResetOpUi(bool endFlowIfActive, string statusMessage)
+    private void ResetOpUi(bool endFlowIfActive, string statusMessage, bool preserveIssueResult = false)
     {
         _flowStarted = false;
         _doorPhase = DoorWaitPhase.None;
@@ -146,8 +152,9 @@ public partial class OpView : UserControl
         ClearQuotaResults();
         ReturnSlotText.Text = "—";
         IssueSlotText.Text = "—";
-        IssueSlotHintText.Text = "—";
-        ReturnSlotHintText.Text = "—";
+        ClearReturnResult();
+        if (!preserveIssueResult)
+            ClearIssueResult();
         _steps.ResetAll();
         ApplyStepGating();
         SetStatus(statusMessage);
@@ -155,6 +162,71 @@ public partial class OpView : UserControl
 
     private void OpField_TextChanged(object sender, TextChangedEventArgs e) =>
         ApplyStepGating();
+
+    private void OpIdBox_KeyDown(object sender, KeyEventArgs e) =>
+        OnScanEnterKeyDown(e, ValidateOpBtn, ValidateOpBtn_Click);
+
+    private void WireLotBox_KeyDown(object sender, KeyEventArgs e) =>
+        OnScanEnterKeyDown(e, QueryWireBtn, QueryWireBtn_Click);
+
+    private void EqpNoBox_KeyDown(object sender, KeyEventArgs e) =>
+        OnScanEnterKeyDown(e, ValidateEqpBtn, ValidateEqpBtn_Click);
+
+    private void RemainingQtyBox_KeyDown(object sender, KeyEventArgs e) =>
+        OnScanEnterKeyDown(e, ConfirmQuotaBtn, ConfirmQuotaBtn_Click);
+
+    private void OnScanEnterKeyDown(KeyEventArgs e, Button actionButton, RoutedEventHandler handler)
+    {
+        if (e.Key != Key.Enter)
+            return;
+        if (_actionInProgress || _doorPhase != DoorWaitPhase.None)
+            return;
+        if (!actionButton.IsEnabled)
+            return;
+
+        e.Handled = true;
+        handler.Invoke(actionButton, new RoutedEventArgs());
+    }
+
+    private void FocusInputDeferred(TextBox box, bool selectAll = true) =>
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!box.IsEnabled)
+                return;
+            box.Focus();
+            if (selectAll && !string.IsNullOrEmpty(box.Text))
+                box.SelectAll();
+        }, DispatcherPriority.Input);
+
+    public void FocusStationPrimaryInput()
+    {
+        if (!App.UiGate.CanUseOpPage)
+            return;
+        if (_doorPhase != DoorWaitPhase.None)
+            return;
+        FocusInputDeferred(OpIdBox, selectAll: false);
+    }
+
+    private void FocusStepInput(int stepIndex)
+    {
+        var box = stepIndex switch
+        {
+            0 => OpIdBox,
+            1 => WireLotBox,
+            2 => EqpNoBox,
+            3 => RemainingQtyBox,
+            _ => null
+        };
+        if (box is not null)
+            FocusInputDeferred(box, selectAll: false);
+    }
+
+    private void TryFocusNextStepAfterSuccess()
+    {
+        var active = _steps.ActiveStepIndex;
+        if (active is >= 1 and <= 3)
+            FocusStepInput(active);
+    }
 
     private async void ValidateOpBtn_Click(object sender, RoutedEventArgs e)
     {
@@ -210,7 +282,7 @@ public partial class OpView : UserControl
                 ? $"{gateMsg} 操作员校验通过。请扫描或输入归还焊丝批号，点「查询」。"
                 : "操作员校验通过。请扫描或输入归还焊丝批号，点「查询」。";
             return (true, status);
-        });
+        }, OpIdBox);
     }
 
     private void WireLotBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -266,7 +338,7 @@ public partial class OpView : UserControl
             BindWireQueryResults();
             _steps.CompleteStep(1);
             return (true, "焊丝批号查询通过。请输入机台号并点「校验」。");
-        });
+        }, WireLotBox);
     }
 
     private void EqpNoBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -310,8 +382,8 @@ public partial class OpView : UserControl
 
             BindEqpQueryResults();
             _steps.CompleteStep(2);
-            return (true, "机台校验通过。请输入剩余待焊芯片数并点「用量校验」。");
-        });
+            return (true, "机台校验通过。请输入剩余待焊芯片数并点「校验」。");
+        }, EqpNoBox);
     }
 
     private void RemainingQtyBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -328,6 +400,7 @@ public partial class OpView : UserControl
         if (!int.TryParse(RemainingQtyBox.Text, out _))
         {
             SetStatus("剩余芯片数须为整数。");
+            FocusInputDeferred(RemainingQtyBox);
             return;
         }
 
@@ -361,7 +434,7 @@ public partial class OpView : UserControl
             BindQuotaResults();
             _steps.CompleteStep(3);
             return (true, "用量校验通过。请点「提交归还焊丝」。");
-        });
+        }, RemainingQtyBox);
     }
 
     private async void SubmitReturnBtn_Click(object sender, RoutedEventArgs e)
@@ -388,15 +461,21 @@ public partial class OpView : UserControl
         {
             var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpSubmitReturnToDoorClose());
             if (!ok)
+            {
+                ShowReturnResult(false, ResolveSubmitFailureMessage("submitWireReturn", msg));
                 return (false, msg);
+            }
 
             if (reason != FlowPauseReason.AwaitingDoorClose)
+            {
+                ShowReturnResult(false, ResolveSubmitFailureMessage("submitWireReturn", msg));
                 return (false, msg);
+            }
 
             _returnSlotId = ParseSlotId(App.Flows.GetField("findReturnSlot.return_slot_id"));
             var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
             ReturnSlotText.Text = FormatSlotDisplay(returnNo);
-            ReturnSlotHintText.Text = ReturnSlotText.Text;
+            ShowReturnResult(true, "提交成功，请放入归还焊丝并关闭格口。");
             _doorPhase = DoorWaitPhase.ReturnSlot;
             _returnDoorWasOpen = false;
             TrackDoorOpenState(_returnSlotId, ref _returnDoorWasOpen);
@@ -430,15 +509,21 @@ public partial class OpView : UserControl
         {
             var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpSubmitIssueToDoorClose());
             if (!ok)
+            {
+                ShowIssueResult(false, ResolveSubmitFailureMessage("submitWireIssue", msg));
                 return (false, msg);
+            }
 
             if (reason != FlowPauseReason.AwaitingDoorClose)
+            {
+                ShowIssueResult(false, ResolveSubmitFailureMessage("submitWireIssue", msg));
                 return (false, msg);
+            }
 
             _issueSlotId = ParseSlotId(App.Flows.GetField("queryMatchedAvailableWire.slot_id"));
             var issueNo = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
             IssueSlotText.Text = FormatSlotDisplay(issueNo);
-            IssueSlotHintText.Text = IssueSlotText.Text;
+            ShowIssueResult(true, "提交成功，请取出可用焊丝并关闭格口。");
             _doorPhase = DoorWaitPhase.IssueSlot;
             _issueDoorWasOpen = false;
             TrackDoorOpenState(_issueSlotId, ref _issueDoorWasOpen);
@@ -462,6 +547,8 @@ public partial class OpView : UserControl
             _returnSlotId = 0;
             App.Bootstrap.FlowSlots.Reload();
             _steps.CompleteStep(4);
+            ShowReturnResult(true, "归还成功");
+            BindIssueSlotActionText();
             ApplyStepGating();
             SetStatus("归还已提交。请点「提交领用焊丝」。");
             return;
@@ -473,7 +560,10 @@ public partial class OpView : UserControl
                 return;
 
             App.Bootstrap.FlowSlots.Reload();
-            ResetOpUi(endFlowIfActive: false, "流程完成，已自动重置。请填写操作员信息并点「校验」。");
+            ShowIssueResult(true, "领用成功，流程完成");
+            ResetOpUi(endFlowIfActive: false,
+                statusMessage: "流程完成，已自动重置。请填写操作员信息并点「校验」。",
+                preserveIssueResult: true);
         }
     }
 
@@ -525,6 +615,7 @@ public partial class OpView : UserControl
             var (ok, msg, reason) = await Task.Run(advance);
             if (!ok)
             {
+                ShowDoorPhaseFailure(msg);
                 SetStatus(msg);
                 App.Flows.EndFlow();
                 _flowStarted = false;
@@ -536,7 +627,9 @@ public partial class OpView : UserControl
         }
         catch (Exception ex)
         {
-            SetStatus($"操作失败：{ex.Message}");
+            var message = $"操作失败：{ex.Message}";
+            ShowDoorPhaseFailure(message);
+            SetStatus(message);
             App.Flows.EndFlow();
             _flowStarted = false;
             _doorPhase = DoorWaitPhase.None;
@@ -564,43 +657,35 @@ public partial class OpView : UserControl
 
     private void BindWireQueryResults()
     {
-        var spec = App.Flows.GetField("queryWireSpecByLotNo.spec")?.ToString();
-        WireSpecText.Text = string.IsNullOrWhiteSpace(spec) ? "—" : spec;
+        WireSpecText.Text = FormatFieldText(App.Flows.GetField("queryWireSpecByLotNo.spec"));
+        WireCodeText.Text = FormatFieldText(App.Flows.GetField("queryWireSpecByLotNo.code"));
+        WireShelflifeText.Text = FormatFieldText(App.Flows.GetField("queryWireSpecByLotNo.shelflife"));
+        WireQtyText.Text = FormatFieldText(App.Flows.GetField("queryWireSpecByLotNo.qty"));
+        WireStateText.Text = FormatFieldText(App.Flows.GetField("queryWireSpecByLotNo.state"));
 
         var matchedLot = App.Flows.GetField("queryMatchedAvailableWire.matched_available_wire_lot_no")?.ToString();
-        var matchedSlot = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
-        if (string.IsNullOrWhiteSpace(matchedLot))
-            MatchedWireText.Text = "—";
-        else
-            MatchedWireText.Text = string.IsNullOrWhiteSpace(matchedSlot)
-                ? matchedLot
-                : $"{matchedLot}（{FormatSlotDisplay(matchedSlot)}）";
+        MatchedWireText.Text = string.IsNullOrWhiteSpace(matchedLot) ? "—" : matchedLot;
 
         var weight = App.Flows.GetField("queryWireReturnedWeightBySpec.return_weight");
         ReturnedWeightText.Text = weight switch
         {
             null => "—",
-            double d => $"{d.ToString(CultureInfo.InvariantCulture)}",
-            decimal m => $"{m.ToString(CultureInfo.InvariantCulture)}",
+            double d => d.ToString(CultureInfo.InvariantCulture),
+            decimal m => m.ToString(CultureInfo.InvariantCulture),
             _ => weight.ToString() ?? "—"
         };
 
-        IssueSlotText.Text = FormatSlotDisplay(matchedSlot);
+        var matchedSlot = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
+        IssueSlotPreviewText.Text = FormatSlotDisplay(matchedSlot);
 
         var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
-        ReturnSlotText.Text = FormatSlotDisplay(returnNo);
+        ReturnSlotPreviewText.Text = FormatSlotDisplay(returnNo);
     }
 
     private void BindEqpQueryResults()
     {
         var lot = App.Flows.GetField("queryLastProductLotNo.lot")?.ToString();
         ProductLotText.Text = string.IsNullOrWhiteSpace(lot) ? "—" : lot;
-
-        var issueNo = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
-        IssueSlotHintText.Text = FormatSlotDisplay(issueNo);
-
-        var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
-        ReturnSlotHintText.Text = FormatSlotDisplay(returnNo);
     }
 
     private void BindQuotaResults()
@@ -629,9 +714,25 @@ public partial class OpView : UserControl
         QuotaHintText.Text = "(校验通过)";
         QuotaPanel.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0));
         QuotaPanel.SetResourceReference(Border.BorderBrushProperty, "SuccessBrush");
+
+        BindReturnSlotActionText();
     }
 
-    private async Task RunFlowActionAsync(Func<Task<(bool Ok, string Message)>> action)
+    private void BindReturnSlotActionText()
+    {
+        var returnNo = App.Flows.GetField("findReturnSlot.return_slot_no")?.ToString();
+        ReturnSlotText.Text = FormatSlotDisplay(returnNo);
+    }
+
+    private void BindIssueSlotActionText()
+    {
+        var issueNo = App.Flows.GetField("queryMatchedAvailableWire.slot_no")?.ToString();
+        IssueSlotText.Text = FormatSlotDisplay(issueNo);
+    }
+
+    private async Task RunFlowActionAsync(
+        Func<Task<(bool Ok, string Message)>> action,
+        TextBox? refocusOnFailure = null)
     {
         if (_actionInProgress)
         {
@@ -641,14 +742,14 @@ public partial class OpView : UserControl
 
         _actionInProgress = true;
         ApplyStepGating();
+        var succeeded = false;
         try
         {
             var (ok, msg) = await action();
+            succeeded = ok;
             SetStatus(msg);
-            if (!ok && App.Flows.IsFlowActive && _doorPhase == DoorWaitPhase.None)
-            {
-                // 失败时由调用方决定是否 EndFlow
-            }
+            if (!ok && refocusOnFailure != null)
+                FocusInputDeferred(refocusOnFailure);
         }
         catch (Exception ex)
         {
@@ -658,6 +759,8 @@ public partial class OpView : UserControl
         {
             _actionInProgress = false;
             ApplyStepGating();
+            if (succeeded)
+                TryFocusNextStepAfterSuccess();
         }
     }
 
@@ -677,6 +780,16 @@ public partial class OpView : UserControl
             ClearEqpResults();
         if (stepIndex <= 3)
             ClearQuotaResults();
+        if (stepIndex <= 4)
+        {
+            ReturnSlotText.Text = "—";
+            ClearReturnResult();
+        }
+        if (stepIndex <= 5)
+        {
+            IssueSlotText.Text = "—";
+            ClearIssueResult();
+        }
 
         if (stepIndex == 1)
             SetStatus("已清空批号及后续信息，请重新输入归还焊丝批号。");
@@ -689,17 +802,19 @@ public partial class OpView : UserControl
     private void ClearWireResults()
     {
         WireSpecText.Text = "—";
+        WireCodeText.Text = "—";
+        WireShelflifeText.Text = "—";
+        WireQtyText.Text = "—";
+        WireStateText.Text = "—";
         MatchedWireText.Text = "—";
         ReturnedWeightText.Text = "—";
-        IssueSlotText.Text = "—";
-        ReturnSlotText.Text = "—";
+        IssueSlotPreviewText.Text = "—";
+        ReturnSlotPreviewText.Text = "—";
     }
 
     private void ClearEqpResults()
     {
         ProductLotText.Text = "—";
-        IssueSlotHintText.Text = "—";
-        ReturnSlotHintText.Text = "—";
     }
 
     private void ClearQuotaResults()
@@ -719,5 +834,75 @@ public partial class OpView : UserControl
     };
 
     private static string FormatSlotDisplay(string? slotNo) =>
-        string.IsNullOrWhiteSpace(slotNo) ? "—" : SlotWireInfoFormatter.FormatDisplayNo(slotNo);
+        string.IsNullOrWhiteSpace(slotNo) ? "—" : SlotWireInfoFormatter.FormatCabinetShortLabel(slotNo);
+
+    private static string FormatFieldText(object? value)
+    {
+        if (value is null)
+            return "—";
+        var text = value switch
+        {
+            DateTime dt => dt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+            DateTimeOffset dto => dto.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+            _ => value.ToString()
+        };
+        return string.IsNullOrWhiteSpace(text) ? "—" : text;
+    }
+
+    private void ShowReturnResult(bool success, string message) =>
+        ShowStepResult(ReturnResultPanel, ReturnResultText, success, message);
+
+    private void ShowIssueResult(bool success, string message) =>
+        ShowStepResult(IssueResultPanel, IssueResultText, success, message);
+
+    private static void ShowStepResult(Border panel, TextBlock textBlock, bool success, string message)
+    {
+        textBlock.Text = string.IsNullOrWhiteSpace(message) ? "—" : message;
+        panel.Visibility = Visibility.Visible;
+        if (success)
+        {
+            panel.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF8, 0xF0));
+            panel.SetResourceReference(Border.BorderBrushProperty, "SuccessBrush");
+            textBlock.SetResourceReference(TextBlock.ForegroundProperty, "SuccessBrush");
+        }
+        else
+        {
+            panel.Background = new SolidColorBrush(Color.FromRgb(0xFD, 0xF0, 0xF0));
+            panel.SetResourceReference(Border.BorderBrushProperty, "DangerBrush");
+            textBlock.SetResourceReference(TextBlock.ForegroundProperty, "DangerBrush");
+        }
+    }
+
+    private void ClearReturnResult()
+    {
+        ReturnResultPanel.Visibility = Visibility.Collapsed;
+        ReturnResultText.Text = "";
+    }
+
+    private void ClearIssueResult()
+    {
+        IssueResultPanel.Visibility = Visibility.Collapsed;
+        IssueResultText.Text = "";
+    }
+
+    private void ShowDoorPhaseFailure(string message)
+    {
+        if (_doorPhase == DoorWaitPhase.ReturnSlot)
+            ShowReturnResult(false, message);
+        else if (_doorPhase == DoorWaitPhase.IssueSlot)
+            ShowIssueResult(false, message);
+    }
+
+    private string ResolveSubmitFailureMessage(string submitNodeId, string flowMessage)
+    {
+        if (!string.IsNullOrWhiteSpace(flowMessage))
+            return flowMessage;
+
+        var result = App.Flows.GetField($"{submitNodeId}.result")?.ToString()
+                     ?? App.Flows.GetField($"{submitNodeId}.{MatTransResult.SubmitResultField}")?.ToString();
+        if (!string.IsNullOrWhiteSpace(result) && !MatTransResult.IsSuccess(result))
+            return result;
+
+        return submitNodeId == "submitWireReturn" ? "归还提交失败" : "领用提交失败";
+    }
 }

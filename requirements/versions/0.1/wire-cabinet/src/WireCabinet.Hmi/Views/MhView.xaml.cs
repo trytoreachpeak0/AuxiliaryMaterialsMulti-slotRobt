@@ -55,7 +55,7 @@ public partial class MhView : UserControl
         ClearSlotSelection();
         RefreshSlotPanel(reloadFromDb: true);
         ApplyPageAccess();
-        WireLotBox.Focus();
+        FocusStationPrimaryInput();
         if (Window.GetWindow(this) is MainWindow mw)
             mw.AgvPollUpdated += OnAgvPollUpdated;
     }
@@ -83,6 +83,8 @@ public partial class MhView : UserControl
                 var reason = App.UiGate.GetStationBlockReason("MH");
                 if (!string.IsNullOrEmpty(reason))
                     SetStatus(reason);
+                if (allowed)
+                    FocusStationPrimaryInput();
             }
 
             ApplyPageAccess();
@@ -204,6 +206,15 @@ public partial class MhView : UserControl
 
     private void FocusWireLotBoxDeferred(bool selectAll = false) =>
         Dispatcher.BeginInvoke(() => FocusWireLotBox(selectAll), DispatcherPriority.Input);
+
+    public void FocusStationPrimaryInput()
+    {
+        if (!App.UiGate.CanUseMhPage)
+            return;
+        if (_depositPhase != DepositPhase.Idle)
+            return;
+        FocusWireLotBoxDeferred(selectAll: false);
+    }
 
     private static bool ShouldSelectAllOnDepositFailure(string message) =>
         message.Contains("不存在", StringComparison.Ordinal)
