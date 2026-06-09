@@ -13,6 +13,7 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
             "inputOperatorWorkInfo",
             "queryOPById",
             "checkOPIdExists",
+            "showOPIdMultipleRecordsMessage",
         ],
         "inputReturnedWireLotNoSection": [
             "inputReturnedWireLotNo",
@@ -31,6 +32,7 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
             "inputEqpNo",
             "queryEqpByEqpNo",
             "checkEqpNoExists",
+            "showEqpNoMultipleRecordsMessage",
         ],
         "queryLastProductLotNoSection": [
             "queryLastProductLotNo",
@@ -39,8 +41,8 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
         "inputRemainingQtySection": [
             "inputRemainingQty",
             "queryWireQuotaCheck",
-            "checkWireQuotaLE500",
             "showRemainingQtyWrongHint",
+            "showWireQuotaCheckAbnormalMessage",
         ],
         "submitWireReturnSection": [
             "submitWireReturn",
@@ -49,6 +51,7 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
         "loadReturnedWireSection": [
             "showWireReturnSuccessMessage",
             "openReturnSlot",
+            "showOpenReturnSlotFailedMessage",
             "showLoadWireAndCloseDoorMessage",
             "loadReturnedWire",
             "closeReturnSlotDoor",
@@ -57,6 +60,8 @@ FLOW_SUBGRAPHS: dict[str, dict[str, list[str]]] = {
         "queryWireAndProductSection": [
             "queryWireByLotNo",
             "checkWireInfoExists",
+            "showWireByLotNoMultipleRecordsMessage",
+            "showWireInfoNotExists",
             "queryProductByLotNo",
             "checkProductInfoExists",
         ],

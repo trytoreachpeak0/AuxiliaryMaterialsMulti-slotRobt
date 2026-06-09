@@ -403,15 +403,21 @@ public sealed class FlowCoordinator
     private string MapTerminalFailMessage(string? nodeId) => nodeId switch
     {
         "showOPIdNotExistsMessage" => "不存在该操作人员",
+        "showOPIdMultipleRecordsMessage" => "操作员工号查询到多条记录，数据异常",
         "showWireLotNoInputInvalidOrNotExistsMessage" => "焊丝批号无效或不存在",
         "showWireSpecNotExistsMessage" => "焊丝规格不存在",
         "showNoMatchedWireMessage" => "柜内无匹配规格的可用焊丝",
         "showReturnedWeightNotExists" => "未配置归还重量，请转人工归还",
         "showEqpNoNotExistsMessage" => "机台号不存在",
+        "showEqpNoMultipleRecordsMessage" => "机台号查询到多条记录，数据异常",
         "showLastProductLotNoNotExistsMessage" => "未查询到最近产品批号",
         "showWireReturnFailMessage" => ResolveSubmitFailMessage("submitWireReturn", "归还提交失败"),
         "showNoReturnSlotAvailableMessage" => "无空闲归还格口，请转人工归还",
+        "showOpenReturnSlotFailedMessage" => "无法打开归还格口，请检查柜门或联系维护",
         "showWireIssueFailMessage" => ResolveSubmitFailMessage("submitWireIssue", "领用提交失败"),
+        "showWireByLotNoMultipleRecordsMessage" => "焊丝批号查询到多条记录，数据异常",
+        "showWireInfoNotExists" => "未查询到可用焊丝信息，无法领用",
+        "showWireQuotaCheckAbnormalMessage" => "查询实际与理论消耗差值异常，请转人工处理",
         "showNoAvailableSlotMessage" => "无空闲格口",
         "showWireLotNoAlreadyInCabinetMessage" => BuildAlreadyInCabinetMessage(),
         _ => _runner?.PauseMessage ?? "流程未通过。"

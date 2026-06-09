@@ -123,12 +123,17 @@ public partial class OpView : UserControl
     private void SetStepOpacity(FrameworkElement panel, int stepIndex) =>
         panel.Opacity = _steps.IsStepFuture(stepIndex) ? 0.45 : 1.0;
 
-    private void RestartBtn_Click(object sender, RoutedEventArgs e)
+    private void RestartBtn_Click(object sender, RoutedEventArgs e) =>
+        ResetOpUi(endFlowIfActive: true, "已重新开始：请填写操作员信息并点「校验」。");
+
+    private void ResetOpUi(bool endFlowIfActive, string statusMessage)
     {
         _flowStarted = false;
         _doorPhase = DoorWaitPhase.None;
-        App.Flows.EndFlow();
-        _steps.ResetAll();
+        _returnSlotId = 0;
+        _issueSlotId = 0;
+        if (endFlowIfActive)
+            App.Flows.EndFlow();
         OpIdBox.Clear();
         TeamBox.SelectedIndex = 0;
         ShiftBox.SelectedIndex = 0;
@@ -143,8 +148,9 @@ public partial class OpView : UserControl
         IssueSlotText.Text = "—";
         IssueSlotHintText.Text = "—";
         ReturnSlotHintText.Text = "—";
+        _steps.ResetAll();
         ApplyStepGating();
-        SetStatus("已重新开始：请填写操作员信息并点「校验」。");
+        SetStatus(statusMessage);
     }
 
     private void OpField_TextChanged(object sender, TextChangedEventArgs e) =>
@@ -466,13 +472,8 @@ public partial class OpView : UserControl
             if (!await TryAdvanceIssueDoorClosedAsync(forceIfNoHardware))
                 return;
 
-            _doorPhase = DoorWaitPhase.None;
-            _issueSlotId = 0;
-            _flowStarted = false;
             App.Bootstrap.FlowSlots.Reload();
-            _steps.CompleteStep(5);
-            ApplyStepGating();
-            SetStatus("领用已提交，流程完成。可点「重新开始」。");
+            ResetOpUi(endFlowIfActive: false, "流程完成，已自动重置。请填写操作员信息并点「校验」。");
         }
     }
 

@@ -22,8 +22,8 @@ outcome_routing:
   empty:
     next: checkOPIdExists
   multiple:
-    next: checkOPIdExists
-    note: 同一工号多行属于数据异常，判断节点统一转失败分支。
+    next: showOPIdMultipleRecordsMessage
+    note: 同一工号多行属于数据异常，转入专用提示节点。
   error:
     next: showOPIdNotExistsMessage
     note: 当前流程图未单列系统异常节点，先复用失败提示。

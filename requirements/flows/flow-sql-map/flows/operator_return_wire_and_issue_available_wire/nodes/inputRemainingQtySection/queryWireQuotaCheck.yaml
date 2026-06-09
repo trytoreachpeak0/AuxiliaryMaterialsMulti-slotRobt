@@ -39,6 +39,12 @@ input_mappings:
 outcome_routing:
   single:
     next: submitWireReturn
+  empty:
+    next: showWireQuotaCheckAbnormalMessage
+    note: 未返回用量差值，视为查询异常。
+  error:
+    next: showWireQuotaCheckAbnormalMessage
+    note: MES/连接等非「剩余产量」类 ORA 或系统错误，转人工处理。
   quota_reject:
     next: showRemainingQtyWrongHint
-  # 其他 MES/执行失败：应用层统一异常提示，不进入本提示回环节点
+    note: 仅 ORA-20007 且文案为剩余产量不能大于待完工产量时回环重输数量。

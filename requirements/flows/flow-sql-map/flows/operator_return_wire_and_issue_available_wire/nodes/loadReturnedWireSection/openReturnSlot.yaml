@@ -20,5 +20,5 @@ outcome_routing:
   success:
     next: showLoadWireAndCloseDoorMessage
   error:
-    next: showNoReturnSlotAvailableMessage
-    note: 开门失败按无可用归还格口处理并记录日志；执行异常由应用层统一提示。
+    next: showOpenReturnSlotFailedMessage
+    note: 已预分配归还格口但开门指令失败（硬件/通信等），与 findReturnSlot 无空闲格口区分。

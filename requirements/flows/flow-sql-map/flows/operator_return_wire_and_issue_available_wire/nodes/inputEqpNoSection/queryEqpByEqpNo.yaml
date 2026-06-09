@@ -22,7 +22,7 @@ outcome_routing:
   empty:
     next: checkEqpNoExists
   multiple:
-    next: showEqpNoNotExistsMessage
-    note: 同一机台多行属于数据异常，当前流程图复用机台不存在提示。
+    next: showEqpNoMultipleRecordsMessage
+    note: 同一机台多行属于数据异常，转入专用提示节点。
   error:
     next: showEqpNoNotExistsMessage

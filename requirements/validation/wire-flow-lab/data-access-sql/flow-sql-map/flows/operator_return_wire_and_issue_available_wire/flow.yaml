@@ -68,7 +68,7 @@ nodes:
     routing:
       single: checkOPIdExists
       empty: checkOPIdExists
-      multiple: checkOPIdExists
+      multiple: showOPIdMultipleRecordsMessage
       error: showOPIdNotExistsMessage
 
   checkOPIdExists:
@@ -172,7 +172,7 @@ nodes:
     routing:
       single: checkEqpNoExists
       empty: checkEqpNoExists
-      multiple: checkEqpNoExists
+      multiple: showEqpNoMultipleRecordsMessage
       error: showEqpNoNotExistsMessage
 
   checkEqpNoExists:
@@ -194,13 +194,10 @@ nodes:
       error: showLastProductLotNoNotExistsMessage
 
   checkLastProductLotNoExists:
-    text: 最近产品批号是否存在（非空或 N/A）
+    text: 最近产品批号是否存在（有效批号，非 N/A）
     type: decision
-    check: { kind: field_not_empty, ref: queryLastProductLotNo.lot }
+    check: { kind: field_not_empty_and_not_equals, ref: queryLastProductLotNo.lot, value: N/A }
     routing: { yes: inputRemainingQty, no: showLastProductLotNoNotExistsMessage }
-    note: >-
-      map 语义为「非空即可，含 N/A」；流程图为「否→End」。由于查询恒返回一行（可能为 N/A），
-      该判定实际恒为 yes，需 findings 标注 diagram 与 map 的差异。
 
   inputRemainingQty:
     text: 操作员输入产品剩余待焊芯片数量
@@ -223,7 +220,8 @@ nodes:
       - { name: V_eqp, from: node:inputEqpNo.eqp_no }
     routing:
       single: submitWireReturn
-      empty: submitWireReturn
+      empty: showWireQuotaCheckAbnormalMessage
+      error: showWireQuotaCheckAbnormalMessage
       quota_reject: showRemainingQtyWrongHint
 
   showRemainingQtyWrongHint:
@@ -280,7 +278,7 @@ nodes:
     sql_id: app.slot.open
     inputs:
       - { name: slot_id, from: node:findReturnSlot.return_slot_id }
-    routing: { success: showLoadWireAndCloseDoorMessage, error: showNoReturnSlotAvailableMessage }
+    routing: { success: showLoadWireAndCloseDoorMessage, error: showOpenReturnSlotFailedMessage }
 
   showLoadWireAndCloseDoorMessage:
     text: 提示操作员放入对应焊丝并关闭格口门
@@ -327,14 +325,14 @@ nodes:
     routing:
       single: checkWireInfoExists
       empty: checkWireInfoExists
-      multiple: showWireIssueFailMessage
+      multiple: showWireByLotNoMultipleRecordsMessage
       error: showWireIssueFailMessage
 
   checkWireInfoExists:
     text: 可用焊丝信息是否存在
     type: decision
     check: { kind: exists, node: queryWireByLotNo }
-    routing: { yes: queryProductByLotNo, no: showWireIssueFailMessage }
+    routing: { yes: queryProductByLotNo, no: showWireInfoNotExists }
 
   queryProductByLotNo:
     text: 按产品批号聚合查询数量与工序
@@ -433,13 +431,19 @@ nodes:
 
   # ---- 终止/提示节点 ----
   showOPIdNotExistsMessage:        { text: 提示操作员工号不存在, type: terminal, terminal_kind: fail }
+  showOPIdMultipleRecordsMessage:    { text: 提示操作员工号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
   showWireLotNoInputInvalidOrNotExistsMessage: { text: 提示焊丝批号无效或不存在, type: terminal, terminal_kind: fail }
   showWireSpecNotExistsMessage:    { text: 提示焊丝规格不存在, type: terminal, terminal_kind: fail }
   showNoMatchedWireMessage:        { text: 提示无匹配的可用焊丝, type: terminal, terminal_kind: fail }
   showReturnedWeightNotExists:     { text: 提示未配置归还重量（转人工归还）, type: terminal, terminal_kind: fail }
   showEqpNoNotExistsMessage:       { text: 提示机台号不存在, type: terminal, terminal_kind: fail }
+  showEqpNoMultipleRecordsMessage:   { text: 提示机台号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
   showLastProductLotNoNotExistsMessage: { text: 提示无最近产品批号, type: terminal, terminal_kind: fail }
+  showWireQuotaCheckAbnormalMessage: { text: 提示查询实际与理论消耗差值异常（转人工）, type: terminal, terminal_kind: fail }
   showWireReturnFailMessage:       { text: 提示归还提交失败, type: terminal, terminal_kind: fail }
   showNoReturnSlotAvailableMessage: { text: 提示无空闲归还格口（转人工归还）, type: terminal, terminal_kind: fail }
+  showOpenReturnSlotFailedMessage:   { text: 提示无法打开归还格口, type: terminal, terminal_kind: fail }
+  showWireByLotNoMultipleRecordsMessage: { text: 提示焊丝批号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
+  showWireInfoNotExists:             { text: 提示可用焊丝信息不存在, type: terminal, terminal_kind: fail }
   showWireIssueFailMessage:        { text: 提示领用失败, type: terminal, terminal_kind: fail }
   endSuccess:                      { text: 流程完成（归还并领用）, type: terminal, terminal_kind: success }

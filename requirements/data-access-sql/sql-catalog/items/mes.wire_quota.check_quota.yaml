@@ -52,13 +52,13 @@ outcomes:
     means: 取得实际消耗与理论消耗的差值 result（米）。
     action: 展示差值并继续提交焊丝退还请求。
   error:
-    means: 数据库异常、存储函数报错或查询超时。
-    action: ORA-20007（剩余产量不能大于待完工产量）时提示重输待焊芯片数量；其他异常提示“系统繁忙，请稍后重试”，记录日志。
+    means: 数据库异常、存储函数报错或查询超时；或未返回差值（empty）。
+    action: 文案含「剩余产量不能大于待完工产量」时提示重输待焊芯片数量；其他异常走 showWireQuotaCheckAbnormalMessage 转人工。
     severity: error
 business_rule: |
   result 为实际消耗与理论消耗的差值（number，单位米），由存储函数 Get_Mat_QuotaCheck 计算返回。
   成功返回任意数值即校验通过，允许继续提交焊丝退还请求。
-  若报 ORA-20007: 剩余产量不能大于待完工产量！则校验不通过，提示操作员重新输入待焊芯片数量。
+  若报错文案含「剩余产量不能大于待完工产量」则校验不通过，提示操作员重新输入待焊芯片数量；其他 ORA/空结果走用量差值查询异常分支。
 tables:
   - name: Get_Mat_QuotaCheck
     type: function

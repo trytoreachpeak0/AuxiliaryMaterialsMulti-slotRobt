@@ -1,0 +1,15 @@
+# compile_flow_yaml.py 对比时的可选规范化规则（不修改源文件，仅影响 diff 报告）
+#
+# normalize_mock_sql: 全局将 mes_mock.* 与 mes.* 视为等价
+normalize_mock_sql: false
+
+flows:
+  operator_return_wire_and_issue_available_wire:
+    # 流程图展示节点；lab 将 yes 分支直接接到 inputReturnedWireLotNo
+    skip_nodes:
+      - showOPName
+  material_handler_load_available_wire:
+    # lab 在 nodes 末尾内联了 endSuccess/endFail；正式规格路由到 End（对比 routing 时可忽略）
+    skip_nodes:
+      - endSuccess
+      - endFail

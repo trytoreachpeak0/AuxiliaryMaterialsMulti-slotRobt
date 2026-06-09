@@ -18,6 +18,7 @@ sections:
       - inputOperatorWorkInfo
       - queryOPById
       - checkOPIdExists
+      - showOPIdMultipleRecordsMessage
   - subgraph_id: inputReturnedWireLotNoSection
     title: 1.2.2 输入焊丝批号
     parent_subgraph_id: returnWire
@@ -42,6 +43,7 @@ sections:
       - inputEqpNo
       - queryEqpByEqpNo
       - checkEqpNoExists
+      - showEqpNoMultipleRecordsMessage
   - subgraph_id: queryLastProductLotNoSection
     title: 1.2.5 获取机台最近生产的产品批次号
     parent_subgraph_id: returnWire
@@ -55,6 +57,7 @@ sections:
       - inputRemainingQty
       - queryWireQuotaCheck
       - showRemainingQtyWrongHint
+      - showWireQuotaCheckAbnormalMessage
   - subgraph_id: submitWireReturnSection
     title: 1.2.7 提交归还焊丝请求
     parent_subgraph_id: returnWire
@@ -67,6 +70,7 @@ sections:
     node_ids:
       - showWireReturnSuccessMessage
       - openReturnSlot
+      - showOpenReturnSlotFailedMessage
       - showLoadWireAndCloseDoorMessage
       - loadReturnedWire
       - closeReturnSlotDoor
@@ -81,6 +85,8 @@ sections:
     node_ids:
       - queryWireByLotNo
       - checkWireInfoExists
+      - showWireByLotNoMultipleRecordsMessage
+      - showWireInfoNotExists
       - queryProductByLotNo
       - checkProductInfoExists
   - subgraph_id: submitWireIssueSection

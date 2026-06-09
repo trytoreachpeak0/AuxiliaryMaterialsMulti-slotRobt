@@ -1,0 +1,154 @@
+flow_id: material_handler_load_available_wire
+title: 物料员存入可用焊丝
+diagram: requirements/flows/diagrams/物料员存入可用焊丝.md
+start: inputAvailableWireLotNo
+node_order:
+- inputAvailableWireLotNo
+- checkAvailableSlot
+- queryWireSpecByLotNo
+- checkWireLotNoExists
+- checkWireSpecExists
+- queryAppWireLotNo
+- checkAppWireLotNoAlreadyExists
+- openAvailableSlot
+- closeAvailableSlotDoor
+- updateDB
+nodes:
+  checkAppWireLotNoAlreadyExists:
+    text: 焊丝批号是否已在柜内
+    type: decision
+    check:
+      kind: exists
+      node: queryAppWireLotNo
+    routing:
+      'no': openAvailableSlot
+      'yes': showWireLotNoAlreadyInCabinetMessage
+  checkAvailableSlot:
+    text: 发货柜是否有空闲格口
+    type: query
+    data_source: app
+    sql_id: app.slot.find_available
+    inputs:
+    - name: slot_usage_policy
+      from: context:slot_usage_policy
+    - name: slot_status
+      from: context:slot_status
+    routing:
+      single: queryWireSpecByLotNo
+      empty: showNoAvailableSlotMessage
+      error: showNoAvailableSlotMessage
+  checkWireLotNoExists:
+    text: 焊丝批号是否存在
+    type: decision
+    check:
+      kind: exists
+      node: queryWireSpecByLotNo
+    routing:
+      'yes': checkWireSpecExists
+      'no': showWireLotNoInputInvalidOrNotExistsMessage
+  checkWireSpecExists:
+    text: 焊丝规格数据是否存在
+    type: decision
+    check:
+      kind: field_not_empty
+      ref: queryWireSpecByLotNo.spec
+    routing:
+      'yes': queryAppWireLotNo
+      'no': showWireSpecNotExistsMessage
+  closeAvailableSlotDoor:
+    text: 物料员关闭可用焊丝格口门
+    type: user_input
+    outputs:
+    - name: closed
+      label: 物料员关闭格口门后的确认状态。
+    routing:
+      success: updateDB
+  inputAvailableWireLotNo:
+    text: 物料员输入可用焊丝批号
+    type: user_input
+    outputs:
+    - name: available_wire_lot_no
+      label: 物料员扫码录入或键盘输入可用焊丝批号。
+    routing:
+      success: checkAvailableSlot
+  openAvailableSlot:
+    text: 发货柜打开空闲格口
+    type: slot_open
+    data_source: app
+    sql_id: app.slot.open
+    inputs:
+    - name: slot_id
+      from: node:checkAvailableSlot.available_slot_id
+    slot_ref: checkAvailableSlot.available_slot_id
+    routing:
+      success: closeAvailableSlotDoor
+      error: showNoAvailableSlotMessage
+  queryAppWireLotNo:
+    text: 查询应用数据库该批号是否已绑定格口
+    type: query
+    data_source: app
+    sql_id: app.slot.find_by_wire_lot_no
+    inputs:
+    - name: wire_lot_no
+      from: node:inputAvailableWireLotNo.available_wire_lot_no
+    routing:
+      single: checkAppWireLotNoAlreadyExists
+      empty: checkAppWireLotNoAlreadyExists
+      multiple: showWireLotNoAlreadyInCabinetMessage
+      error: showWireLotNoAlreadyInCabinetMessage
+  queryWireSpecByLotNo:
+    text: 查询 MES 数据库该批号对应的焊丝规格
+    type: query
+    data_source: mes
+    sql_id: mes.wire.get_by_lot_no
+    inputs:
+    - name: wire_lot_no
+      from: node:inputAvailableWireLotNo.available_wire_lot_no
+    routing:
+      single: checkWireLotNoExists
+      empty: checkWireLotNoExists
+      multiple: showWireLotNoInputInvalidOrNotExistsMessage
+      error: showWireLotNoInputInvalidOrNotExistsMessage
+  showNoAvailableSlotMessage:
+    text: 提示无空闲格口
+    type: terminal
+    terminal_kind: fail
+  showWireLotNoAlreadyInCabinetMessage:
+    text: 提示焊丝批号已在柜内
+    type: terminal
+    terminal_kind: fail
+  showWireLotNoInputInvalidOrNotExistsMessage:
+    text: 提示焊丝批号无效或不存在
+    type: terminal
+    terminal_kind: fail
+  showWireSpecNotExistsMessage:
+    text: 提示焊丝规格不存在
+    type: terminal
+    terminal_kind: fail
+  updateDB:
+    text: 焊丝信息存入应用数据库，更新格口业务信息
+    type: write
+    data_source: app
+    sql_id: app.slot.bind_wire
+    inputs:
+    - name: slot_id
+      from: node:checkAvailableSlot.available_slot_id
+    - name: wire_lot_no
+      from: node:inputAvailableWireLotNo.available_wire_lot_no
+    - name: spec
+      from: node:queryWireSpecByLotNo.spec
+    - name: code
+      from: node:queryWireSpecByLotNo.code
+    - name: shelflife
+      from: node:queryWireSpecByLotNo.shelflife
+    - name: matlot
+      from: node:queryWireSpecByLotNo.matlot
+    - name: qty
+      from: node:queryWireSpecByLotNo.qty
+    - name: state
+      from: node:queryWireSpecByLotNo.state
+    - name: door_closed_event
+      from: node:closeAvailableSlotDoor.closed
+    routing:
+      success: End
+      error: End

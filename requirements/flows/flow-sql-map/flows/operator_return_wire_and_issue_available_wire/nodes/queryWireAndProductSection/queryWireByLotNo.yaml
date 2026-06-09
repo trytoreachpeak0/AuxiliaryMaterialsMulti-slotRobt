@@ -37,6 +37,7 @@ outcome_routing:
   empty:
     next: checkWireInfoExists
   multiple:
-    next: showWireInfoNotExists
+    next: showWireByLotNoMultipleRecordsMessage
+    note: 同一焊丝批号多行属于 MES 数据异常。
   error:
     next: showWireInfoNotExists

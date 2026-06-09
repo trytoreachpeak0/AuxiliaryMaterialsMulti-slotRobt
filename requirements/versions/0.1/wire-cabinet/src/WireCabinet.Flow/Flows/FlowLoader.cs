@@ -133,7 +133,8 @@ public static class FlowLoader
                 Kind = Yaml.Str(check, "kind") ?? "",
                 Ref = Yaml.Str(check, "ref"),
                 Node = Yaml.Str(check, "node"),
-                Value = double.TryParse(Yaml.Str(check, "value"), out var d) ? d : 0
+                Value = double.TryParse(Yaml.Str(check, "value"), out var d) ? d : 0,
+                CompareValue = Yaml.Str(check, "value")
             };
             if (refsList is not null)
                 foreach (var r in refsList) dc.Refs.Add(r.ToString()!);

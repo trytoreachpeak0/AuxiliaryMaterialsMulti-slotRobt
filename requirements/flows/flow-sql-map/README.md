@@ -27,6 +27,10 @@ flows/<flow_id>/
 
 维护时直接编辑对应流程文件；如果流程已拆分，则编辑 `flows/<flow_id>/nodes/<subgraph_id>/<node_id>.yaml`（无 subgraph 时用 `nodes/<node_id>.yaml`），并在新增或改名节点时同步维护该流程的 `index.yaml`（含 `sections` 与 `node_files`）。新增或改名流程时，同步维护本目录的 [index.yaml](index.yaml)。
 
+### 编译为可执行 flow.yaml（wire-cabinet / wire-flow-lab）
+
+正式目录为拆分规格；运行时引擎读取合并版 `flow.yaml`。工具与完整工作流见 [_tools/README.md](_tools/README.md)、[_tools/COMPILE-FLOW-YAML.md](_tools/COMPILE-FLOW-YAML.md)。
+
 拆分流程约定：
 
 - `flows/<flow_id>/index.yaml`：流程级元数据、`sections`（可选）、`node_order` 和 `node_files`。

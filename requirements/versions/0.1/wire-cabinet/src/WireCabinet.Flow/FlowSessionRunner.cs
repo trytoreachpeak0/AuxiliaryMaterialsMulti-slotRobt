@@ -69,8 +69,22 @@ public sealed class FlowSessionRunner
             }
 
             var entry = _engine.StepOnce();
-            if (entry.Status == Severity.Error || string.Equals(entry.Outcome, "error", StringComparison.OrdinalIgnoreCase))
+            var isErrorOutcome = entry.Status == Severity.Error
+                || string.Equals(entry.Outcome, "error", StringComparison.OrdinalIgnoreCase);
+            if (isErrorOutcome)
             {
+                // error 已把 CurrentNodeId 指到 routing 目标；若目标是 terminal 且尚未执行，再步进一次
+                if (!_engine.Finished && _engine.CurrentNode?.Type == NodeType.Terminal)
+                {
+                    entry = _engine.StepOnce();
+                    if (_engine.Finished || string.Equals(entry.NodeType, "terminal", StringComparison.OrdinalIgnoreCase))
+                    {
+                        PauseReason = FlowPauseReason.Terminal;
+                        PauseMessage = entry.Result;
+                        return entry;
+                    }
+                }
+
                 PauseReason = FlowPauseReason.Error;
                 PauseMessage = entry.Result;
                 return entry;

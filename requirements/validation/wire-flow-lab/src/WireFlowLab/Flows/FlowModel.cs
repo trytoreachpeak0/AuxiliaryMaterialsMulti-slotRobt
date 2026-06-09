@@ -62,6 +62,8 @@ public sealed class DecisionCheck
     public List<string> Refs { get; init; } = new();
     public string? Node { get; init; }
     public double Value { get; init; }
+    /// <summary>字符串比较用（如 field_not_empty_and_not_equals 的排除值）。</summary>
+    public string? CompareValue { get; init; }
 }
 
 public sealed class FlowNode

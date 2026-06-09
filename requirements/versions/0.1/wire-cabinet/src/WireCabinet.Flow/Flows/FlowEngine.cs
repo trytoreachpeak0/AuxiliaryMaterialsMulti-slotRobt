@@ -373,6 +373,15 @@ public sealed class FlowEngine
                 var ok = !IsEmpty(v);
                 return (ok, $"{check.Ref}={Display(v)}");
             }
+            case "field_not_empty_and_not_equals":
+            {
+                var v = Context!.GetRef(check.Ref ?? "");
+                if (IsEmpty(v))
+                    return (false, $"{check.Ref}=(空)");
+                var s = v!.ToString() ?? "";
+                var reject = string.Equals(s, check.CompareValue ?? "", StringComparison.Ordinal);
+                return (!reject, $"{check.Ref}={Display(v)} != {check.CompareValue}");
+            }
             case "all_fields_not_empty":
             {
                 var ok = check.Refs.All(r => !IsEmpty(Context!.GetRef(r)));
@@ -407,8 +416,7 @@ public sealed class FlowEngine
 
     private static bool IsQuotaReject(string? error) =>
         !string.IsNullOrWhiteSpace(error)
-        && (error.Contains("ORA-20007", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase));
+        && error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Oracle 模式优先使用 formal catalog 中的 mes.* 条目，避免 mes_mock 默认值干扰。</summary>
     private SqlCatalogItem? ResolveSqlItem(string sqlId)
