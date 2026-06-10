@@ -1,0 +1,16 @@
+id: mes_mock.wire.clear_disco_eqp_no
+mirrors: mes.wire.clear_disco_eqp_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: write
+business_meaning: mock 模式清除焊丝在柜标记。
+sql: |
+  UPDATE v_fw_material_indetail
+  SET DISCOEQPNO = NULL
+  WHERE sublot = :sublot
+oracle_sql: |
+  UPDATE fw_material_indetail
+  SET DISCOEQPNO = NULL
+  WHERE sublot = :sublot
+params:
+  - name: sublot

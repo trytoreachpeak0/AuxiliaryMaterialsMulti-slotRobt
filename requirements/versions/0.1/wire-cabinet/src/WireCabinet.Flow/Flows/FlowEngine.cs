@@ -188,6 +188,15 @@ public sealed class FlowEngine
 
         var (passed, detail) = Evaluate(node.Check, node, findings);
         var key = passed ? "yes" : "no";
+        if (!passed
+            && string.Equals(node.Id, "checkSubmitWireReturnSuccess", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(node.Check?.Kind, "submit_success", StringComparison.OrdinalIgnoreCase))
+        {
+            var submitResult = Context!.GetRef(node.Check!.Ref ?? "")?.ToString();
+            if (IsReturnQtyReject(submitResult))
+                key = "return_qty_reject";
+        }
+
         var (next, routeFindings) = Route(node, key);
         findings.AddRange(routeFindings);
         return Build(node, key, next, sql, $"判定[{node.Check?.Kind}] => {(passed ? "是" : "否")} ({detail})", findings,
@@ -228,21 +237,72 @@ public sealed class FlowEngine
             return Build(node, "error", nx2, node.SqlId ?? "", "(catalog 未找到)", findings, Severity.Error);
         }
 
+        string? clearLotBeforePickup = null;
+        if (string.Equals(node.SqlId, "app.slot.complete_issue_pickup", StringComparison.OrdinalIgnoreCase))
+            clearLotBeforePickup = _svc.DiscoSync?.TryGetAvailableWireLot(parameters.GetValueOrDefault("slot_id"));
+
         var isMes = string.Equals(node.DataSource, "mes", StringComparison.OrdinalIgnoreCase);
         var result = isMes ? _svc.Mes.Run(item, parameters) : _svc.AppDb.Run(item, parameters);
 
         Context!.NodeResults[node.Id] = result.First ?? new(StringComparer.OrdinalIgnoreCase);
 
         var key = result.HasError ? "error" : "success";
+        if (string.Equals(node.Id, "queryWireQuotaCheck", StringComparison.OrdinalIgnoreCase))
+        {
+            if (result.HasError && IsQuotaReject(result.Error))
+                key = "quota_reject";
+            else if (!result.HasError)
+                key = result.Count == 0 ? "empty" : "single";
+        }
+        else if (string.Equals(node.Id, "submitWireReturn", StringComparison.OrdinalIgnoreCase)
+                 && result.HasError && IsReturnQtyReject(result.Error))
+        {
+            key = "return_qty_reject";
+        }
+
+        if (key == "success" && _svc.DiscoSync is { } discoSync)
+        {
+            if (string.Equals(node.SqlId, "app.slot.bind_wire", StringComparison.OrdinalIgnoreCase))
+            {
+                var lot = parameters.GetValueOrDefault("wire_lot_no")?.ToString()?.Trim();
+                if (!string.IsNullOrEmpty(lot))
+                {
+                    var sync = discoSync.TryMarkInCabinet(lot, WireMesDiscoFailureKind.Inline);
+                    if (!sync.Success)
+                    {
+                        key = "error";
+                        findings.Add(Err(node, WireMesDiscoMessages.FindingCategory, sync.UserMessage));
+                    }
+                }
+            }
+            else if (string.Equals(node.SqlId, "app.slot.complete_issue_pickup", StringComparison.OrdinalIgnoreCase)
+                     && !string.IsNullOrEmpty(clearLotBeforePickup))
+            {
+                var sync = discoSync.TryClearFromCabinet(clearLotBeforePickup, WireMesDiscoFailureKind.Inline);
+                if (!sync.Success)
+                {
+                    key = "error";
+                    findings.Add(Err(node, WireMesDiscoMessages.FindingCategory, sync.UserMessage));
+                }
+            }
+        }
         var (next, routeFindings) = Route(node, key);
         findings.AddRange(routeFindings);
 
+        var failed = key is "error" or "empty";
         var resultText = result.HasError
             ? $"错误: {result.Error}"
-            : (result.First is not null ? RowText(result.First) : $"影响 {result.RowsAffected} 行");
+            : failed
+                ? findings.LastOrDefault(f => string.Equals(f.Category, WireMesDiscoMessages.FindingCategory, StringComparison.Ordinal))?.Message
+                  ?? WireMesDiscoMessages.InlineFailUser
+                : (result.First is not null ? RowText(result.First) : $"影响 {result.RowsAffected} 行");
+
+        var status = key is "quota_reject" or "return_qty_reject"
+            ? Severity.Warning
+            : failed ? Severity.Error : Severity.Info;
 
         return Build(node, key, next, result.RenderedSql, resultText, findings,
-            result.HasError ? Severity.Error : Severity.Info, parameters, result.First);
+            status, parameters, result.First);
     }
 
     private TraceEntry ExecSlotOpen(FlowNode node)
@@ -417,6 +477,11 @@ public sealed class FlowEngine
     private static bool IsQuotaReject(string? error) =>
         !string.IsNullOrWhiteSpace(error)
         && error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsReturnQtyReject(string? text) =>
+        !string.IsNullOrWhiteSpace(text)
+        && text.Contains("归还数量", StringComparison.OrdinalIgnoreCase)
+        && text.Contains("不能大于产品待完工数量", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Oracle 模式优先使用 formal catalog 中的 mes.* 条目，避免 mes_mock 默认值干扰。</summary>
     private SqlCatalogItem? ResolveSqlItem(string sqlId)

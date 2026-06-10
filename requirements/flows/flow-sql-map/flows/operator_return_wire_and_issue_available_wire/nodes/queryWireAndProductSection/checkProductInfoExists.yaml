@@ -29,4 +29,4 @@ outcome_routing:
   yes:
     next: submitWireIssue
   no:
-    next: showProductInfoNotExists
+    next: showCheckProductInfoNotExistsMessage

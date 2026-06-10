@@ -25,6 +25,9 @@ public partial class App : Application
     public static HmiUiGateService UiGate { get; private set; } = null!;
     public static FlowTraceHub? FlowTrace { get; private set; }
 
+    public static WireMesDiscoRetryTimer? MesDiscoRetry { get; private set; }
+    public static KioskOptions Kiosk { get; private set; } = new();
+
     protected override void OnStartup(StartupEventArgs e)
     {
         _singleInstanceMutex = new Mutex(true, @"Global\WireCabinet.Hmi", out var createdNew);
@@ -47,6 +50,8 @@ public partial class App : Application
             .AddJsonFile("appsettings.Local.json", optional: true)
             .Build();
 
+        Kiosk = config.GetSection("Ui:Kiosk").Get<KioskOptions>() ?? new KioskOptions();
+
         Bootstrap = new AppBootstrap(config);
         DoorOps = Bootstrap.DoorOps;
         MaintAccess = new MaintAccessGate(config["MaintAccess:Password"]);
@@ -68,7 +73,14 @@ public partial class App : Application
             Bootstrap.SlotControl,
             Bootstrap.WireSession,
             Bootstrap.AppDbGateway,
-            Bootstrap.Catalog);
+            Bootstrap.Catalog,
+            Bootstrap.DiscoSync);
+
+        MesDiscoRetry = new WireMesDiscoRetryTimer(
+            Bootstrap.DiscoSync,
+            Bootstrap.MesReconciliation,
+            TimeSpan.FromMinutes(2));
+        MesDiscoRetry.Start();
 
         var doorReconciler = new DoorStateReconciler(Bootstrap.SlotControl, Bootstrap.Hardware);
         SlotHardwarePoll.SetAfterPoll(async snapshots =>
@@ -101,6 +113,7 @@ public partial class App : Application
             Agv.Dispose();
             IoHealth.Dispose();
             SlotHardwarePoll.Dispose();
+            MesDiscoRetry?.Dispose();
             Bootstrap.Dispose();
         }
         base.OnExit(e);

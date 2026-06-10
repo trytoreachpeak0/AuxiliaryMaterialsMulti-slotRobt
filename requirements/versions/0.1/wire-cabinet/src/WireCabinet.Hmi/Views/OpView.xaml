@@ -291,8 +291,9 @@
                         <TextBlock Text="发货柜将打开归还格口，请放入归还焊丝并关闭格口门。" Style="{StaticResource HintText}"
                                    TextWrapping="Wrap"/>
                         <Border x:Name="ReturnResultPanel" Visibility="Collapsed" Margin="0,8,0,0"
-                                Padding="10,8" BorderThickness="1" CornerRadius="2">
-                            <TextBlock x:Name="ReturnResultText" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
+                                Padding="10,8" BorderThickness="1" CornerRadius="2" MaxHeight="28">
+                            <TextBlock x:Name="ReturnResultText" Style="{StaticResource ValueText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                         </Border>
                     </StackPanel>
 
@@ -319,8 +320,9 @@
                         <TextBlock Text="发货柜将打开领用格口，请取出可用焊丝并关闭格口门。" Style="{StaticResource HintText}"
                                    TextWrapping="Wrap"/>
                         <Border x:Name="IssueResultPanel" Visibility="Collapsed" Margin="0,8,0,0"
-                                Padding="10,8" BorderThickness="1" CornerRadius="2">
-                            <TextBlock x:Name="IssueResultText" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
+                                Padding="10,8" BorderThickness="1" CornerRadius="2" MaxHeight="28">
+                            <TextBlock x:Name="IssueResultText" Style="{StaticResource ValueText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                         </Border>
                     </StackPanel>
 

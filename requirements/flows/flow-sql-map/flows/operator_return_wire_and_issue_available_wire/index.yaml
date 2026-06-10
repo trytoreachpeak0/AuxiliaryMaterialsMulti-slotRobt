@@ -18,6 +18,7 @@ sections:
       - inputOperatorWorkInfo
       - queryOPById
       - checkOPIdExists
+      - showOPName
       - showOPIdMultipleRecordsMessage
   - subgraph_id: inputReturnedWireLotNoSection
     title: 1.2.2 输入焊丝批号
@@ -87,28 +88,36 @@ sections:
       - checkWireInfoExists
       - showWireByLotNoMultipleRecordsMessage
       - showWireInfoNotExists
+      - showQueryWireByLotNoErrorMessage
       - queryProductByLotNo
       - checkProductInfoExists
+      - showQueryProductByLotNoErrorMessage
+      - showCheckProductInfoNotExistsMessage
   - subgraph_id: submitWireIssueSection
     title: 1.3.2 提交领用焊丝请求
     parent_subgraph_id: issueWire
     node_ids:
       - submitWireIssue
       - checkSubmitWireIssueSuccess
+      - showSubmitWireIssueErrorMessage
+      - showCheckSubmitWireIssueFailMessage
   - subgraph_id: unloadIssueWireSection
     title: 1.3.3 操作员取出领用焊丝
     parent_subgraph_id: issueWire
     node_ids:
       - showWireIssueSuccessMessage
       - openIssueSlot
+      - showOpenIssueSlotErrorMessage
       - showUnloadWireAndCloseDoorMessage
       - unloadWire
       - closeIssueSlotDoor
       - updateIssueSlotAfterUnload
+      - showUpdateIssueSlotAfterUnloadErrorMessage
 node_order:
   - inputOperatorWorkInfo
   - queryOPById
   - checkOPIdExists
+  - showOPName
   - inputReturnedWireLotNo
   - queryWireSpecByLotNo
   - checkWireLotNoExists
@@ -150,6 +159,7 @@ node_files:
   inputOperatorWorkInfo: nodes/inputOperatorInfo/inputOperatorWorkInfo.yaml
   queryOPById: nodes/inputOperatorInfo/queryOPById.yaml
   checkOPIdExists: nodes/inputOperatorInfo/checkOPIdExists.yaml
+  showOPName: nodes/inputOperatorInfo/showOPName.yaml
   inputReturnedWireLotNo: nodes/inputReturnedWireLotNoSection/inputReturnedWireLotNo.yaml
   queryWireSpecByLotNo: nodes/inputReturnedWireLotNoSection/queryWireSpecByLotNo.yaml
   checkWireLotNoExists: nodes/inputReturnedWireLotNoSection/checkWireLotNoExists.yaml

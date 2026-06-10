@@ -25,4 +25,4 @@ outcome_routing:
   yes:
     next: showWireIssueSuccessMessage
   no:
-    next: showWireIssueFailMessage
+    next: showCheckSubmitWireIssueFailMessage

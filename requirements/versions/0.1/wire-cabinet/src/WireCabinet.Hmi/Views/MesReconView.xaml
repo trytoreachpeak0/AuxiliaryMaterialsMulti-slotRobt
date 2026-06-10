@@ -1,0 +1,100 @@
+<UserControl x:Class="WireCabinet.Hmi.Views.MesReconView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource UiFont}">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="8"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardPanel}" Padding="10">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Pending MES 同步" Style="{StaticResource SectionTitle}"/>
+                    <Button Content="刷新" Margin="12,0,0,0" Padding="10,4" Click="RefreshPending_Click"/>
+                    <Button Content="批量重试" Margin="8,0,0,0" Padding="10,4" Click="RetrySelectedPending_Click"/>
+                    <Button Content="标记已人工处理" Margin="8,0,0,0" Padding="10,4" Click="MarkManualResolved_Click"/>
+                </StackPanel>
+                <ListView x:Name="PendingList" SelectionMode="Extended">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="批号" DisplayMemberBinding="{Binding WireLotNo}" Width="120"/>
+                            <GridViewColumn Header="动作" DisplayMemberBinding="{Binding ActionText}" Width="50"/>
+                            <GridViewColumn Header="状态" DisplayMemberBinding="{Binding StatusText}" Width="70"/>
+                            <GridViewColumn Header="来源" DisplayMemberBinding="{Binding KindText}" Width="60"/>
+                            <GridViewColumn Header="重试" DisplayMemberBinding="{Binding RetryCount}" Width="40"/>
+                            <GridViewColumn Header="错误" DisplayMemberBinding="{Binding LastError}" Width="180"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CardPanel}" Padding="10">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="库存 vs MES 漂移" Style="{StaticResource SectionTitle}"/>
+                    <Button Content="刷新对账" Margin="12,0,0,0" Padding="10,4" Click="RefreshDrift_Click"/>
+                    <Button Content="非中断项入队重试" Margin="8,0,0,0" Padding="10,4" Click="EnqueueDriftRepair_Click"/>
+                </StackPanel>
+                <ListView x:Name="DriftList">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="批号" DisplayMemberBinding="{Binding WireLotNo}" Width="120"/>
+                            <GridViewColumn Header="差集" DisplayMemberBinding="{Binding DriftType}" Width="80"/>
+                            <GridViewColumn Header="说明" DisplayMemberBinding="{Binding Hint}" Width="220"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardPanel}" Padding="10">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="流程中断未完结" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="清除 MH 快照" Padding="10,4" Click="ClearMhSnapshot_Click"/>
+                    <Button Content="清除 OP 快照" Margin="8,0,0,0" Padding="10,4" Click="ClearOpSnapshot_Click"/>
+                </StackPanel>
+                <TextBox x:Name="InterruptText" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                         Background="#FFF8F9FA" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource CardPanel}" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="按批号手工 / 审计" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="批号" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox x:Name="ManualLotBox" Width="160" VerticalAlignment="Center"/>
+                        <Button Content="SET 为车名" Margin="8,0,0,0" Padding="10,4" Click="ManualSet_Click"/>
+                        <Button Content="NULL" Margin="8,0,0,0" Padding="10,4" Click="ManualClear_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="VehicleNameText" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                </StackPanel>
+                <ListView Grid.Row="1" x:Name="AuditList">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="时间" DisplayMemberBinding="{Binding TimeText}" Width="130"/>
+                            <GridViewColumn Header="操作" DisplayMemberBinding="{Binding Action}" Width="100"/>
+                            <GridViewColumn Header="批号" DisplayMemberBinding="{Binding WireLotNo}" Width="100"/>
+                            <GridViewColumn Header="详情" DisplayMemberBinding="{Binding Detail}" Width="200"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,449 @@
+flow_id: operator_return_wire_and_issue_available_wire
+title: 操作员存入归还焊丝并取出可用焊丝
+diagram: requirements/flows/diagrams/操作员存入归还焊丝取出可用焊丝.md
+start: inputOperatorWorkInfo
+context_defaults:
+  return_task: 归还
+  issue_task: 领用
+  return_remark: ""
+node_order:
+  - inputOperatorWorkInfo
+  - queryOPById
+  - checkOPIdExists
+  - inputReturnedWireLotNo
+  - queryWireSpecByLotNo
+  - checkWireLotNoExists
+  - checkWireSpecExists
+  - queryMatchedAvailableWire
+  - checkMatchedWireExists
+  - findReturnSlot
+  - queryWireReturnedWeightBySpec
+  - checkReturnedWeightExists
+  - inputEqpNo
+  - queryEqpByEqpNo
+  - checkEqpNoExists
+  - queryLastProductLotNo
+  - checkLastProductLotNoExists
+  - inputRemainingQty
+  - queryWireQuotaCheck
+  - showRemainingQtyWrongHint
+  - submitWireReturn
+  - checkSubmitWireReturnSuccess
+  - showWireReturnSuccessMessage
+  - openReturnSlot
+  - showLoadWireAndCloseDoorMessage
+  - loadReturnedWire
+  - closeReturnSlotDoor
+  - updateReturnSlotDB
+  - queryWireByLotNo
+  - checkWireInfoExists
+  - queryProductByLotNo
+  - checkProductInfoExists
+  - submitWireIssue
+  - checkSubmitWireIssueSuccess
+  - showWireIssueSuccessMessage
+  - openIssueSlot
+  - showUnloadWireAndCloseDoorMessage
+  - unloadWire
+  - closeIssueSlotDoor
+  - updateIssueSlotAfterUnload
+
+nodes:
+  inputOperatorWorkInfo:
+    text: 操作员输入工号、班组和班次
+    type: user_input
+    outputs:
+      - { name: operator_id, label: 工号, default: "1001" }
+      - { name: work_group, label: 班组, default: "A组" }
+      - { name: shift, label: 班次, default: "白班" }
+    routing: { success: queryOPById }
+
+  queryOPById:
+    text: 查询 MES 数据库该操作人员
+    type: query
+    data_source: mes
+    sql_id: mes_mock.operator.get_by_id
+    inputs:
+      - { name: user_id, from: node:inputOperatorWorkInfo.operator_id }
+    routing:
+      single: checkOPIdExists
+      empty: checkOPIdExists
+      multiple: showOPIdMultipleRecordsMessage
+      error: showOPIdNotExistsMessage
+
+  checkOPIdExists:
+    text: 操作员工号是否存在
+    type: decision
+    check: { kind: exists, node: queryOPById }
+    routing: { yes: inputReturnedWireLotNo, no: showOPIdNotExistsMessage }
+
+  inputReturnedWireLotNo:
+    text: 操作员输入归还焊丝批号
+    type: user_input
+    outputs:
+      - { name: returned_wire_lot_no, label: 归还焊丝批号 }
+    routing: { success: queryWireSpecByLotNo }
+
+  queryWireSpecByLotNo:
+    text: 查询归还焊丝规格信息
+    type: query
+    data_source: mes
+    sql_id: mes_mock.wire.get_by_lot_no
+    inputs:
+      - { name: wire_lot_no, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
+    routing:
+      single: checkWireLotNoExists
+      empty: checkWireLotNoExists
+      multiple: showWireLotNoInputInvalidOrNotExistsMessage
+      error: showWireLotNoInputInvalidOrNotExistsMessage
+
+  checkWireLotNoExists:
+    text: 焊丝批号是否存在
+    type: decision
+    check: { kind: exists, node: queryWireSpecByLotNo }
+    routing: { yes: checkWireSpecExists, no: showWireLotNoInputInvalidOrNotExistsMessage }
+
+  checkWireSpecExists:
+    text: 焊丝规格是否存在
+    type: decision
+    check: { kind: field_not_empty, ref: queryWireSpecByLotNo.spec }
+    routing: { yes: queryMatchedAvailableWire, no: showWireSpecNotExistsMessage }
+
+  queryMatchedAvailableWire:
+    text: 查询应用数据库发货柜内匹配的同规格可用焊丝
+    type: query
+    data_source: app
+    sql_id: app.wire_inventory.find_matched_available
+    inputs:
+      - { name: returned_wire_spec, from: node:queryWireSpecByLotNo.spec }
+    routing:
+      single: checkMatchedWireExists
+      empty: checkMatchedWireExists
+      multiple: checkMatchedWireExists
+      # error：不路由到流程图节点；由运行时统一提示并终止（与 formal flow-sql-map 一致）
+
+  checkMatchedWireExists:
+    text: 是否存在匹配的可用焊丝
+    type: decision
+    check: { kind: field_not_empty, ref: queryMatchedAvailableWire.matched_available_wire_lot_no }
+    routing: { yes: findReturnSlot, no: showNoMatchedWireMessage }
+
+  findReturnSlot:
+    text: 预分配归还焊丝空闲格口
+    type: query
+    data_source: app
+    sql_id: app.slot.find_return_slot
+    routing:
+      single: queryWireReturnedWeightBySpec
+      empty: showNoReturnSlotAvailableMessage
+
+  queryWireReturnedWeightBySpec:
+    text: 按规格查询归还重量
+    type: query
+    data_source: app
+    sql_id: app.returned_weight.get_by_spec
+    inputs:
+      - { name: returned_wire_spec, from: node:queryWireSpecByLotNo.spec }
+    routing:
+      single: checkReturnedWeightExists
+      empty: checkReturnedWeightExists
+      error: showReturnedWeightNotExists
+
+  checkReturnedWeightExists:
+    text: 是否配置了归还重量
+    type: decision
+    check: { kind: field_not_empty, ref: queryWireReturnedWeightBySpec.return_weight }
+    routing: { yes: inputEqpNo, no: showReturnedWeightNotExists }
+
+  inputEqpNo:
+    text: 操作员输入机台号
+    type: user_input
+    outputs:
+      - { name: eqp_no, label: 机台号 }
+    routing: { success: queryEqpByEqpNo }
+
+  queryEqpByEqpNo:
+    text: 校验焊线机台号
+    type: query
+    data_source: mes
+    sql_id: mes_mock.eqp.get_by_wire_bonding_eqp_no
+    inputs:
+      - { name: eqp_no, from: node:inputEqpNo.eqp_no }
+    routing:
+      single: checkEqpNoExists
+      empty: checkEqpNoExists
+      multiple: showEqpNoMultipleRecordsMessage
+      error: showEqpNoNotExistsMessage
+
+  checkEqpNoExists:
+    text: 机台号是否存在
+    type: decision
+    check: { kind: exists, node: queryEqpByEqpNo }
+    routing: { yes: queryLastProductLotNo, no: showEqpNoNotExistsMessage }
+
+  queryLastProductLotNo:
+    text: 查询机台最近完工产品批号
+    type: query
+    data_source: mes
+    sql_id: mes_mock.product.get_latest_product_lot_by_eqp
+    inputs:
+      - { name: eqp_no, from: node:inputEqpNo.eqp_no }
+    routing:
+      single: checkLastProductLotNoExists
+      empty: checkLastProductLotNoExists
+      error: showLastProductLotNoNotExistsMessage
+
+  checkLastProductLotNoExists:
+    text: 最近产品批号是否存在（有效批号，非 N/A）
+    type: decision
+    check: { kind: field_not_empty_and_not_equals, ref: queryLastProductLotNo.lot, value: N/A }
+    routing: { yes: inputRemainingQty, no: showLastProductLotNoNotExistsMessage }
+
+  inputRemainingQty:
+    text: 操作员输入产品剩余待焊芯片数量
+    type: user_input
+    outputs:
+      - { name: remaining_qty, label: 剩余芯片数量, default: "3000", numeric: true }
+    routing: { success: queryWireQuotaCheck }
+
+  queryWireQuotaCheck:
+    text: 调用 MES Get_Mat_QuotaCheck 查询实际与理论消耗差值（米）
+    type: query
+    data_source: mes
+    sql_id: mes_mock.wire_quota.check_quota
+    inputs:
+      - { name: V_STEP, from: const:焊线 }
+      - { name: V_MatLot, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
+      - { name: V_thzl, from: node:queryWireReturnedWeightBySpec.return_weight }
+      - { name: V_thph, from: node:queryLastProductLotNo.lot }
+      - { name: V_sycl, from: node:inputRemainingQty.remaining_qty }
+      - { name: V_eqp, from: node:inputEqpNo.eqp_no }
+    routing:
+      single: submitWireReturn
+      empty: showWireQuotaCheckAbnormalMessage
+      error: showWireQuotaCheckAbnormalMessage
+      quota_reject: showRemainingQtyWrongHint
+
+  showRemainingQtyWrongHint:
+    text: 显示剩余待焊芯片数量不正确，重新输入的提示
+    type: user_input
+    outputs:
+      - { name: acknowledged, label: 已阅读，将重新输入数量, default: true }
+    routing: { success: inputRemainingQty }
+
+  submitWireReturn:
+    text: 提交焊丝归还请求
+    type: write
+    data_source: mes
+    sql_id: mes_mock.mat_trans.submit_return
+    inputs:
+      - { name: V_Step, from: const:焊线 }
+      - { name: v_Task, from: context:return_task }
+      - { name: v_Eqp, from: node:inputEqpNo.eqp_no }
+      - { name: v_Code, from: node:queryWireSpecByLotNo.code }
+      - { name: v_Matlot, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
+      - { name: v_MatFromLot, from: node:queryWireSpecByLotNo.matlot }
+      - { name: v_Qty, from: node:queryWireReturnedWeightBySpec.return_weight }
+      - { name: v_Count, from: const:1 }
+      - { name: v_PrdLot, from: node:queryLastProductLotNo.lot }
+      - { name: v_PrdQty, from: node:inputRemainingQty.remaining_qty }
+      - { name: V_ShelfLife, from: node:queryWireSpecByLotNo.shelflife }
+      - { name: V_Opr, from: node:inputOperatorWorkInfo.operator_id }
+      - { name: V_Remark, from: context:return_remark }
+      - { name: V_Workgroup, from: node:inputOperatorWorkInfo.work_group }
+      - { name: V_Shift, from: node:inputOperatorWorkInfo.shift }
+      - { name: v_Writer, from: system:configured_mes_writer }
+      - { name: V_SESSION, from: const:"" }
+    routing:
+      success: checkSubmitWireReturnSuccess
+      error: showWireReturnFailMessage
+
+  checkSubmitWireReturnSuccess:
+    text: 归还提交是否成功
+    type: decision
+    check: { kind: submit_success, ref: submitWireReturn.submit_result }
+    routing: { yes: showWireReturnSuccessMessage, no: showWireReturnFailMessage }
+
+  showWireReturnSuccessMessage:
+    text: 显示焊丝归还成功的提示
+    type: user_input
+    outputs:
+      - { name: acknowledged, label: 已阅读, default: true }
+    routing: { success: openReturnSlot }
+
+  openReturnSlot:
+    text: 发货柜打开归还格口
+    type: slot_open
+    data_source: app
+    sql_id: app.slot.open
+    inputs:
+      - { name: slot_id, from: node:findReturnSlot.return_slot_id }
+    routing: { success: showLoadWireAndCloseDoorMessage, error: showOpenReturnSlotFailedMessage }
+
+  showLoadWireAndCloseDoorMessage:
+    text: 提示操作员放入对应焊丝并关闭格口门
+    type: user_input
+    outputs:
+      - { name: acknowledged, label: 已阅读, default: true }
+    routing: { success: loadReturnedWire }
+
+  loadReturnedWire:
+    text: 操作员存入归还焊丝
+    type: user_input
+    outputs:
+      - { name: loaded, label: 已放入归还焊丝, default: true }
+    routing: { success: closeReturnSlotDoor }
+
+  closeReturnSlotDoor:
+    text: 操作员关闭归还格口门
+    type: slot_close
+    routing: { success: updateReturnSlotDB }
+
+  updateReturnSlotDB:
+    text: 更新归还格口库存信息
+    type: write
+    data_source: app
+    sql_id: app.slot.bind_returned_wire
+    inputs:
+      - { name: slot_id, from: node:findReturnSlot.return_slot_id }
+      - { name: wire_lot_no, from: node:inputReturnedWireLotNo.returned_wire_lot_no }
+      - { name: wire_spec, from: node:queryWireSpecByLotNo.spec }
+      - { name: wire_code, from: node:queryWireSpecByLotNo.code }
+      - { name: shelflife, from: node:queryWireSpecByLotNo.shelflife }
+      - { name: matlot, from: node:queryWireSpecByLotNo.matlot }
+      - { name: qty, from: node:queryWireSpecByLotNo.qty }
+      - { name: wire_state, from: node:queryWireSpecByLotNo.state }
+    routing: { success: queryWireByLotNo, error: showWireReturnFailMessage }
+
+  queryWireByLotNo:
+    text: 查询待领用可用焊丝的 MES 信息
+    type: query
+    data_source: mes
+    sql_id: mes_mock.wire.get_by_lot_no
+    inputs:
+      - { name: wire_lot_no, from: node:queryMatchedAvailableWire.matched_available_wire_lot_no }
+    routing:
+      single: checkWireInfoExists
+      empty: checkWireInfoExists
+      multiple: showWireByLotNoMultipleRecordsMessage
+      error: showWireIssueFailMessage
+
+  checkWireInfoExists:
+    text: 可用焊丝信息是否存在
+    type: decision
+    check: { kind: exists, node: queryWireByLotNo }
+    routing: { yes: queryProductByLotNo, no: showWireInfoNotExists }
+
+  queryProductByLotNo:
+    text: 按产品批号聚合查询数量与工序
+    type: query
+    data_source: mes
+    sql_id: mes_mock.product.query_product_by_lot_no
+    inputs:
+      - { name: productLot, from: node:queryLastProductLotNo.lot }
+    routing:
+      single: checkProductInfoExists
+      empty: checkProductInfoExists
+      error: showWireIssueFailMessage
+
+  checkProductInfoExists:
+    text: 产品信息（数量与工序）是否齐全
+    type: decision
+    check: { kind: all_fields_not_empty, refs: [queryProductByLotNo.qty, queryProductByLotNo.step] }
+    routing: { yes: submitWireIssue, no: showWireIssueFailMessage }
+
+  submitWireIssue:
+    text: 提交焊丝领用请求
+    type: write
+    data_source: mes
+    sql_id: mes_mock.mat_trans.submit_return
+    inputs:
+      - { name: V_Step, from: const:焊线 }
+      - { name: v_Task, from: context:issue_task }
+      - { name: v_Eqp, from: node:inputEqpNo.eqp_no }
+      - { name: v_Code, from: node:queryWireByLotNo.code }
+      - { name: v_Matlot, from: node:queryMatchedAvailableWire.matched_available_wire_lot_no }
+      - { name: v_MatFromLot, from: node:queryWireByLotNo.matlot }
+      - { name: v_Qty, from: node:queryProductByLotNo.qty }
+      - { name: v_Count, from: const:1 }
+      - { name: v_PrdLot, from: node:queryLastProductLotNo.lot }
+      - { name: v_PrdQty, from: node:inputRemainingQty.remaining_qty }
+      - { name: V_ShelfLife, from: node:queryWireByLotNo.shelflife }
+      - { name: V_Opr, from: node:inputOperatorWorkInfo.operator_id }
+      - { name: V_Remark, from: const:"" }
+      - { name: V_Workgroup, from: node:inputOperatorWorkInfo.work_group }
+      - { name: V_Shift, from: node:inputOperatorWorkInfo.shift }
+      - { name: v_Writer, from: system:configured_mes_writer }
+      - { name: V_SESSION, from: const:"" }
+    routing:
+      success: checkSubmitWireIssueSuccess
+      error: showWireIssueFailMessage
+
+  checkSubmitWireIssueSuccess:
+    text: 领用提交是否成功
+    type: decision
+    check: { kind: submit_success, ref: submitWireIssue.submit_result }
+    routing: { yes: showWireIssueSuccessMessage, no: showWireIssueFailMessage }
+
+  showWireIssueSuccessMessage:
+    text: 显示焊丝领用成功的提示
+    type: user_input
+    outputs:
+      - { name: acknowledged, label: 已阅读, default: true }
+    routing: { success: openIssueSlot }
+
+  openIssueSlot:
+    text: 发货柜打开领用格口
+    type: slot_open
+    data_source: app
+    sql_id: app.slot.open
+    inputs:
+      - { name: slot_id, from: node:queryMatchedAvailableWire.slot_id }
+    routing: { success: showUnloadWireAndCloseDoorMessage, error: showWireIssueFailMessage }
+
+  showUnloadWireAndCloseDoorMessage:
+    text: 提示操作员取出对应焊丝并关闭格口门
+    type: user_input
+    outputs:
+      - { name: acknowledged, label: 已阅读, default: true }
+    routing: { success: unloadWire }
+
+  unloadWire:
+    text: 操作员取出可用焊丝
+    type: user_input
+    outputs:
+      - { name: unloaded, label: 已取出可用焊丝, default: true }
+    routing: { success: closeIssueSlotDoor }
+
+  closeIssueSlotDoor:
+    text: 操作员关闭领用格口门
+    type: slot_close
+    routing: { success: updateIssueSlotAfterUnload }
+
+  updateIssueSlotAfterUnload:
+    text: 更新领用格口库存（已取出）
+    type: write
+    data_source: app
+    sql_id: app.slot.complete_issue_pickup
+    inputs:
+      - { name: slot_id, from: node:queryMatchedAvailableWire.slot_id }
+    routing: { success: endSuccess, error: showWireIssueFailMessage }
+
+  # ---- 终止/提示节点 ----
+  showOPIdNotExistsMessage:        { text: 提示操作员工号不存在, type: terminal, terminal_kind: fail }
+  showOPIdMultipleRecordsMessage:    { text: 提示操作员工号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
+  showWireLotNoInputInvalidOrNotExistsMessage: { text: 提示焊丝批号无效或不存在, type: terminal, terminal_kind: fail }
+  showWireSpecNotExistsMessage:    { text: 提示焊丝规格不存在, type: terminal, terminal_kind: fail }
+  showNoMatchedWireMessage:        { text: 提示无匹配的可用焊丝, type: terminal, terminal_kind: fail }
+  showReturnedWeightNotExists:     { text: 提示未配置归还重量（转人工归还）, type: terminal, terminal_kind: fail }
+  showEqpNoNotExistsMessage:       { text: 提示机台号不存在, type: terminal, terminal_kind: fail }
+  showEqpNoMultipleRecordsMessage:   { text: 提示机台号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
+  showLastProductLotNoNotExistsMessage: { text: 提示无最近产品批号, type: terminal, terminal_kind: fail }
+  showWireQuotaCheckAbnormalMessage: { text: 提示查询实际与理论消耗差值异常（转人工）, type: terminal, terminal_kind: fail }
+  showWireReturnFailMessage:       { text: 提示归还提交失败, type: terminal, terminal_kind: fail }
+  showNoReturnSlotAvailableMessage: { text: 提示无空闲归还格口（转人工归还）, type: terminal, terminal_kind: fail }
+  showOpenReturnSlotFailedMessage:   { text: 提示无法打开归还格口, type: terminal, terminal_kind: fail }
+  showWireByLotNoMultipleRecordsMessage: { text: 提示焊丝批号查询到多条记录（数据异常）, type: terminal, terminal_kind: fail }
+  showWireInfoNotExists:             { text: 提示可用焊丝信息不存在, type: terminal, terminal_kind: fail }
+  showWireIssueFailMessage:        { text: 提示领用失败, type: terminal, terminal_kind: fail }
+  endSuccess:                      { text: 流程完成（归还并领用）, type: terminal, terminal_kind: success }

@@ -12,7 +12,7 @@ output_fields:
     catalog_field: return_weight
     source_text: 该规格配置的归还重量。
 input_mappings:
-  - name: wire_spec
+  - name: returned_wire_spec
     source_node: queryWireSpecByLotNo
     source_field: spec
     source_text: 归还焊丝规格。

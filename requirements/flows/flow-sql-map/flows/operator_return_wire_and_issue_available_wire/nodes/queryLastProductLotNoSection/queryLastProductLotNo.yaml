@@ -22,6 +22,6 @@ outcome_routing:
     note: 若 MES 未查询到最近生产产品批次号，应用侧主动填充 lot 为 N/A，并继续交给判断节点处理。
   empty:
     next: checkLastProductLotNoExists
-    note: 未查询到最近生产产品批次号时，应用侧输出默认 lot: N/A。
+    note: "未查询到最近生产产品批次号时，应用侧输出默认 lot: N/A。"
   error:
     next: showLastProductLotNoNotExistsMessage

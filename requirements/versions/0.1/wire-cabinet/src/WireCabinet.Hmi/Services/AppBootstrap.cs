@@ -22,6 +22,12 @@ public sealed class AppBootstrap : IDisposable
     public ISlotController FlowSlots { get; }
     public IWireOperationSession WireSession { get; } = new WireOperationSession();
     public MhInterruptedLoadStore InterruptedLoad { get; }
+    public OpInterruptedIssueStore OpInterruptedIssue { get; }
+    public WireMesDiscoSyncStore MesDiscoPending { get; }
+    public MesReconAuditLogStore MesReconAudit { get; }
+    public WireDiscoEqpSyncService DiscoSync { get; }
+    public MesDiscoReconciliationService MesReconciliation { get; }
+    public WireMesInterruptGuard InterruptGuard { get; }
     public EngineServices EngineServices { get; }
     public IReadOnlyList<FlowDefinition> Flows { get; }
     public MesOptions MesOptions { get; }
@@ -43,8 +49,19 @@ public sealed class AppBootstrap : IDisposable
         if (needsInit)
             AppDb.Initialize(recreate: false);
 
+        WireMesDiscoSchema.EnsureAll(AppDb);
+
         InterruptedLoad = new MhInterruptedLoadStore(AppDb);
         InterruptedLoad.EnsureSchema();
+
+        OpInterruptedIssue = new OpInterruptedIssueStore(AppDb);
+        OpInterruptedIssue.EnsureSchema();
+
+        MesDiscoPending = new WireMesDiscoSyncStore(AppDb);
+        MesDiscoPending.EnsureSchema();
+
+        MesReconAudit = new MesReconAuditLogStore(AppDb);
+        MesReconAudit.EnsureSchema();
 
         Catalog = SqlCatalog.Load();
         MesOptions = new MesOptions
@@ -64,6 +81,24 @@ public sealed class AppBootstrap : IDisposable
         SlotControl = new SlotControlService(AppDb, Hardware, DoorOps);
         FlowSlots = new FlowSlotController(SlotControl, AppDb);
 
+        InterruptGuard = new WireMesInterruptGuard(InterruptedLoad, OpInterruptedIssue);
+
+        DiscoSync = new WireDiscoEqpSyncService(
+            Catalog,
+            AppDbGateway,
+            Mes,
+            MesDiscoPending,
+            MesOptions.MatTransWriter,
+            MesReconAudit,
+            InterruptGuard);
+
+        MesReconciliation = new MesDiscoReconciliationService(
+            AppDbGateway,
+            Mes,
+            Catalog,
+            DiscoSync,
+            InterruptGuard);
+
         EngineServices = new EngineServices
         {
             Catalog = Catalog,
@@ -71,7 +106,8 @@ public sealed class AppBootstrap : IDisposable
             Mes = Mes,
             Slot = FlowSlots,
             SystemAgvNo = config["AgvDispatch:DefaultDeviceKey"] ?? "AGV-01",
-            SystemMesWriter = MesOptions.MatTransWriter
+            SystemMesWriter = MesOptions.MatTransWriter,
+            DiscoSync = DiscoSync
         };
 
         Flows = FlowLoader.LoadAll();

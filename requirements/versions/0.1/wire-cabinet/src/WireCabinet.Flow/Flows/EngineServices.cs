@@ -12,4 +12,5 @@ public sealed class EngineServices
     public required ISlotController Slot { get; init; }
     public string SystemAgvNo { get; set; } = "AGV-01";
     public string SystemMesWriter { get; set; } = "新厂前线物料多仓位2";
+    public IWireDiscoEqpSync? DiscoSync { get; set; }
 }

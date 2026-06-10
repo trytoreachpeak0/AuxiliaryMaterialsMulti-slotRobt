@@ -84,6 +84,7 @@ public static class MhInterruptedLoadStartupAlert
         sb.AppendLine($"批号：{record.WireLotNo}");
         if (!string.IsNullOrWhiteSpace(record.WireSpec))
             sb.AppendLine($"规格：{record.WireSpec}");
+        sb.AppendLine($"本地 bind：{(record.BindDone ? "已完成" : "未完成")}；MES DISCOEQPNO：{(record.MesDiscoDone ? "已同步" : "未同步")}");
         sb.AppendLine();
 
         if (doorStillOpen)

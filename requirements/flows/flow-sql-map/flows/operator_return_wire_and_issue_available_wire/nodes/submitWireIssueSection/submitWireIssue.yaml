@@ -84,4 +84,4 @@ outcome_routing:
   single:
     next: checkSubmitWireIssueSuccess
   error:
-    next: showWireIssueFailMessage
+    next: showSubmitWireIssueErrorMessage

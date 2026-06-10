@@ -1,0 +1,14 @@
+id: mes_mock.wire.query_disco_by_lot
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: mock 模式按批号查询 DISCOEQPNO（对账用）。
+sql: |
+  SELECT sublot, DISCOEQPNO
+  FROM v_fw_material_indetail
+  WHERE sublot = :sublot
+params:
+  - name: sublot
+outputs:
+  - sublot
+  - DISCOEQPNO

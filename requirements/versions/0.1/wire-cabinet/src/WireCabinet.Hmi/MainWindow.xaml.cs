@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly OpView _opView = new();
     private readonly MhView _mhView = new();
     private readonly MaintView _maintView = new();
+    private readonly MesReconView _mesReconView = new();
     private readonly AgvView _agvView = new();
     private readonly DispatcherTimer _clockTimer;
     private DispatcherTimer? _agvPollTimer;
@@ -40,6 +41,9 @@ public partial class MainWindow : Window
         UpdateClock();
         _clockTimer.Start();
         ApplyStatusText();
+
+        if (App.Kiosk.Enabled)
+            SourceInitialized += (_, _) => KioskWindowHelper.Apply(this, App.Kiosk.Topmost);
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -58,6 +62,7 @@ public partial class MainWindow : Window
         {
             await App.SlotHardwarePoll.PollAsync();
             MhInterruptedLoadStartupAlert.TryShow(this);
+            OpInterruptedIssueStartupAlert.TryShow(this);
         }
         catch
         {
@@ -196,6 +201,31 @@ public partial class MainWindow : Window
             _roleLabel = "维护 MAINT";
             _flowStatus = null;
             _lastRoleRadio = RbMaint;
+            ApplyStatusText();
+        });
+    }
+
+    private void RbMesRecon_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_suppressRoleRevert) return;
+        TrySwitchRole(() =>
+        {
+            if (MainContent == null) return;
+
+            if (App.MaintAccess.IsGateEnabled && !App.MaintAccess.IsUnlocked)
+            {
+                var dialog = new MaintPasswordDialog { Owner = this };
+                if (dialog.ShowDialog() != true)
+                {
+                    RevertToLastRole();
+                    return;
+                }
+            }
+
+            MainContent.Content = _mesReconView;
+            _roleLabel = "MES 对账";
+            _flowStatus = null;
+            _lastRoleRadio = RbMesRecon;
             ApplyStatusText();
         });
     }

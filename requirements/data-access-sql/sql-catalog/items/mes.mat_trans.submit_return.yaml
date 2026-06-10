@@ -114,6 +114,7 @@ business_rule: |
   异常：匿名块或 FWMES.FUN_MAT_TRANS_NEW 抛出异常时，不在 PL/SQL 内捕获；应用层回滚事务，并将 SQLERRM 原样提示操作员。
   焊丝领用：v_Task 默认“领用”；V_Remark 传空字符串；v_PrdQty 传 productQty。
   焊丝归还：v_Task 使用归还流程传入值；V_Remark 传 reason；v_Qty 传 returnQty；v_PrdQty 传 remainingQty。
+  归还数量超限：SQLERRM 或 result 含「归还数量…不能大于产品待完工数量」时，应用层须回环步骤④（inputRemainingQty）重输剩余芯片并重新校验，不得直接终止流程。
 usage_examples:
   wire_draw:
     meaning: 焊丝领用

@@ -16,13 +16,41 @@ public sealed class FlowCoordinator
 
     private static readonly HashSet<string> AutoAckUserInputNodes = new(StringComparer.OrdinalIgnoreCase)
     {
+        "showOPName",
         "showWireReturnSuccessMessage",
         "showLoadWireAndCloseDoorMessage",
         "loadReturnedWire",
         "showWireIssueSuccessMessage",
         "showUnloadWireAndCloseDoorMessage",
-        "unloadWire"
+        "unloadWire",
+        "showRemainingQtyWrongHint"
     };
+
+    private static readonly HashSet<string> OpNonRetryableTerminalNodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "showReturnedWeightNotExists",
+        "showNoMatchedWireMessage",
+        "showWireReturnFailMessage",
+        "showNoReturnSlotAvailableMessage",
+        "showOpenReturnSlotFailedMessage",
+        "showWireQuotaCheckAbnormalMessage",
+        "showWireIssueFailMessage",
+        "showSubmitWireIssueErrorMessage",
+        "showCheckSubmitWireIssueFailMessage",
+        "showQueryWireByLotNoErrorMessage",
+        "showQueryProductByLotNoErrorMessage",
+        "showCheckProductInfoNotExistsMessage",
+        "showWireInfoNotExists",
+        "showOpenIssueSlotErrorMessage",
+        "showUpdateIssueSlotAfterUnloadErrorMessage",
+        "showOPIdMultipleRecordsMessage",
+        "showEqpNoMultipleRecordsMessage",
+        "showWireByLotNoMultipleRecordsMessage"
+    };
+
+    public const string ManualReturnGuidanceSuffix = "到人工窗口归还";
+
+    private string? _lastFailTerminalNodeId;
 
     public FlowCoordinator(AppBootstrap app, FlowTraceHub? traceHub = null)
     {
@@ -47,6 +75,7 @@ public sealed class FlowCoordinator
         _runner.Begin(_flow);
         _publishedCount = 0;
         _sessionId = _traceHub?.BeginSession(_flow.FlowId, _flow.Title);
+        _lastFailTerminalNodeId = null;
         message = "";
         return true;
     }
@@ -93,7 +122,10 @@ public sealed class FlowCoordinator
         var entry = _runner.RunUntilPause(pauseBeforeNodeId, pauseBeforeDoorClose);
         FlushNewTraceEntries();
         if (_runner.PauseReason == FlowPauseReason.Error)
+        {
+            _lastFailTerminalNodeId = null;
             return (false, PickFlowErrorMessage(_runner.PauseMessage, entry?.Result, "流程错误"), FlowPauseReason.Error);
+        }
 
         if (_runner.PauseReason == FlowPauseReason.Terminal)
         {
@@ -103,6 +135,10 @@ public sealed class FlowCoordinator
             var msg = isFail
                 ? MapTerminalFailMessage(lastNode?.NodeId)
                 : (_runner.PauseMessage ?? entry?.Result ?? "流程结束");
+            if (isFail)
+                _lastFailTerminalNodeId = lastNode?.NodeId;
+            else
+                _lastFailTerminalNodeId = null;
             if (endFlowOnTerminal)
                 EndFlow();
             if (isFail)
@@ -110,6 +146,7 @@ public sealed class FlowCoordinator
             return (true, msg, FlowPauseReason.Terminal);
         }
 
+        _lastFailTerminalNodeId = null;
         return (true, _runner.PauseMessage ?? "等待输入", _runner.PauseReason);
     }
 
@@ -150,10 +187,12 @@ public sealed class FlowCoordinator
     /// <summary>步骤①：校验操作员后暂停在归还批号输入。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpOperatorValidate()
     {
-        var result = AdvanceUntilPause(endFlowOnTerminal: false);
+        var result = AdvanceUntilPauseAutoAck(
+            pauseBeforeNodeId: "inputReturnedWireLotNo",
+            endFlowOnTerminal: false);
         if (!result.Ok)
             return result;
-        if (result.Reason == FlowPauseReason.UserInput
+        if ((result.Reason == FlowPauseReason.UserInput || result.Reason == FlowPauseReason.AwaitingAction)
             && string.Equals(CurrentNodeId, "inputReturnedWireLotNo", StringComparison.OrdinalIgnoreCase))
             return (true, "操作员校验通过。", result.Reason);
         EndFlow();
@@ -200,13 +239,47 @@ public sealed class FlowCoordinator
     private void RewindOpToWireLotInput() =>
         _runner?.RewindToNode("inputReturnedWireLotNo");
 
+    private void RewindOpToEqpInput() =>
+        _runner?.RewindToNode("inputEqpNo");
+
+    private void RewindOpToRemainingQtyInput() =>
+        _runner?.RewindToNode("inputRemainingQty");
+
+    public static bool IsReturnQtyRejectMessage(string? message) =>
+        FlowEngine.IsReturnQtyReject(message);
+
+    public static bool IsQuotaRejectMessage(string? message) =>
+        !string.IsNullOrWhiteSpace(message)
+        && message.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
+
+    public static string AppendManualReturnGuidance(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return ManualReturnGuidanceSuffix;
+        var trimmed = message.Trim();
+        if (trimmed.EndsWith(ManualReturnGuidanceSuffix, StringComparison.Ordinal))
+            return trimmed;
+        return trimmed + "，" + ManualReturnGuidanceSuffix;
+    }
+
+    public bool ShouldAppendManualReturnGuidance(string? message)
+    {
+        if (IsReturnQtyRejectMessage(message) || IsQuotaRejectMessage(message))
+            return false;
+        return _lastFailTerminalNodeId is not null
+               && OpNonRetryableTerminalNodes.Contains(_lastFailTerminalNodeId);
+    }
+
     /// <summary>步骤③：机台校验后暂停在剩余芯片输入。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpEqpValidate(string eqpNo)
     {
         FillOpEqpNo(eqpNo);
         var result = AdvanceUntilPause(pauseBeforeNodeId: "inputRemainingQty", endFlowOnTerminal: false);
         if (!result.Ok)
+        {
+            RewindOpToEqpInput();
             return result;
+        }
         if (result.Reason == FlowPauseReason.AwaitingAction
             && string.Equals(CurrentNodeId, "inputRemainingQty", StringComparison.OrdinalIgnoreCase))
             return (true, "机台校验通过。", result.Reason);
@@ -222,10 +295,15 @@ public sealed class FlowCoordinator
         if (!result.Ok)
             return result;
 
-        if (string.Equals(CurrentNodeId, "showRemainingQtyWrongHint", StringComparison.OrdinalIgnoreCase)
-            || (result.Reason == FlowPauseReason.UserInput
-                && string.Equals(CurrentNodeId, "inputRemainingQty", StringComparison.OrdinalIgnoreCase)))
-            return (false, "剩余待焊芯片数量不正确（剩余产量不能大于待完工产量），请重新输入。", FlowPauseReason.Error);
+        if (TraceHasOutcome("queryWireQuotaCheck", "quota_reject")
+            || string.Equals(CurrentNodeId, "showRemainingQtyWrongHint", StringComparison.OrdinalIgnoreCase))
+        {
+            RewindOpToRemainingQtyInput();
+            var quotaErr = TryPickTraceSqlError("queryWireQuotaCheck");
+            return (false,
+                quotaErr ?? "剩余待焊芯片数量不正确（剩余产量不能大于待完工产量），请重新输入。",
+                FlowPauseReason.Error);
+        }
 
         if (result.Reason == FlowPauseReason.AwaitingAction
             && string.Equals(CurrentNodeId, "submitWireReturn", StringComparison.OrdinalIgnoreCase))
@@ -238,11 +316,15 @@ public sealed class FlowCoordinator
     /// <summary>步骤④：MES 归还提交并打开归还格口，暂停在关门。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpSubmitReturnToDoorClose()
     {
-        var result = AdvanceUntilPauseAutoAck(pauseBeforeDoorClose: true, endFlowOnTerminal: false);
+        var result = AdvanceUntilPauseAutoAck(
+            pauseBeforeNodeId: "closeReturnSlotDoor",
+            endFlowOnTerminal: false);
+        if (TraceHasReturnQtyReject())
+            return (false, PickReturnQtyRejectMessage(), FlowPauseReason.Error);
         if (!result.Ok)
             return result;
-        if (result.Reason == FlowPauseReason.AwaitingDoorClose)
-            return (true, "请放入归还焊丝并关闭格口。", result.Reason);
+        if (IsOpReturnDoorWaitPause(result.Reason, CurrentNodeId))
+            return (true, "请放入归还焊丝并关闭格口。", FlowPauseReason.AwaitingDoorClose);
         EndFlow();
         return (false, MapOpFlowMessage(), FlowPauseReason.Error);
     }
@@ -250,6 +332,7 @@ public sealed class FlowCoordinator
     /// <summary>归还格口已关：写库并推进到领用提交前。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpAfterReturnDoorClosed()
     {
+        _runner?.SetUserInput("closeReturnSlotDoor", new Dictionary<string, string> { ["closed"] = "true" });
         var result = AdvanceUntilPauseAutoAck(pauseBeforeNodeId: "submitWireIssue", endFlowOnTerminal: false);
         if (!result.Ok)
             return result;
@@ -263,11 +346,16 @@ public sealed class FlowCoordinator
     /// <summary>步骤⑤：MES 领用提交并打开领用格口，暂停在关门。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpSubmitIssueToDoorClose()
     {
-        var result = AdvanceUntilPauseAutoAck(pauseBeforeDoorClose: true, endFlowOnTerminal: false);
+        var result = AdvanceUntilPauseAutoAck(
+            pauseBeforeNodeId: "closeIssueSlotDoor",
+            endFlowOnTerminal: false);
         if (!result.Ok)
             return result;
-        if (result.Reason == FlowPauseReason.AwaitingDoorClose)
-            return (true, "请取出可用焊丝并关闭格口。", result.Reason);
+        if (IsOpIssueDoorWaitPause(result.Reason, CurrentNodeId))
+        {
+            SaveOpInterruptedIssueSnapshot();
+            return (true, "请取出可用焊丝并关闭格口。", FlowPauseReason.AwaitingDoorClose);
+        }
         EndFlow();
         return (false, MapOpFlowMessage(), FlowPauseReason.Error);
     }
@@ -275,9 +363,17 @@ public sealed class FlowCoordinator
     /// <summary>领用格口已关：完成流程。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpAfterIssueDoorClosed()
     {
+        _runner?.SetUserInput("closeIssueSlotDoor", new Dictionary<string, string> { ["closed"] = "true" });
         var result = AdvanceUntilPauseAutoAck(endFlowOnTerminal: true);
         if (result.Reason == FlowPauseReason.Terminal && result.Ok)
+        {
+            _app.OpInterruptedIssue.Clear();
             return (true, "领用已提交，流程完成。", result.Reason);
+        }
+
+        if (!result.Ok)
+            UpdateOpInterruptedProgressFromTrace();
+
         if (!result.Ok)
             return result;
         EndFlow();
@@ -317,6 +413,14 @@ public sealed class FlowCoordinator
         };
         _runner?.SetUserInput(nodeId, fields);
     }
+
+    private static bool IsOpReturnDoorWaitPause(FlowPauseReason reason, string? currentNodeId) =>
+        (reason == FlowPauseReason.AwaitingAction || reason == FlowPauseReason.UserInput)
+        && string.Equals(currentNodeId, "closeReturnSlotDoor", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOpIssueDoorWaitPause(FlowPauseReason reason, string? currentNodeId) =>
+        (reason == FlowPauseReason.AwaitingAction || reason == FlowPauseReason.UserInput)
+        && string.Equals(currentNodeId, "closeIssueSlotDoor", StringComparison.OrdinalIgnoreCase);
 
     private string MapOpFlowMessage() =>
         MapTerminalFailMessage(_runner?.Engine.Trace.LastOrDefault()?.NodeId);
@@ -393,14 +497,25 @@ public sealed class FlowCoordinator
         {
             if (result.Ok)
                 _app.InterruptedLoad.Clear();
+            else
+                UpdateMhInterruptedProgressFromTrace();
             return (true, result.Message, FlowPauseReason.Terminal);
         }
         if (!result.Ok)
+        {
+            UpdateMhInterruptedProgressFromTrace();
             return (false, result.Message, FlowPauseReason.Error);
+        }
         return (false, result.Message, result.Reason);
     }
 
-    private string MapTerminalFailMessage(string? nodeId) => nodeId switch
+    private string MapTerminalFailMessage(string? nodeId)
+    {
+        var mesMsg = TryPickMesSyncFailMessage();
+        if (!string.IsNullOrWhiteSpace(mesMsg))
+            return mesMsg;
+
+        return nodeId switch
     {
         "showOPIdNotExistsMessage" => "不存在该操作人员",
         "showOPIdMultipleRecordsMessage" => "操作员工号查询到多条记录，数据异常",
@@ -415,32 +530,120 @@ public sealed class FlowCoordinator
         "showNoReturnSlotAvailableMessage" => "无空闲归还格口，请转人工归还",
         "showOpenReturnSlotFailedMessage" => "无法打开归还格口，请检查柜门或联系维护",
         "showWireIssueFailMessage" => ResolveSubmitFailMessage("submitWireIssue", "领用提交失败"),
+        "showQueryWireByLotNoErrorMessage" => "查询可用焊丝信息失败，请稍后重试或联系维护",
+        "showQueryProductByLotNoErrorMessage" => "查询产品批次信息失败，请稍后重试或联系维护",
+        "showCheckProductInfoNotExistsMessage" => "未查询到有效产品信息，无法领用",
+        "showSubmitWireIssueErrorMessage" => ResolveSubmitFailMessage("submitWireIssue", "领用提交调用失败，请稍后重试"),
+        "showCheckSubmitWireIssueFailMessage" => ResolveSubmitFailMessage("submitWireIssue", "领用提交失败"),
+        "showOpenIssueSlotErrorMessage" => "无法打开领用格口，请检查柜门或联系维护",
+        "showUpdateIssueSlotAfterUnloadErrorMessage" => "领用格口库存更新失败，请联系维护",
         "showWireByLotNoMultipleRecordsMessage" => "焊丝批号查询到多条记录，数据异常",
         "showWireInfoNotExists" => "未查询到可用焊丝信息，无法领用",
-        "showWireQuotaCheckAbnormalMessage" => "查询实际与理论消耗差值异常，请转人工处理",
+        "showWireQuotaCheckAbnormalMessage" => TryPickTraceSqlError("queryWireQuotaCheck")
+            ?? "查询实际与理论消耗差值异常，请转人工处理",
         "showNoAvailableSlotMessage" => "无空闲格口",
         "showWireLotNoAlreadyInCabinetMessage" => BuildAlreadyInCabinetMessage(),
         _ => _runner?.PauseMessage ?? "流程未通过。"
-    };
+        };
+    }
+
+    private string? TryPickMesSyncFailMessage()
+    {
+        var entry = _runner?.Engine.Trace.LastOrDefault(t =>
+            t.Findings.Any(f => string.Equals(f.Category, WireMesDiscoMessages.FindingCategory, StringComparison.Ordinal)));
+        return entry?.Findings
+            .FirstOrDefault(f => string.Equals(f.Category, WireMesDiscoMessages.FindingCategory, StringComparison.Ordinal))
+            ?.Message;
+    }
+
+    private void SaveOpInterruptedIssueSnapshot()
+    {
+        var slotId = ToLong(GetField("queryMatchedAvailableWire.slot_id"));
+        var slotNo = GetField("queryMatchedAvailableWire.slot_no")?.ToString()?.Trim() ?? "";
+        var lot = GetField("queryMatchedAvailableWire.matched_available_wire_lot_no")?.ToString()?.Trim() ?? "";
+        if (slotId <= 0 || string.IsNullOrEmpty(slotNo) || string.IsNullOrEmpty(lot))
+            return;
+
+        _app.OpInterruptedIssue.Save(slotId, slotNo, lot, submitIssueDone: true);
+    }
+
+    private void UpdateOpInterruptedProgressFromTrace()
+    {
+        var pickupDone = TraceHasSuccessfulSql("app.slot.complete_issue_pickup");
+        var mesFail = TryPickMesSyncFailMessage() is not null;
+        var mesDone = pickupDone && !mesFail;
+        if (pickupDone || mesDone)
+            _app.OpInterruptedIssue.UpdateProgress(pickupDone: pickupDone, mesDiscoDone: mesDone);
+    }
+
+    private void UpdateMhInterruptedProgressFromTrace()
+    {
+        var bindDone = TraceHasSuccessfulSql("app.slot.bind_wire");
+        var mesFail = TryPickMesSyncFailMessage() is not null;
+        var mesDone = bindDone && !mesFail;
+        if (bindDone || mesDone)
+            _app.InterruptedLoad.UpdateProgress(bindDone: bindDone, mesDiscoDone: mesDone);
+    }
+
+    private bool TraceHasSuccessfulSql(string sqlId) =>
+        _runner?.Engine.Trace.Any(t =>
+            string.Equals(t.SqlId, sqlId, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(t.Outcome, "success", StringComparison.OrdinalIgnoreCase)) == true;
+
+    private bool TraceHasOutcome(string nodeId, string outcome) =>
+        _runner?.Engine.Trace.Any(t =>
+            string.Equals(t.NodeId, nodeId, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(t.Outcome, outcome, StringComparison.OrdinalIgnoreCase)) == true;
+
+    private string? GetLatestTraceOutcome(string nodeId) =>
+        _runner?.Engine.Trace.LastOrDefault(t =>
+            string.Equals(t.NodeId, nodeId, StringComparison.OrdinalIgnoreCase))?.Outcome;
+
+    private bool TraceHasReturnQtyReject() =>
+        string.Equals(GetLatestTraceOutcome("submitWireReturn"), "return_qty_reject", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(GetLatestTraceOutcome("checkSubmitWireReturnSuccess"), "return_qty_reject", StringComparison.OrdinalIgnoreCase);
+
+    private string PickReturnQtyRejectMessage()
+    {
+        var fromTrace = TryPickTraceSqlError("submitWireReturn");
+        if (!string.IsNullOrWhiteSpace(fromTrace) && FlowEngine.IsReturnQtyReject(fromTrace))
+            return fromTrace;
+
+        var submitResult = GetField("submitWireReturn.result")?.ToString();
+        if (!string.IsNullOrWhiteSpace(submitResult) && FlowEngine.IsReturnQtyReject(submitResult))
+            return submitResult;
+
+        return "归还数量不能大于产品待完工数量，请重新输入剩余芯片并校验。";
+    }
 
     private string ResolveSubmitFailMessage(string submitNodeId, string fallback)
     {
-        var pause = PickFlowErrorMessage(_runner?.PauseMessage, null, "");
-        if (!string.IsNullOrWhiteSpace(pause))
-            return pause;
-
-        var submitEntry = _runner?.Engine.Trace.LastOrDefault(t =>
-            string.Equals(t.NodeId, submitNodeId, StringComparison.OrdinalIgnoreCase));
-        var fromTrace = PickFlowErrorMessage(submitEntry?.Result, null, "");
+        var fromTrace = TryPickTraceSqlError(submitNodeId);
         if (!string.IsNullOrWhiteSpace(fromTrace))
             return fromTrace;
 
-        var submitResult = GetField($"{submitNodeId}.{MatTransResult.SubmitResultField}")?.ToString();
+        var submitResult = GetField($"{submitNodeId}.{MatTransResult.SubmitResultField}")?.ToString()
+                           ?? GetField($"{submitNodeId}.result")?.ToString();
         if (!string.IsNullOrWhiteSpace(submitResult) && !MatTransResult.IsSuccess(submitResult))
             return submitResult;
 
+        var pause = PickFlowErrorMessage(_runner?.PauseMessage, null, "");
+        if (!string.IsNullOrWhiteSpace(pause) && !IsTerminalPlaceholderMessage(pause))
+            return pause;
+
         return fallback;
     }
+
+    private string? TryPickTraceSqlError(string sqlNodeId)
+    {
+        var entry = _runner?.Engine.Trace.LastOrDefault(t =>
+            string.Equals(t.NodeId, sqlNodeId, StringComparison.OrdinalIgnoreCase));
+        var msg = NormalizeFlowError(entry?.Result);
+        return string.IsNullOrWhiteSpace(msg) ? null : msg;
+    }
+
+    private static bool IsTerminalPlaceholderMessage(string message) =>
+        message.StartsWith("提示:", StringComparison.Ordinal);
 
     private static string PickFlowErrorMessage(string? primary, string? secondary, string fallback)
     {

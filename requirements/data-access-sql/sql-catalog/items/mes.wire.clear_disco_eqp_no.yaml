@@ -1,0 +1,20 @@
+id: mes.wire.clear_disco_eqp_no
+title: 清除焊丝发货柜标记（DISCOEQPNO）
+system: MES
+operation: write
+dialect: oracle
+risk_level: medium
+status: verified
+datasource: mes.oracle.main
+purpose: 可用焊丝离开发货柜后，将 MES fw_material_indetail.DISCOEQPNO 置 NULL。
+inputs:
+  - name: sublot
+    type: string
+    required: true
+    source: 焊丝批号 wire_lot_no
+sql: |
+  UPDATE fw_material_indetail
+  SET DISCOEQPNO = NULL
+  WHERE sublot = :sublot
+result_cardinality: write
+business_rule: 幂等；重复 NULL 视为成功。仅在 available_wire 清格成功后调用。

@@ -43,6 +43,9 @@ public sealed class SqliteMockMesGateway : IMesGateway
         if (item.Operation == SqlOperation.Function)
             return RunFunctionMock(item);
 
+        if (item.Operation == SqlOperation.Write)
+            return _db.Execute(item.Sql, parameters);
+
         return _db.Query(item.Sql, parameters);
     }
 
@@ -146,6 +149,10 @@ public sealed class OracleMesGateway : IMesGateway
                         result.RowsAffected = 1;
                     }
                 }
+            }
+            else if (item.Operation == SqlOperation.Write)
+            {
+                result.RowsAffected = cmd.ExecuteNonQuery();
             }
             else
             {

@@ -15,6 +15,7 @@ public sealed class MhDoorOnlyService
     private readonly IWireOperationSession _session;
     private readonly WireCabinet.Data.IAppDb _appDb;
     private readonly WireCabinet.Data.SqlCatalog _catalog;
+    private readonly WireCabinet.Data.IWireDiscoEqpSync? _discoSync;
     private readonly HashSet<long> _openedInSession = new();
     private readonly object _trackGate = new();
 
@@ -27,12 +28,14 @@ public sealed class MhDoorOnlyService
         ISlotControlService slots,
         IWireOperationSession session,
         WireCabinet.Data.IAppDb appDb,
-        WireCabinet.Data.SqlCatalog catalog)
+        WireCabinet.Data.SqlCatalog catalog,
+        WireCabinet.Data.IWireDiscoEqpSync? discoSync = null)
     {
         _slots = slots;
         _session = session;
         _appDb = appDb;
         _catalog = catalog;
+        _discoSync = discoSync;
     }
 
     public bool HasActiveSession => _session.HasActiveSession;
@@ -96,11 +99,25 @@ public sealed class MhDoorOnlyService
 
     private Task AssumeEmptyAsync(long slotId, CancellationToken ct)
     {
+        string? clearLot = null;
+        var invItem = _catalog.Find("app.slot.get_inventory");
+        if (invItem is not null)
+        {
+            var inv = _appDb.Run(invItem, new Dictionary<string, object?> { ["slot_id"] = slotId });
+            var row = inv.First;
+            if (row is not null
+                && string.Equals(row.GetValueOrDefault("biz_state")?.ToString(), "available_wire", StringComparison.OrdinalIgnoreCase))
+                clearLot = row.GetValueOrDefault("wire_lot_no")?.ToString()?.Trim();
+        }
+
         var item = _catalog.Find("app.slot.assume_empty");
         if (item is null)
             return Task.CompletedTask;
 
-        _appDb.Run(item, new Dictionary<string, object?> { ["slot_id"] = slotId });
+        var result = _appDb.Run(item, new Dictionary<string, object?> { ["slot_id"] = slotId });
+        if (!result.HasError && !string.IsNullOrEmpty(clearLot))
+            _discoSync?.TryClearFromCabinet(clearLot, WireCabinet.Data.WireMesDiscoFailureKind.Inline);
+
         return Task.CompletedTask;
     }
 

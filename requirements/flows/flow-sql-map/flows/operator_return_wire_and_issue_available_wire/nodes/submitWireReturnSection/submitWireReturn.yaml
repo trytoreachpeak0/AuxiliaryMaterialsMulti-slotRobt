@@ -83,5 +83,8 @@ input_mappings:
 outcome_routing:
   single:
     next: checkSubmitWireReturnSuccess
+  return_qty_reject:
+    next: showRemainingQtyWrongHint
+    note: ORA-20007 且文案含归还数量不能大于产品待完工数量时回环重输剩余芯片。
   error:
     next: showWireReturnFailMessage

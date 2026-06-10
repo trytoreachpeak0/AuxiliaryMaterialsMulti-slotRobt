@@ -72,6 +72,9 @@
                     <RadioButton x:Name="RbMaint" Content="维护 MAINT" GroupName="Role"
                                  Style="{StaticResource RoleTabButton}"
                                  Checked="RbMaint_Checked"/>
+                    <RadioButton x:Name="RbMesRecon" Content="MES 对账" GroupName="Role"
+                                 Style="{StaticResource RoleTabButton}"
+                                 Checked="RbMesRecon_Checked"/>
                     <RadioButton x:Name="RbAgv" Content="控车 AGV" GroupName="Role"
                                  Style="{StaticResource RoleTabButton}"
                                  Checked="RbAgv_Checked"/>

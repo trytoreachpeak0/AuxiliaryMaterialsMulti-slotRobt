@@ -4,7 +4,9 @@ node_text: 焊丝信息存入应用数据库，更新格口业务信息
 access_type: application_db
 catalog_status: pending_catalog
 sql_ids: []
-business_meaning: 在物料员关闭格口门后，将可用焊丝和格口绑定并更新格口业务状态。
+business_meaning: >-
+  在物料员关闭格口门后，将可用焊丝和格口绑定并更新格口业务状态。
+  代码挂接：bind_wire 成功后 SET MES fw_material_indetail.DISCOEQPNO（见 MES-DISCOEQPNO-同步.md）。
 output_fields:
   - name: rows_affected
     source_type: sql_catalog

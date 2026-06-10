@@ -4,7 +4,9 @@ node_text: 更新领用格口库存（已取出）
 access_type: application_db
 catalog_status: pending_catalog
 sql_ids: []
-business_meaning: 关门后将领用格口置为 idle 并清空焊丝绑定（柜内该卷已领走）。
+business_meaning: >-
+  关门后将领用格口置为 idle 并清空焊丝绑定（柜内该卷已领走）。
+  代码挂接：complete_issue_pickup 成功后 CLEAR MES DISCOEQPNO（原 available_wire 时）。
 output_fields:
   - name: rows_affected
     source_type: sql_catalog
@@ -20,5 +22,5 @@ outcome_routing:
   success:
     next: End
   error:
-    next: showWireIssueFailMessage
+    next: showUpdateIssueSlotAfterUnloadErrorMessage
     note: 库存更新失败；执行异常由应用层统一提示。

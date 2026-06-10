@@ -1,0 +1,24 @@
+id: mes.wire.set_disco_eqp_no
+title: 标记焊丝已进入发货柜（DISCOEQPNO）
+system: MES
+operation: write
+dialect: oracle
+risk_level: medium
+status: verified
+datasource: mes.oracle.main
+purpose: 可用焊丝存入发货柜后，将 MES fw_material_indetail.DISCOEQPNO 更新为当前小车标识。
+inputs:
+  - name: sublot
+    type: string
+    required: true
+    source: 焊丝批号 wire_lot_no
+  - name: disco_eqp_no
+    type: string
+    required: true
+    source: Mes:MatTransWriter（小车名）
+sql: |
+  UPDATE fw_material_indetail
+  SET DISCOEQPNO = :disco_eqp_no
+  WHERE sublot = :sublot
+result_cardinality: write
+business_rule: 幂等；重复 SET 同值视为成功。仅对可用焊丝流程在 bind_wire 成功后调用。

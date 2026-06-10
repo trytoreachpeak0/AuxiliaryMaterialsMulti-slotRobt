@@ -50,6 +50,7 @@ public partial class OpView : UserControl
             App.SlotHardwarePoll.Start();
         if (Window.GetWindow(this) is MainWindow mw)
             mw.AgvPollUpdated += OnAgvPollUpdated;
+        _lastOpPageAllowed = App.UiGate.CanUseOpPage;
         if (App.UiGate.CanUseOpPage)
             FocusStationPrimaryInput();
     }
@@ -72,9 +73,6 @@ public partial class OpView : UserControl
             if (_lastOpPageAllowed != allowed)
             {
                 _lastOpPageAllowed = allowed;
-                var reason = App.UiGate.GetStationBlockReason("OP");
-                if (!string.IsNullOrEmpty(reason))
-                    SetStatus(reason);
                 if (allowed)
                     FocusStationPrimaryInput();
             }
@@ -87,6 +85,23 @@ public partial class OpView : UserControl
     {
         if (Window.GetWindow(this) is MainWindow mw)
             mw.SetStatus(message);
+    }
+
+    private void ShowFlowError(string message, TextBox? refocus = null, bool selectAll = true, bool? forceManualReturn = null)
+    {
+        var display = FormatOpErrorForDialog(message, forceManualReturn);
+        SetStatus(display);
+        if (Window.GetWindow(this) is Window owner)
+            FlowErrorDialog.Show(owner, display);
+        if (refocus != null)
+            FocusInputDeferred(refocus, selectAll);
+    }
+
+    private string FormatOpErrorForDialog(string message, bool? forceManualReturn)
+    {
+        if (forceManualReturn == true || (forceManualReturn != false && App.Flows.ShouldAppendManualReturnGuidance(message)))
+            return FlowCoordinator.AppendManualReturnGuidance(message);
+        return message;
     }
 
     private void ApplyStepGating()
@@ -235,14 +250,14 @@ public partial class OpView : UserControl
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法校验操作员。");
+            ShowFlowError("MES 未配置，无法校验操作员。", OpIdBox);
             return;
         }
 
         var (allowed, gateMsg) = await OpStationAccess.CanRunOpFlowAsync();
         if (!allowed)
         {
-            SetStatus(gateMsg);
+            ShowFlowError(gateMsg, OpIdBox);
             return;
         }
 
@@ -251,7 +266,7 @@ public partial class OpView : UserControl
         {
             if (!App.Flows.TryBeginFlow(flowId, out var beginMsg))
             {
-                SetStatus(beginMsg);
+                ShowFlowError(beginMsg, OpIdBox);
                 return;
             }
             _flowStarted = true;
@@ -269,7 +284,7 @@ public partial class OpView : UserControl
                 return (false, msg);
             }
 
-            if (reason != FlowPauseReason.UserInput)
+            if (reason != FlowPauseReason.UserInput && reason != FlowPauseReason.AwaitingAction)
             {
                 _flowStarted = false;
                 return (false, msg.Length > 0 ? msg : "操作员校验未通过。");
@@ -300,19 +315,19 @@ public partial class OpView : UserControl
         var lot = WireLotBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(lot))
         {
-            SetStatus("请输入焊丝批号。");
+            ShowFlowError("请输入焊丝批号。", WireLotBox);
             return;
         }
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法查询焊丝。");
+            ShowFlowError("MES 未配置，无法查询焊丝。", WireLotBox);
             return;
         }
 
         if (!App.Flows.IsFlowActive)
         {
-            SetStatus("请先完成操作员校验。");
+            ShowFlowError("请先完成操作员校验。", WireLotBox);
             return;
         }
 
@@ -357,13 +372,13 @@ public partial class OpView : UserControl
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法校验机台。");
+            ShowFlowError("MES 未配置，无法校验机台。", EqpNoBox);
             return;
         }
 
         if (!App.Flows.IsFlowActive)
         {
-            SetStatus("请先完成焊丝批号查询。");
+            ShowFlowError("请先完成焊丝批号查询。", EqpNoBox);
             return;
         }
 
@@ -399,20 +414,19 @@ public partial class OpView : UserControl
     {
         if (!int.TryParse(RemainingQtyBox.Text, out _))
         {
-            SetStatus("剩余芯片数须为整数。");
-            FocusInputDeferred(RemainingQtyBox);
+            ShowFlowError("剩余芯片数须为整数。", RemainingQtyBox);
             return;
         }
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法校验用量。");
+            ShowFlowError("MES 未配置，无法校验用量。", RemainingQtyBox);
             return;
         }
 
         if (!App.Flows.IsFlowActive)
         {
-            SetStatus("请先完成机台校验。");
+            ShowFlowError("请先完成机台校验。", RemainingQtyBox);
             return;
         }
 
@@ -447,13 +461,13 @@ public partial class OpView : UserControl
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法提交归还。");
+            ShowFlowError("MES 未配置，无法提交归还。");
             return;
         }
 
         if (!App.Flows.IsFlowActive)
         {
-            SetStatus("请先完成用量校验。");
+            ShowFlowError("请先完成用量校验。");
             return;
         }
 
@@ -462,14 +476,34 @@ public partial class OpView : UserControl
             var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpSubmitReturnToDoorClose());
             if (!ok)
             {
-                ShowReturnResult(false, ResolveSubmitFailureMessage("submitWireReturn", msg));
-                return (false, msg);
+                var failMsg = ResolveSubmitFailureMessage("submitWireReturn", msg);
+                if (FlowCoordinator.IsReturnQtyRejectMessage(failMsg))
+                {
+                    ResetFromStep(3);
+                    ClearQuotaResults();
+                    ClearReturnResult();
+                    FocusInputDeferred(RemainingQtyBox);
+                    return (false, failMsg);
+                }
+
+                ShowReturnResult(false, failMsg);
+                return (false, failMsg);
             }
 
             if (reason != FlowPauseReason.AwaitingDoorClose)
             {
-                ShowReturnResult(false, ResolveSubmitFailureMessage("submitWireReturn", msg));
-                return (false, msg);
+                var failMsg = ResolveSubmitFailureMessage("submitWireReturn", msg);
+                if (FlowCoordinator.IsReturnQtyRejectMessage(failMsg))
+                {
+                    ResetFromStep(3);
+                    ClearQuotaResults();
+                    ClearReturnResult();
+                    FocusInputDeferred(RemainingQtyBox);
+                    return (false, failMsg);
+                }
+
+                ShowReturnResult(false, failMsg);
+                return (false, failMsg);
             }
 
             _returnSlotId = ParseSlotId(App.Flows.GetField("findReturnSlot.return_slot_id"));
@@ -495,13 +529,13 @@ public partial class OpView : UserControl
 
         if (!App.Bootstrap.MesReady)
         {
-            SetStatus("MES 未配置，无法提交领用。");
+            ShowFlowError("MES 未配置，无法提交领用。");
             return;
         }
 
         if (!App.Flows.IsFlowActive)
         {
-            SetStatus("请先完成归还焊丝存入。");
+            ShowFlowError("请先完成归还焊丝存入。");
             return;
         }
 
@@ -510,14 +544,16 @@ public partial class OpView : UserControl
             var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpSubmitIssueToDoorClose());
             if (!ok)
             {
-                ShowIssueResult(false, ResolveSubmitFailureMessage("submitWireIssue", msg));
-                return (false, msg);
+                var failMsg = ResolveSubmitFailureMessage("submitWireIssue", msg);
+                ShowIssueResult(false, failMsg);
+                return (false, failMsg);
             }
 
             if (reason != FlowPauseReason.AwaitingDoorClose)
             {
-                ShowIssueResult(false, ResolveSubmitFailureMessage("submitWireIssue", msg));
-                return (false, msg);
+                var failMsg = ResolveSubmitFailureMessage("submitWireIssue", msg);
+                ShowIssueResult(false, failMsg);
+                return (false, failMsg);
             }
 
             _issueSlotId = ParseSlotId(App.Flows.GetField("queryMatchedAvailableWire.slot_id"));
@@ -616,10 +652,11 @@ public partial class OpView : UserControl
             if (!ok)
             {
                 ShowDoorPhaseFailure(msg);
-                SetStatus(msg);
+                ShowFlowError(msg, forceManualReturn: true);
                 App.Flows.EndFlow();
                 _flowStarted = false;
                 _doorPhase = DoorWaitPhase.None;
+                FocusStationPrimaryInput();
                 return false;
             }
 
@@ -629,10 +666,11 @@ public partial class OpView : UserControl
         {
             var message = $"操作失败：{ex.Message}";
             ShowDoorPhaseFailure(message);
-            SetStatus(message);
+            ShowFlowError(message, forceManualReturn: true);
             App.Flows.EndFlow();
             _flowStarted = false;
             _doorPhase = DoorWaitPhase.None;
+            FocusStationPrimaryInput();
             return false;
         }
         finally
@@ -747,13 +785,14 @@ public partial class OpView : UserControl
         {
             var (ok, msg) = await action();
             succeeded = ok;
-            SetStatus(msg);
-            if (!ok && refocusOnFailure != null)
-                FocusInputDeferred(refocusOnFailure);
+            if (!ok)
+                ShowFlowError(msg, refocusOnFailure);
+            else
+                SetStatus(msg);
         }
         catch (Exception ex)
         {
-            SetStatus($"操作失败：{ex.Message}");
+            ShowFlowError($"操作失败：{ex.Message}", refocusOnFailure);
         }
         finally
         {
@@ -850,14 +889,31 @@ public partial class OpView : UserControl
     }
 
     private void ShowReturnResult(bool success, string message) =>
-        ShowStepResult(ReturnResultPanel, ReturnResultText, success, message);
+        ShowStepResult(ReturnResultPanel, ReturnResultText, success,
+            success ? message : FlowCoordinator.AppendManualReturnGuidance(message),
+            singleLine: !success);
 
     private void ShowIssueResult(bool success, string message) =>
-        ShowStepResult(IssueResultPanel, IssueResultText, success, message);
+        ShowStepResult(IssueResultPanel, IssueResultText, success,
+            success ? message : FlowCoordinator.AppendManualReturnGuidance(message),
+            singleLine: !success);
 
-    private static void ShowStepResult(Border panel, TextBlock textBlock, bool success, string message)
+    private static string FormatStepPanelMessage(string message)
     {
-        textBlock.Text = string.IsNullOrWhiteSpace(message) ? "—" : message;
+        if (string.IsNullOrWhiteSpace(message))
+            return message;
+
+        var line = message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
+        return string.IsNullOrWhiteSpace(line) ? message.Trim() : line;
+    }
+
+    private static void ShowStepResult(Border panel, TextBlock textBlock, bool success, string message, bool singleLine = false)
+    {
+        var display = string.IsNullOrWhiteSpace(message) ? "—" : singleLine ? FormatStepPanelMessage(message) : message;
+        textBlock.Text = display;
+        textBlock.ToolTip = singleLine && message.Contains('\n', StringComparison.Ordinal)
+            ? message
+            : null;
         panel.Visibility = Visibility.Visible;
         if (success)
         {

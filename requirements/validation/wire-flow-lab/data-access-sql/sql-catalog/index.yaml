@@ -30,6 +30,8 @@ sql_items_index:
     path: items/app.slot.list_by_filter.yaml
   - id: app.slot.are_all_doors_closed
     path: items/app.slot.are_all_doors_closed.yaml
+  - id: app.slot.get_inventory
+    path: items/app.slot.get_inventory.yaml
   # MES mock（SQLite 等价；Oracle 原生见 oracle_sql）
   - id: mes_mock.operator.get_by_id
     path: items/mes_mock.operator.get_by_id.yaml
@@ -45,3 +47,11 @@ sql_items_index:
     path: items/mes_mock.wire_quota.check_quota.yaml
   - id: mes_mock.mat_trans.submit_return
     path: items/mes_mock.mat_trans.submit_return.yaml
+  - id: mes_mock.wire.set_disco_eqp_no
+    path: items/mes_mock.wire.set_disco_eqp_no.yaml
+  - id: mes_mock.wire.clear_disco_eqp_no
+    path: items/mes_mock.wire.clear_disco_eqp_no.yaml
+  - id: mes_mock.wire.query_disco_by_lot
+    path: items/mes_mock.wire.query_disco_by_lot.yaml
+  - id: mes_mock.wire.list_by_disco_eqp_no
+    path: items/mes_mock.wire.list_by_disco_eqp_no.yaml

@@ -1,0 +1,17 @@
+id: mes_mock.wire.set_disco_eqp_no
+mirrors: mes.wire.set_disco_eqp_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: write
+business_meaning: mock 模式标记焊丝在柜（v_fw_material_indetail.DISCOEQPNO）。
+sql: |
+  UPDATE v_fw_material_indetail
+  SET DISCOEQPNO = :disco_eqp_no
+  WHERE sublot = :sublot
+oracle_sql: |
+  UPDATE fw_material_indetail
+  SET DISCOEQPNO = :disco_eqp_no
+  WHERE sublot = :sublot
+params:
+  - name: sublot
+  - name: disco_eqp_no

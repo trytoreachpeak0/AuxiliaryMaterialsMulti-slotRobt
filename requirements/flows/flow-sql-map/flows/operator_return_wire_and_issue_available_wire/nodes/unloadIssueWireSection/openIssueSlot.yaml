@@ -20,5 +20,5 @@ outcome_routing:
   success:
     next: showUnloadWireAndCloseDoorMessage
   error:
-    next: showWireIssueFailMessage
+    next: showOpenIssueSlotErrorMessage
     note: 开门失败；执行异常由应用层统一提示。

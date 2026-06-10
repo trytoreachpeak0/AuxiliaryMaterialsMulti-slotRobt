@@ -1,0 +1,16 @@
+id: mes.wire.query_disco_by_lot
+title: 查询焊丝 DISCOEQPNO
+system: MES
+operation: read
+dialect: oracle
+datasource: mes.oracle.main
+purpose: 对账：按 sublot 读取 DISCOEQPNO。
+inputs:
+  - name: sublot
+    type: string
+    required: true
+sql: |
+  SELECT sublot, DISCOEQPNO
+  FROM fw_material_indetail
+  WHERE sublot = :sublot
+result_cardinality: 0..1

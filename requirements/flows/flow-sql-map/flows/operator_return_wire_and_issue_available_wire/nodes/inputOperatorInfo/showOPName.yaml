@@ -1,0 +1,9 @@
+subgraph_id: inputOperatorInfo
+node_id: showOPName
+node_text: 显示操作人员姓名
+access_type: ui_message
+sql_ids: []
+business_meaning: 操作员校验通过后展示 MES 查询到的姓名，随后进入归还焊丝批号输入。
+outcome_routing:
+  success:
+    next: inputReturnedWireLotNo

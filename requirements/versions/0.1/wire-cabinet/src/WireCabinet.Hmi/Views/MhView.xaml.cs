@@ -56,6 +56,7 @@ public partial class MhView : UserControl
         RefreshSlotPanel(reloadFromDb: true);
         ApplyPageAccess();
         FocusStationPrimaryInput();
+        _lastMhPageAllowed = App.UiGate.CanUseMhPage;
         if (Window.GetWindow(this) is MainWindow mw)
             mw.AgvPollUpdated += OnAgvPollUpdated;
     }
@@ -72,6 +73,20 @@ public partial class MhView : UserControl
             mw.AgvPollUpdated -= OnAgvPollUpdated;
     }
 
+    private void SetStatus(string message)
+    {
+        if (Window.GetWindow(this) is MainWindow mw)
+            mw.SetStatus(message);
+    }
+
+    private void ShowFlowError(string message, bool selectAll = false)
+    {
+        SetStatus(message);
+        if (Window.GetWindow(this) is Window owner)
+            FlowErrorDialog.Show(owner, message);
+        FocusWireLotBoxDeferred(selectAll);
+    }
+
     private void OnAgvPollUpdated()
     {
         Dispatcher.Invoke(() =>
@@ -80,9 +95,6 @@ public partial class MhView : UserControl
             if (_lastMhPageAllowed != allowed)
             {
                 _lastMhPageAllowed = allowed;
-                var reason = App.UiGate.GetStationBlockReason("MH");
-                if (!string.IsNullOrEmpty(reason))
-                    SetStatus(reason);
                 if (allowed)
                     FocusStationPrimaryInput();
             }
@@ -257,28 +269,24 @@ public partial class MhView : UserControl
         var lot = WireLotBox.Text.Trim();
         if (string.IsNullOrEmpty(lot))
         {
-            SetStatus("请输入焊丝批号。");
-            FocusWireLotBoxDeferred();
+            ShowFlowError("请输入焊丝批号。");
             return;
         }
 
         SyncOperationBlockState(reloadDb: true);
         if (IsBlockedByOpenDoorsForNewOperations())
         {
-            SetStatus(_operationBlock.Message);
-            FocusWireLotBoxDeferred();
+            ShowFlowError(_operationBlock.Message);
             return;
         }
 
         var (allowed, gateMsg) = await MhStationAccess.CanRunLoadWireFlowAsync();
         if (!allowed)
         {
-            SetStatus(gateMsg);
-            FocusWireLotBoxDeferred();
+            ShowFlowError(gateMsg);
             return;
         }
 
-        var focusSelectAll = false;
         _depositInProgress = true;
         DepositActionBtn.IsEnabled = false;
         WireLotBox.IsEnabled = false;
@@ -298,15 +306,14 @@ public partial class MhView : UserControl
                 WireErrorText.Visibility = Visibility.Visible;
                 WireInfoPanel.Visibility = Visibility.Collapsed;
                 App.Flows.EndFlow();
-                SetStatus(message);
-                focusSelectAll = ShouldSelectAllOnDepositFailure(message);
+                ShowFlowError(message, ShouldSelectAllOnDepositFailure(message));
                 return;
             }
 
             if (reason != FlowPauseReason.AwaitingDoorClose)
             {
-                SetStatus(message);
                 App.Flows.EndFlow();
+                ShowFlowError(message);
                 return;
             }
 
@@ -339,7 +346,7 @@ public partial class MhView : UserControl
         catch (Exception ex)
         {
             App.Flows.EndFlow();
-            SetStatus($"存料失败：{ex.Message}");
+            ShowFlowError($"存料失败：{ex.Message}");
         }
         finally
         {
@@ -347,8 +354,6 @@ public partial class MhView : UserControl
             WireLotBox.IsEnabled = App.UiGate.CanUseMhPage && _depositPhase != DepositPhase.WaitingClose;
             ApplyDepositButtonLabel();
             ApplyPageAccess();
-            if (_depositPhase == DepositPhase.Idle)
-                FocusWireLotBoxDeferred(focusSelectAll);
         }
     }
 
@@ -395,15 +400,14 @@ public partial class MhView : UserControl
             }
             else if (!ok)
             {
-                SetStatus(message);
                 App.Flows.EndFlow();
-                ResetDepositUi(keepLotText: true, refocusInput: true);
+                ResetDepositUi(keepLotText: true);
+                ShowFlowError(message, ShouldSelectAllOnDepositFailure(message));
             }
         }
         catch (Exception ex)
         {
-            SetStatus($"写库失败：{ex.Message}");
-            FocusWireLotBoxDeferred();
+            ShowFlowError($"写库失败：{ex.Message}");
         }
         finally
         {
@@ -724,11 +728,4 @@ public partial class MhView : UserControl
         if (BtnOpenSelected.Visibility == Visibility.Visible)
             BtnOpenSelected.IsEnabled = enabled;
     }
-
-    private void SetStatus(string message)
-    {
-        if (Window.GetWindow(this) is MainWindow mw)
-            mw.SetStatus(message);
-    }
-
 }

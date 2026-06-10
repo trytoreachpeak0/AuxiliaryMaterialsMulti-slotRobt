@@ -179,6 +179,15 @@ public sealed class FlowEngine
 
         var (passed, detail) = Evaluate(node.Check, node, findings);
         var key = passed ? "yes" : "no";
+        if (!passed
+            && string.Equals(node.Id, "checkSubmitWireReturnSuccess", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(node.Check?.Kind, "submit_success", StringComparison.OrdinalIgnoreCase))
+        {
+            var submitResult = Context!.GetRef(node.Check!.Ref ?? "")?.ToString();
+            if (IsReturnQtyReject(submitResult))
+                key = "return_qty_reject";
+        }
+
         var (next, routeFindings) = Route(node, key);
         findings.AddRange(routeFindings);
         return Build(node, key, next, sql, $"判定[{node.Check?.Kind}] => {(passed ? "是" : "否")} ({detail})", findings,
@@ -225,6 +234,10 @@ public sealed class FlowEngine
         Context!.NodeResults[node.Id] = result.First ?? new(StringComparer.OrdinalIgnoreCase);
 
         var key = result.HasError ? "error" : "success";
+        if (string.Equals(node.Id, "submitWireReturn", StringComparison.OrdinalIgnoreCase)
+            && result.HasError && IsReturnQtyReject(result.Error))
+            key = "return_qty_reject";
+
         var (next, routeFindings) = Route(node, key);
         findings.AddRange(routeFindings);
 
@@ -232,8 +245,12 @@ public sealed class FlowEngine
             ? $"错误: {result.Error}"
             : (result.First is not null ? RowText(result.First) : $"影响 {result.RowsAffected} 行");
 
+        var status = string.Equals(key, "return_qty_reject", StringComparison.OrdinalIgnoreCase)
+            ? Severity.Warning
+            : result.HasError ? Severity.Error : Severity.Info;
+
         return Build(node, key, next, result.RenderedSql, resultText, findings,
-            result.HasError ? Severity.Error : Severity.Info, parameters);
+            status, parameters);
     }
 
     private TraceEntry ExecSlotOpen(FlowNode node)
@@ -393,6 +410,11 @@ public sealed class FlowEngine
     private static bool IsQuotaReject(string? error) =>
         !string.IsNullOrWhiteSpace(error)
         && error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
+
+    internal static bool IsReturnQtyReject(string? text) =>
+        !string.IsNullOrWhiteSpace(text)
+        && text.Contains("归还数量", StringComparison.OrdinalIgnoreCase)
+        && text.Contains("不能大于产品待完工数量", StringComparison.OrdinalIgnoreCase);
 
     // ---------- 参数与取值 ----------
 

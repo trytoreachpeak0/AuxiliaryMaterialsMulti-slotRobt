@@ -14,7 +14,7 @@ decision_rule:
   normalized_result:
     null_value: SUCCESS
     non_null_value: original_string
-    source_text: 对应代码 `resultParam.Value != null ? resultParam.Value.ToString() : "SUCCESS"`。
+    source_text: '对应代码 resultParam.Value != null ? resultParam.Value.ToString() : "SUCCESS"。'
   success_when:
     - condition: equals_after_normalize
       value: SUCCESS
@@ -25,5 +25,8 @@ decision_rule:
 outcome_routing:
   yes:
     next: showWireReturnSuccessMessage
+  return_qty_reject:
+    next: showRemainingQtyWrongHint
+    note: result 文本含归还数量不能大于产品待完工数量时回环重输剩余芯片。
   no:
     next: showWireReturnFailMessage

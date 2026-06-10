@@ -28,8 +28,15 @@
 | 机台号多条记录 | MES 同一机台号返回多行 | `showEqpNoMultipleRecordsMessage` |
 | 配额校验失败（数量有误） | MES 配额错误填 `ORA-20007: 剩余产量不能大于待完工产量！` | `showRemainingQtyWrongHint` 后回到 `inputRemainingQty` 重输 |
 | 用量差值查询异常 | MES 返回空结果、其他 ORA-20007 或连接错误 | `showWireQuotaCheckAbnormalMessage`（转人工） |
-| 归还提交失败 | MES 提交结果填 `库存不足` 等业务错误文本 | `showWireReturnFailMessage`（界面展示该文本） |
-| 领用提交失败 | 归还成功后把提交结果改为具体错误文本再继续 | `showWireIssueFailMessage`（界面展示该文本） |
+| 归还数量大于待完工数量 | MES 归还提交抛 `ORA-20007:归还数量1000不能大于产品待完工数量0!` 或 result 含同文案 | `return_qty_reject` → `showRemainingQtyWrongHint` → `inputRemainingQty`（wire-cabinet 回步骤④重输并重新校验） |
+| 归还提交失败 | MES 提交结果填 `库存不足` 等业务错误文本 | `showWireReturnFailMessage`（界面展示该文本，单行截断） |
+| 领用提交调用失败 | 归还成功后 MES 函数调用异常（error） | `showSubmitWireIssueErrorMessage` |
+| 领用提交校验未通过 | 归还成功后把提交结果改为具体错误文本再继续 | `showCheckSubmitWireIssueFailMessage`（界面展示该文本） |
+| 查询可用焊丝信息异常 | `queryWireByLotNo` MES 查询 error | `showQueryWireByLotNoErrorMessage` |
+| 查询产品批次信息异常 | `queryProductByLotNo` MES 查询 error | `showQueryProductByLotNoErrorMessage` |
+| 产品信息校验不通过 | 产品 qty/step 为空 | `showCheckProductInfoNotExistsMessage` |
+| 无法打开领用格口 | `openIssueSlot` error | `showOpenIssueSlotErrorMessage` |
+| 领用格口库存更新失败 | `updateIssueSlotAfterUnload` error | `showUpdateIssueSlotAfterUnloadErrorMessage` |
 | 可用焊丝批号多条记录 | MES 同一批号返回多行 | `showWireByLotNoMultipleRecordsMessage` |
 | 可用焊丝信息不存在 | MES 查无领用焊丝信息（empty） | `showWireInfoNotExists` |
 
@@ -38,3 +45,4 @@
 - 最近产品批号判定恒为 yes（见 findings F-1）。
 - 归还/领用物理开门步骤已写入 formal `flow-sql-map` 与 lab `flow.yaml`（findings F-3 已关闭）。
 - 仅「剩余产量不能大于待完工产量」走 `quota_reject` → `showRemainingQtyWrongHint` 回环；其他异常走 `showWireQuotaCheckAbnormalMessage`。
+- 归还提交时「归还数量…不能大于产品待完工数量」走 `return_qty_reject` → `showRemainingQtyWrongHint` 回环（与步骤④配额错误共用提示节点，文案不同）。

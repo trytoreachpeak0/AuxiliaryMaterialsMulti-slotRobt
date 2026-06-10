@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS v_fw_material_indetail (
     shelflife TEXT,
     matlot    TEXT,
     qty       REAL,
-    state     TEXT
+    state     TEXT,
+    DISCOEQPNO TEXT
 );
 
 CREATE TABLE IF NOT EXISTS fw_eqpres_eqpinformation (

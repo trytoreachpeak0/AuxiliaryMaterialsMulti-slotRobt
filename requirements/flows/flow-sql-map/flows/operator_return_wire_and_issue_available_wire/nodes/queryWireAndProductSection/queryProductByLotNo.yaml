@@ -26,4 +26,4 @@ outcome_routing:
     next: checkProductInfoExists
     note: 聚合查询可能返回 qty/step 为空，应用侧需按空值判断产品不存在。
   error:
-    next: showProductInfoNotExists
+    next: showQueryProductByLotNoErrorMessage

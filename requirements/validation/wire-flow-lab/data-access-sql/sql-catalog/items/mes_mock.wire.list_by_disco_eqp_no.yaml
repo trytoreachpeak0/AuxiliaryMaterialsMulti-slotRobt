@@ -1,0 +1,16 @@
+id: mes_mock.wire.list_by_disco_eqp_no
+mirrors: mes.wire.list_by_disco_eqp_no
+dialect: sqlite
+datasource: mes.mock.sqlite
+operation: read
+business_meaning: mock 模式按 DISCOEQPNO 列出批号。
+sql: |
+  SELECT sublot, DISCOEQPNO
+  FROM v_fw_material_indetail
+  WHERE DISCOEQPNO = :disco_eqp_no
+oracle_sql: |
+  SELECT sublot, DISCOEQPNO
+  FROM fw_material_indetail
+  WHERE DISCOEQPNO = :disco_eqp_no
+params:
+  - name: disco_eqp_no

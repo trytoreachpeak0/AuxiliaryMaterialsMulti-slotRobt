@@ -1,0 +1,16 @@
+id: mes.wire.list_by_disco_eqp_no
+title: 按 DISCOEQPNO 列出在柜批号
+system: MES
+operation: read
+dialect: oracle
+datasource: mes.oracle.main
+purpose: 对账：列出 MES 侧标记为当前小车的 sublot。
+inputs:
+  - name: disco_eqp_no
+    type: string
+    required: true
+sql: |
+  SELECT sublot, DISCOEQPNO
+  FROM fw_material_indetail
+  WHERE DISCOEQPNO = :disco_eqp_no
+result_cardinality: 0..n

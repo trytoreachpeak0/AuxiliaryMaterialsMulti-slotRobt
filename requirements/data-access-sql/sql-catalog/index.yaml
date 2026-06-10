@@ -16,5 +16,15 @@ sql_items_index:
     path: items/mes.wire_quota.check_quota.yaml
   - id: mes.mat_trans.submit_return
     path: items/mes.mat_trans.submit_return.yaml
+  - id: mes.wire.set_disco_eqp_no
+    path: items/mes.wire.set_disco_eqp_no.yaml
+  - id: mes.wire.clear_disco_eqp_no
+    path: items/mes.wire.clear_disco_eqp_no.yaml
+  - id: mes.wire.query_disco_by_lot
+    path: items/mes.wire.query_disco_by_lot.yaml
+  - id: mes.wire.list_by_disco_eqp_no
+    path: items/mes.wire.list_by_disco_eqp_no.yaml
+  - id: app.slot.get_inventory
+    path: items/app.slot.get_inventory.yaml
   - id: app.returned_weight.get_by_spec
     path: items/app.returned_weight.get_by_spec.yaml

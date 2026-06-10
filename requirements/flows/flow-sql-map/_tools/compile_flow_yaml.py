@@ -55,6 +55,7 @@ def canon_routing_key(key: Any) -> str:
 
 
 UI_MESSAGE_AS_USER_INPUT = frozenset({
+    "showOPName",
     "showWireReturnSuccessMessage",
     "showLoadWireAndCloseDoorMessage",
     "showWireIssueSuccessMessage",
@@ -439,6 +440,13 @@ TERMINAL_TEXT: dict[str, str] = {
     "showOpenReturnSlotFailedMessage": "提示无法打开归还格口",
     "showWireByLotNoMultipleRecordsMessage": "提示焊丝批号查询到多条记录（数据异常）",
     "showWireInfoNotExists": "提示可用焊丝信息不存在",
+    "showQueryWireByLotNoErrorMessage": "提示查询可用焊丝信息失败（MES 查询异常）",
+    "showQueryProductByLotNoErrorMessage": "提示查询产品批次信息失败（MES 查询异常）",
+    "showCheckProductInfoNotExistsMessage": "提示产品信息不存在（数量或工序为空）",
+    "showSubmitWireIssueErrorMessage": "提示领用提交调用失败",
+    "showCheckSubmitWireIssueFailMessage": "提示领用提交未通过",
+    "showOpenIssueSlotErrorMessage": "提示无法打开领用格口",
+    "showUpdateIssueSlotAfterUnloadErrorMessage": "提示领用格口库存更新失败",
     "showNoAvailableSlotMessage": "提示无空闲格口",
     "showWireLotNoInputInvalidOrNotExistsMessage": "提示焊丝批号无效或不存在",
     "showWireSpecNotExistsMessage": "提示焊丝规格不存在",
