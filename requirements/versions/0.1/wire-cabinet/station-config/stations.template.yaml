@@ -16,6 +16,7 @@ rcs:
 charge_policy:
   low_battery_percent: 20
   full_battery_percent: 95
+  default_return_station_code: WS_MH_STORE
   after_charge_complete: return_to_last_work_station
   remember_work_station_when:
     - auto_charge_departure

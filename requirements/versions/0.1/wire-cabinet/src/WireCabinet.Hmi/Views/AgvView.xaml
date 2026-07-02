@@ -23,6 +23,14 @@
                         <ColumnDefinition Width="100"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
+                    <TextBlock Text="订单状态" Style="{StaticResource LabelText}"/>
+                    <TextBlock x:Name="OrderStateText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
+                </Grid>
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                     <TextBlock Text="进度" Style="{StaticResource LabelText}"/>
                     <TextBlock x:Name="TaskProgressText" Grid.Column="1" Text="—" Style="{StaticResource ValueText}"/>
                 </Grid>

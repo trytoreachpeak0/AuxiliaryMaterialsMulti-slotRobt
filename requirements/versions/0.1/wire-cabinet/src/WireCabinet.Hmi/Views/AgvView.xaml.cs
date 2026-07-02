@@ -39,8 +39,10 @@ public partial class AgvView : UserControl
             ? $"充电点：{chg.Name}（站点 {chg.RcsDestination}）"
             : "充电点：未配置（stations.yaml charge_station）";
 
+        var mh = Agv.Stations.ResolveDefaultReturnStation();
+        var mhLabel = mh is not null ? mh.Name : "物料间";
         ChargePolicyText.Text =
-            $"自动回充：电量 ≤ {Agv.LowBatteryPercent}% 下充电单；≥ {Agv.FullBatteryPercent}% 返航上一作业站。";
+            $"自动回充：电量 ≤ {Agv.LowBatteryPercent}% 下充电单；≥ {Agv.FullBatteryPercent}% 返航去充电前作业站，否则回 {mhLabel}。";
 
         if (Window.GetWindow(this) is MainWindow mw)
             mw.AgvPollUpdated += OnAgvPollUpdated;
@@ -75,7 +77,8 @@ public partial class AgvView : UserControl
         EmergencyText.Text = Agv.LastEmergencyDisplay;
         SessionStateText.Text = Agv.Move?.State.ToString() ?? "—";
         TaskSummaryText.Text = Agv.LastTaskTargetDisplay;
-        TaskProgressText.Text = Agv.HasActiveOrder ? $"{Agv.LastProgress}%" : "—";
+        OrderStateText.Text = Agv.LastOrderStateDisplay;
+        TaskProgressText.Text = Agv.HasBlockingOrder ? $"{Agv.LastProgress}%" : "—";
 
         RcsConfigText.Text = Agv.IsConnected
             ? "RCS 已连接（后台自动刷新）"
@@ -116,16 +119,14 @@ public partial class AgvView : UserControl
             return;
         }
 
+        if (TryBlockDispatchForOpenDoors())
+            return;
+
         DisableAllMovementControls();
         try
         {
             var (ok, msg) = await Agv.MoveToStationAsync(station.RcsDestination);
-            SetStatus(msg);
-            if (ok)
-                App.UiGate.SetMovementLocked(true);
-            UpdateStatusPanel();
-            if (!ok)
-                UpdateButtonStates();
+            ApplyDispatchResult(ok, msg);
         }
         catch
         {
@@ -136,22 +137,57 @@ public partial class AgvView : UserControl
 
     private async void ChargeBtn_Click(object sender, RoutedEventArgs e)
     {
+        if (TryBlockDispatchForOpenDoors())
+            return;
+
         DisableAllMovementControls();
         try
         {
             var (ok, msg) = await Agv.GoChargeAsync();
-            SetStatus(msg);
-            if (ok)
-                App.UiGate.SetMovementLocked(true);
-            UpdateStatusPanel();
-            if (!ok)
-                UpdateButtonStates();
+            ApplyDispatchResult(ok, msg);
         }
         catch
         {
             UpdateButtonStates();
             throw;
         }
+    }
+
+    private bool TryBlockDispatchForOpenDoors()
+    {
+        var door = AgvDoorInterlockAlert.EvaluateBeforeDispatch();
+        if (!door.HasOpenDoors)
+            return false;
+
+        var message = AgvDoorInterlockAlert.BuildDispatchBlockedMessage(door.OpenSlotLabels);
+        ShowFlowError(message);
+        return true;
+    }
+
+    private void ApplyDispatchResult(bool ok, string msg)
+    {
+        SetStatus(msg);
+        if (!ok && ShouldShowDispatchErrorDialog(msg) && Window.GetWindow(this) is Window owner)
+            FlowErrorDialog.Show(owner, msg);
+
+        if (ok)
+            App.UiGate.SetMovementLocked(true);
+        UpdateStatusPanel();
+        if (!ok)
+            UpdateButtonStates();
+    }
+
+    private static bool ShouldShowDispatchErrorDialog(string msg) =>
+        msg == AgvServices.AlreadyAtStationMessage
+        || msg == AgvServices.AlreadyAtChargeStationMessage
+        || msg.Contains("格口", StringComparison.Ordinal)
+        || msg.Contains("开锁", StringComparison.Ordinal);
+
+    private void ShowFlowError(string message)
+    {
+        SetStatus(message);
+        if (Window.GetWindow(this) is Window owner)
+            FlowErrorDialog.Show(owner, message);
     }
 
     private async void CancelOrderBtn_Click(object sender, RoutedEventArgs e)

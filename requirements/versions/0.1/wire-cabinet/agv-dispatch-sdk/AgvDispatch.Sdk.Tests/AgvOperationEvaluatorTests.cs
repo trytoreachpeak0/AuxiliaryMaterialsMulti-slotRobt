@@ -85,4 +85,52 @@ public class AgvOperationEvaluatorTests
 
         Assert.True(r.ShouldContinueAfterDoorClosed);
     }
+
+    [Fact]
+    public void ScenarioC_ActiveMoveOrderAndDoorOpen_ShouldPause()
+    {
+        var vehicle = new VehicleInfoDto
+        {
+            OrderTaskId = "oid-move",
+            Enable = true,
+            SysState = "EXECUTING",
+            ActionState = "AT_RUNNING"
+        };
+        var order = new OrderDetailDto { OrderState = 2 };
+        var doors = DoorStateInput.FromCloseFlag("10" + new string('1', 22), Thresholds);
+
+        var r = AgvOperationEvaluator.Evaluate(vehicle, order, doors, Thresholds);
+
+        Assert.True(r.ShouldPauseForDoor);
+        Assert.True(r.HasActiveOrderBlockingNewOrder);
+    }
+
+    [Fact]
+    public void ScenarioC_ActiveMoveOrderDoorClosedAfterPause_ShouldContinue()
+    {
+        var vehicle = new VehicleInfoDto
+        {
+            OrderTaskId = "oid-move",
+            Enable = true,
+            SysState = "EXECUTING",
+            ActionState = "AT_RUNNING"
+        };
+        var order = new OrderDetailDto { OrderState = 2 };
+        var doors = DoorStateInput.FromCloseFlag(new string('1', 24), Thresholds);
+
+        var r = AgvOperationEvaluator.Evaluate(vehicle, order, doors, Thresholds, previouslyPausedForDoor: true);
+
+        Assert.True(r.ShouldContinueAfterDoorClosed);
+    }
+
+    [Fact]
+    public void ScenarioC_ChargingAndDoorOpen_ShouldPause()
+    {
+        var vehicle = new VehicleInfoDto { Enable = true, SysState = "CHARGING" };
+        var doors = DoorStateInput.FromCloseFlag("10" + new string('1', 22), Thresholds);
+
+        var r = AgvOperationEvaluator.Evaluate(vehicle, null, doors, Thresholds);
+
+        Assert.True(r.ShouldPauseForDoor);
+    }
 }

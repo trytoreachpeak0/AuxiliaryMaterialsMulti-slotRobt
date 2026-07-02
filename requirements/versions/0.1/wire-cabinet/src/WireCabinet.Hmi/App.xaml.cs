@@ -23,6 +23,7 @@ public partial class App : Application
     public static DoorOperationGate DoorOps { get; private set; } = null!;
     public static MaintAccessGate MaintAccess { get; private set; } = null!;
     public static HmiUiGateService UiGate { get; private set; } = null!;
+    public static AgvDoorInterlockNotifier AgvDoorNotifier { get; private set; } = new();
     public static FlowTraceHub? FlowTrace { get; private set; }
 
     public static WireMesDiscoRetryTimer? MesDiscoRetry { get; private set; }

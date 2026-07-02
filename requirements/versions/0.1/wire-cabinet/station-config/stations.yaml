@@ -14,8 +14,9 @@ rcs:
   device_key: "YOUR_DEVICE_KEY"
 
 charge_policy:
-  low_battery_percent: 40
-  full_battery_percent: 42
+  low_battery_percent: 41
+  full_battery_percent: 43
+  default_return_station_code: WS_MH_STORE
   after_charge_complete: return_to_last_work_station
   remember_work_station_when:
     - auto_charge_departure

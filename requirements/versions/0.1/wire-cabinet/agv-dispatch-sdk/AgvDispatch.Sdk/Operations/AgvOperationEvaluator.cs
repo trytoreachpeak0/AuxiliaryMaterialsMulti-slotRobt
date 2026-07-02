@@ -35,6 +35,10 @@ public static class AgvOperationEvaluator
 
                 if (state == thresholds.OrderStatePending)
                 {
+                    var pendingDoor = TryEvaluateDoorInterlock(vehicle, doors, thresholds, previouslyPausedForDoor, hasActiveOrder: true);
+                    if (pendingDoor is not null)
+                        return pendingDoor;
+
                     return new AgvReadinessResult
                     {
                         HasActiveOrderBlockingNewOrder = true,
@@ -43,6 +47,10 @@ public static class AgvOperationEvaluator
                     };
                 }
             }
+
+            var activeDoor = TryEvaluateDoorInterlock(vehicle, doors, thresholds, previouslyPausedForDoor, hasActiveOrder: true);
+            if (activeDoor is not null)
+                return activeDoor;
 
             return new AgvReadinessResult
             {
@@ -58,6 +66,10 @@ public static class AgvOperationEvaluator
             return Fail("车辆未在线或不可调度。", AgvRecommendedAction.PollOnly);
         }
 
+        var doorInterlock = TryEvaluateDoorInterlock(vehicle, doors, thresholds, previouslyPausedForDoor, hasActiveOrder: false);
+        if (doorInterlock is not null)
+            return doorInterlock;
+
         var sys = vehicle.SysState ?? "";
         if (thresholds.ChargingSysStates.Contains(sys, StringComparer.OrdinalIgnoreCase))
         {
@@ -70,29 +82,6 @@ public static class AgvOperationEvaluator
             {
                 RecommendedAction = AgvRecommendedAction.CancelEmergency,
                 Reason = "系统 ERROR，考虑 CancelEmergencyAsync。"
-            };
-        }
-
-        var nonIdle = thresholds.NonIdleSysStatesForDoorPause.Contains(sys, StringComparer.OrdinalIgnoreCase)
-                      || !thresholds.IdleSysStates.Contains(sys, StringComparer.OrdinalIgnoreCase);
-
-        if (nonIdle && doors.AnyDoorOpen)
-        {
-            return new AgvReadinessResult
-            {
-                ShouldPauseForDoor = true,
-                RecommendedAction = AgvRecommendedAction.PauseMovement,
-                Reason = "车辆非空闲且仓门打开，应暂停。"
-            };
-        }
-
-        if (doors.AllDoorsClosed && previouslyPausedForDoor)
-        {
-            return new AgvReadinessResult
-            {
-                ShouldContinueAfterDoorClosed = true,
-                RecommendedAction = AgvRecommendedAction.ContinueMovement,
-                Reason = "仓门已全关，应继续任务。"
             };
         }
 
@@ -152,4 +141,41 @@ public static class AgvOperationEvaluator
 
     private static AgvReadinessResult Fail(string reason, AgvRecommendedAction action) =>
         new() { Reason = reason, RecommendedAction = action };
+
+    /// <summary>场景 C：车辆非空闲且格口打开时暂停；格口全关且曾暂停时继续。</summary>
+    private static AgvReadinessResult? TryEvaluateDoorInterlock(
+        VehicleInfoDto vehicle,
+        DoorStateInput doors,
+        AgvStateThresholds thresholds,
+        bool previouslyPausedForDoor,
+        bool hasActiveOrder)
+    {
+        if (doors.AllDoorsClosed && previouslyPausedForDoor)
+        {
+            return new AgvReadinessResult
+            {
+                ShouldContinueAfterDoorClosed = true,
+                HasActiveOrderBlockingNewOrder = hasActiveOrder,
+                RecommendedAction = AgvRecommendedAction.ContinueMovement,
+                Reason = "仓门已全关，应继续任务。"
+            };
+        }
+
+        var sys = vehicle.SysState ?? "";
+        var nonIdle = thresholds.NonIdleSysStatesForDoorPause.Contains(sys, StringComparer.OrdinalIgnoreCase)
+                      || !thresholds.IdleSysStates.Contains(sys, StringComparer.OrdinalIgnoreCase);
+
+        if (nonIdle && doors.AnyDoorOpen)
+        {
+            return new AgvReadinessResult
+            {
+                ShouldPauseForDoor = true,
+                HasActiveOrderBlockingNewOrder = hasActiveOrder,
+                RecommendedAction = AgvRecommendedAction.PauseMovement,
+                Reason = "车辆非空闲且仓门打开，应暂停。"
+            };
+        }
+
+        return null;
+    }
 }

@@ -27,6 +27,7 @@ public sealed class StationConfiguration
     public ChargeStationConfig? ChargeStation { get; set; }
     public int LowBatteryPercent { get; set; } = 20;
     public int FullBatteryPercent { get; set; } = 95;
+    public string DefaultReturnStationCode { get; set; } = "WS_MH_STORE";
 
     public static StationConfiguration Load()
     {
@@ -45,6 +46,9 @@ public sealed class StationConfiguration
                 cfg.LowBatteryPercent = low;
             if (int.TryParse(Yaml.Str(policy, "full_battery_percent"), out var full))
                 cfg.FullBatteryPercent = full;
+            var defaultReturn = Yaml.Str(policy, "default_return_station_code");
+            if (!string.IsNullOrWhiteSpace(defaultReturn))
+                cfg.DefaultReturnStationCode = defaultReturn;
         }
 
         foreach (var ws in Yaml.AsList(Yaml.Get(root, "work_stations")) ?? [])
@@ -78,6 +82,39 @@ public sealed class StationConfiguration
 
     public IEnumerable<WorkStationConfig> EnabledWorkStations =>
         WorkStations.Where(s => s.Enabled && s.RcsDestination > 0);
+
+    public WorkStationConfig? TryGetWorkStationAt(int rcsDestination) =>
+        EnabledWorkStations.FirstOrDefault(s => s.RcsDestination == rcsDestination);
+
+    public WorkStationConfig? ResolveDefaultReturnStation()
+    {
+        if (!string.IsNullOrWhiteSpace(DefaultReturnStationCode))
+        {
+            var byCode = EnabledWorkStations.FirstOrDefault(s =>
+                string.Equals(s.Code, DefaultReturnStationCode, StringComparison.OrdinalIgnoreCase));
+            if (byCode is not null)
+                return byCode;
+        }
+
+        return EnabledWorkStations.FirstOrDefault(s =>
+            s.AllowedRoles.Any(r => string.Equals(r, "MH", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public bool IsChargeRelatedPosition(int position)
+    {
+        if (position <= 0)
+            return false;
+
+        return ChargeStation is { Enabled: true, RcsDestination: > 0 } chg && chg.RcsDestination == position;
+    }
+
+    public int? ResolveReturnDestination(int currentPosition)
+    {
+        if (TryGetWorkStationAt(currentPosition) is { } ws)
+            return ws.RcsDestination;
+
+        return ResolveDefaultReturnStation()?.RcsDestination;
+    }
 
     private static int ParseInt(string? s) =>
         int.TryParse(s, out var v) ? v : 0;

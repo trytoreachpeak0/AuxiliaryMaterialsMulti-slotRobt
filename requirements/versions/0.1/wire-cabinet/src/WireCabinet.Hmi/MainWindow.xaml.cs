@@ -81,7 +81,8 @@ public partial class MainWindow : Window
     {
         if (!App.Agv.IsConfigured) return;
 
-        _agvPollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        var pollMs = Math.Max(1000, App.Agv.RecommendedPollIntervalMs);
+        _agvPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(pollMs) };
         _agvPollTimer.Tick += async (_, _) => await AgvPollTickAsync();
         _agvPollTimer.Start();
         _ = AgvPollTickAsync();
@@ -99,21 +100,19 @@ public partial class MainWindow : Window
                 Dispatcher.BeginInvoke(() => OnAgvArrivedAtStation(station));
             }).ConfigureAwait(true);
 
-            if (Dispatcher.CheckAccess())
+            void ApplyPollUi()
             {
                 AgvPollUpdated?.Invoke();
                 if (policyMsg is not null)
                     SetStatus(policyMsg);
+                if (App.Agv.LastDoorInterlockTick is { } doorTick)
+                    App.AgvDoorNotifier.OnTick(this, doorTick);
             }
+
+            if (Dispatcher.CheckAccess())
+                ApplyPollUi();
             else
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    AgvPollUpdated?.Invoke();
-                    if (policyMsg is not null)
-                        SetStatus(policyMsg);
-                });
-            }
+                Dispatcher.Invoke(ApplyPollUi);
         }
         finally
         {

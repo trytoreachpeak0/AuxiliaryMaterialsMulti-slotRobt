@@ -27,8 +27,12 @@ public sealed class ManualMoveService
 
     public async Task<(bool Ok, string Message)> RequestMoveAsync(int destination, CancellationToken ct = default)
     {
-        if (_slots.HasUnlockInProgress() || !_slots.AreAllDoorsClosed())
-            return (false, "存在开锁中或门未全关，禁止下发移动单。");
+        if (_slots.HasUnlockInProgress())
+            return (false, "存在开锁中，禁止下发移动单。");
+
+        var openSlots = await _slots.ListOpenInterlockSlotNosAsync(ct).ConfigureAwait(false);
+        if (openSlots.Count > 0)
+            return (false, $"存在未关闭格口（{string.Join("、", openSlots)}），禁止下发移动单。");
 
         TargetDestination = destination;
         State = MoveUiState.Sending;

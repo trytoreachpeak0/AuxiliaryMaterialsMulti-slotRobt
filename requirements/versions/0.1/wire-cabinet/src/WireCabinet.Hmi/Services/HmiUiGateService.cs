@@ -20,7 +20,7 @@ public sealed class HmiUiGateService
     /// <summary>轮询刷新后调用：避免下单成功但 OrderTaskId 尚未出现时误解锁。</summary>
     public void OnAgvSnapshotRefreshed()
     {
-        if (_movementControlsLocked && App.Agv.HasActiveOrder)
+        if (_movementControlsLocked && App.Agv.HasBlockingOrder)
             _sawActiveOrderWhileLocked = true;
     }
 
@@ -28,7 +28,7 @@ public sealed class HmiUiGateService
     {
         if (!_movementControlsLocked)
             return;
-        if (App.Agv.HasActiveOrder)
+        if (App.Agv.HasBlockingOrder)
         {
             _sawActiveOrderWhileLocked = true;
             return;
@@ -50,7 +50,7 @@ public sealed class HmiUiGateService
         {
             if (SkipStationGates)
                 return false;
-            return App.Agv.HasActiveOrder || IsVehicleInTransit();
+            return App.Agv.HasBlockingOrder || IsVehicleInTransit();
         }
     }
 
@@ -122,7 +122,7 @@ public sealed class HmiUiGateService
         if (App.Agv.Move?.State == MoveUiState.Moving)
             return true;
 
-        if (App.Agv.HasActiveOrder && !AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))
+        if (App.Agv.HasBlockingOrder && !AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))
             return true;
 
         if (AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))

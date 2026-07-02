@@ -65,5 +65,6 @@ public interface ISlotControlService
     Task<SlotStatusDto?> GetSlotStatusAsync(long slotId, CancellationToken ct = default);
     Task<IReadOnlyList<SlotStatusDto>> ListSlotsAsync(SlotListFilter filter, CancellationToken ct = default);
     Task<AgvDispatch.Sdk.Operations.DoorStateInput> GetDoorStateForAgvAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<string>> ListOpenInterlockSlotNosAsync(CancellationToken ct = default);
     Task<(bool Success, string Message)> SetSlotEnabledAsync(long slotId, bool enabled, CancellationToken ct = default);
 }
