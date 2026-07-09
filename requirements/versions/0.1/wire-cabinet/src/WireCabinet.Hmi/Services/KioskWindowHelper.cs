@@ -80,7 +80,7 @@ public static class KioskWindowHelper
             return (0, 0, (int)SystemParameters.PrimaryScreenWidth, (int)SystemParameters.PrimaryScreenHeight);
         }
 
-        var rc = info.rcMonitor;
+        var rc = info.rcWork;
         return (rc.Left, rc.Top, rc.Right - rc.Left, rc.Bottom - rc.Top);
     }
 }

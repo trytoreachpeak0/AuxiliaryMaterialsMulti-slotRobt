@@ -49,6 +49,7 @@
 
             <Border Grid.Column="0" Background="{StaticResource PanelBgBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
                 <StackPanel>
                     <TextBlock Text="AGV 状态" Style="{StaticResource SectionTitle}"/>
 
@@ -114,10 +115,12 @@
                     <Button x:Name="ReleaseEmergencyBtn" Content="解除急停" Style="{StaticResource WarningButton}"
                             Height="44" Margin="0,12,0,0" IsEnabled="False" Click="ReleaseEmergencyBtn_Click"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <Border Grid.Column="2" Background="{StaticResource PanelBgBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
                 <StackPanel>
                     <TextBlock Text="手动控车与回充" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Text="RCS 由后台自动连接；仅 IDLE 且无进行中订单时可下单。"
@@ -141,6 +144,7 @@
                     <Button x:Name="ChargeBtn" Content="前往充电点（下充电单）" Style="{StaticResource WarningButton}"
                             Height="46" Margin="0,0,0,0" IsEnabled="False" Click="ChargeBtn_Click"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Grid>

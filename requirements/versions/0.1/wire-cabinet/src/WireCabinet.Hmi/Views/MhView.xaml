@@ -17,7 +17,8 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0">
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="8"/>
@@ -114,6 +115,7 @@
                 </StackPanel>
             </Border>
         </Grid>
+        </ScrollViewer>
 
         <views:CabinetSlotGridPanel x:Name="SlotGrid" Grid.Column="2" PanelTitle="发货柜格口状态"
                                     EnableClearSelection="True"/>
