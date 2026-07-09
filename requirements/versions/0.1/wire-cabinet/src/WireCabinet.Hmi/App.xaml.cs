@@ -22,6 +22,7 @@ public partial class App : Application
     public static MhDoorOnlyService MhDoors { get; private set; } = null!;
     public static DoorOperationGate DoorOps { get; private set; } = null!;
     public static MaintAccessGate MaintAccess { get; private set; } = null!;
+    public static MhAccessGate MhAccess { get; private set; } = null!;
     public static HmiUiGateService UiGate { get; private set; } = null!;
     public static AgvDoorInterlockNotifier AgvDoorNotifier { get; private set; } = new();
     public static FlowTraceHub? FlowTrace { get; private set; }
@@ -56,6 +57,7 @@ public partial class App : Application
         Bootstrap = new AppBootstrap(config);
         DoorOps = Bootstrap.DoorOps;
         MaintAccess = new MaintAccessGate(config["MaintAccess:Password"]);
+        MhAccess = new MhAccessGate(config["MhAccess:Password"]);
         if (Bootstrap.FlowTraceEnabled)
         {
             FlowTrace = new FlowTraceHub(Bootstrap.FlowTraceOptions, Dispatcher);

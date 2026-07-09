@@ -66,6 +66,10 @@ public sealed class HmiUiGateService
         if (IsVehicleCharging())
             return false;
 
+        // 物料员 MH 页面不再限制必须在物料间站点，任意站点均可使用（仍需已到站、非充电中）。
+        if (string.Equals(role, "MH", StringComparison.OrdinalIgnoreCase))
+            return AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv);
+
         if (!IsAtRoleStation(role))
             return false;
 

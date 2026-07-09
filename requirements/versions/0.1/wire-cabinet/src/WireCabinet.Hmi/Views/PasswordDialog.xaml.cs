@@ -1,14 +1,19 @@
 using System.Windows;
 using System.Windows.Input;
-using WireCabinet.Hmi.Services;
 
 namespace WireCabinet.Hmi.Views;
 
-public partial class MaintPasswordDialog : Window
+/// <summary>通用密码验证框：标题/提示文案/校验回调均可传参，供维护、物料员等界面门禁共用。</summary>
+public partial class PasswordDialog : Window
 {
-    public MaintPasswordDialog()
+    private readonly Func<string?, bool> _tryUnlock;
+
+    public PasswordDialog(string title, string prompt, Func<string?, bool> tryUnlock)
     {
         InitializeComponent();
+        Title = title;
+        PromptText.Text = prompt;
+        _tryUnlock = tryUnlock;
         Loaded += (_, _) =>
         {
             PasswordBox.Focus();
@@ -32,7 +37,7 @@ public partial class MaintPasswordDialog : Window
 
     private void TrySubmit()
     {
-        if (App.MaintAccess.TryUnlock(PasswordBox.Password))
+        if (_tryUnlock(PasswordBox.Password))
         {
             DialogResult = true;
             Close();

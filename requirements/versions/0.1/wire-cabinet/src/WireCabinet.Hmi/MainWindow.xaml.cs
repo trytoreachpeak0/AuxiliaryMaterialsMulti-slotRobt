@@ -124,12 +124,13 @@ public partial class MainWindow : Window
     {
         var dualRole = station.AllowedRoles.Count > 1;
         NavigateToWorkStation(station);
-        var preferOp = station.AllowedRoles.Any(r =>
-            string.Equals(r, "OP", StringComparison.OrdinalIgnoreCase));
-        if (preferOp)
+
+        if (MainContent.Content == _opView)
             _opView.FocusStationPrimaryInput();
-        else
+        else if (MainContent.Content == _mhView)
             _mhView.FocusStationPrimaryInput();
+        else
+            return; // 物料员密码未通过校验，NavigateToWorkStation 已设置对应提示文案
 
         var hint = dualRole ? "（本站双角色，已切至 OP）" : "";
         if (App.DoorOps.IsBusy)
@@ -153,6 +154,7 @@ public partial class MainWindow : Window
         TrySwitchRole(() =>
         {
             App.MaintAccess.Lock();
+            App.MhAccess.Lock();
             if (MainContent == null) return;
             MainContent.Content = _opView;
             _roleLabel = "操作员 OP";
@@ -168,8 +170,15 @@ public partial class MainWindow : Window
         if (_suppressRoleRevert) return;
         TrySwitchRole(() =>
         {
-            App.MaintAccess.Lock();
             if (MainContent == null) return;
+
+            if (!TryUnlockMhAccess())
+            {
+                RevertToLastRole();
+                return;
+            }
+
+            App.MaintAccess.Lock();
             MainContent.Content = _mhView;
             _roleLabel = "物料员 MH";
             _flowStatus = null;
@@ -188,7 +197,7 @@ public partial class MainWindow : Window
 
             if (App.MaintAccess.IsGateEnabled && !App.MaintAccess.IsUnlocked)
             {
-                var dialog = new MaintPasswordDialog { Owner = this };
+                var dialog = new PasswordDialog("维护界面验证", "请输入维护密码", App.MaintAccess.TryUnlock) { Owner = this };
                 if (dialog.ShowDialog() != true)
                 {
                     RevertToLastRole();
@@ -196,6 +205,7 @@ public partial class MainWindow : Window
                 }
             }
 
+            App.MhAccess.Lock();
             MainContent.Content = _maintView;
             _roleLabel = "维护 MAINT";
             _flowStatus = null;
@@ -213,7 +223,7 @@ public partial class MainWindow : Window
 
             if (App.MaintAccess.IsGateEnabled && !App.MaintAccess.IsUnlocked)
             {
-                var dialog = new MaintPasswordDialog { Owner = this };
+                var dialog = new PasswordDialog("维护界面验证", "请输入维护密码", App.MaintAccess.TryUnlock) { Owner = this };
                 if (dialog.ShowDialog() != true)
                 {
                     RevertToLastRole();
@@ -221,6 +231,7 @@ public partial class MainWindow : Window
                 }
             }
 
+            App.MhAccess.Lock();
             MainContent.Content = _mesReconView;
             _roleLabel = "MES 对账";
             _flowStatus = null;
@@ -235,6 +246,7 @@ public partial class MainWindow : Window
         TrySwitchRole(() =>
         {
             App.MaintAccess.Lock();
+            App.MhAccess.Lock();
             if (MainContent == null) return;
             MainContent.Content = _agvView;
             _roleLabel = "控车 AGV";
@@ -242,6 +254,15 @@ public partial class MainWindow : Window
             _lastRoleRadio = RbAgv;
             ApplyStatusText();
         });
+    }
+
+    private bool TryUnlockMhAccess()
+    {
+        if (!App.MhAccess.IsGateEnabled || App.MhAccess.IsUnlocked)
+            return true;
+
+        var dialog = new PasswordDialog("物料员界面验证", "请输入物料员密码", App.MhAccess.TryUnlock) { Owner = this };
+        return dialog.ShowDialog() == true;
     }
 
     private void TrySwitchRole(Action switchAction)
@@ -351,14 +372,15 @@ public partial class MainWindow : Window
 
         App.MaintAccess.Lock();
 
+        var preferOp = station.AllowedRoles.Any(r =>
+            string.Equals(r, "OP", StringComparison.OrdinalIgnoreCase));
+
         _suppressRoleRevert = true;
         try
         {
-            var preferOp = station.AllowedRoles.Any(r =>
-                string.Equals(r, "OP", StringComparison.OrdinalIgnoreCase));
-
             if (preferOp)
             {
+                App.MhAccess.Lock();
                 MainContent!.Content = _opView;
                 _roleLabel = "操作员 OP";
                 RbOp.IsChecked = true;
@@ -366,6 +388,12 @@ public partial class MainWindow : Window
             }
             else
             {
+                if (!TryUnlockMhAccess())
+                {
+                    SetStatus($"已到站 {station.Name}，需验证物料员密码后才能进入该界面。");
+                    return;
+                }
+
                 MainContent!.Content = _mhView;
                 _roleLabel = "物料员 MH";
                 RbMh.IsChecked = true;
