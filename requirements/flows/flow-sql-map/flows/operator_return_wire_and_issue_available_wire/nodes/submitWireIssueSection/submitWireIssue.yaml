@@ -45,9 +45,9 @@ input_mappings:
     value: "1"
     source_text: 当前业务固定传 "1"。
   - name: v_PrdLot
-    source_node: queryLastProductLotNo
-    source_field: lot
-    source_text: 机台最近生产产品批号。
+    source_node: inputIssueProductLotNo
+    source_field: issue_product_lot_no
+    source_text: 操作员手动输入的领用工单批次号；与归还事务使用的 v_PrdLot（机台最近生产批次号）相互独立，可能相同也可能不同。
   - name: v_PrdQty
     source_node: queryProductByLotNo
     source_field: qty

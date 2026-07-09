@@ -20,6 +20,7 @@ public partial class OpView : UserControl
     private bool _flowStarted;
     private bool? _lastOpPageAllowed;
     private bool _actionInProgress;
+    private bool _issueLotValidated;
     private DoorWaitPhase _doorPhase = DoorWaitPhase.None;
     private long _returnSlotId;
     private long _issueSlotId;
@@ -136,8 +137,13 @@ public partial class OpView : UserControl
 
         SubmitReturnBtn.IsEnabled = atStation
             && (_steps.IsStepActive(4) || _doorPhase == DoorWaitPhase.ReturnSlot) && !busy;
+
+        IssueLotBox.IsEnabled = atStation && _steps.IsStepActive(5) && !_issueLotValidated && !busy;
+        ValidateIssueLotBtn.IsEnabled = atStation && _steps.IsStepActive(5) && !_issueLotValidated
+            && !string.IsNullOrWhiteSpace(IssueLotBox.Text) && !busy;
+
         SubmitIssueBtn.IsEnabled = atStation
-            && (_steps.IsStepActive(5) || _doorPhase == DoorWaitPhase.IssueSlot) && !busy;
+            && ((_steps.IsStepActive(5) && _issueLotValidated) || _doorPhase == DoorWaitPhase.IssueSlot) && !busy;
         RestartBtn.IsEnabled = atStation && _doorPhase == DoorWaitPhase.None && !busy;
     }
 
@@ -153,6 +159,7 @@ public partial class OpView : UserControl
         _doorPhase = DoorWaitPhase.None;
         _returnSlotId = 0;
         _issueSlotId = 0;
+        _issueLotValidated = false;
         if (endFlowIfActive)
             App.Flows.EndFlow();
         OpIdBox.Clear();
@@ -168,6 +175,8 @@ public partial class OpView : UserControl
         ReturnSlotText.Text = "—";
         IssueSlotText.Text = "—";
         ClearReturnResult();
+        IssueLotBox.Clear();
+        ClearIssueLotResults();
         if (!preserveIssueResult)
             ClearIssueResult();
         _steps.ResetAll();
@@ -519,6 +528,60 @@ public partial class OpView : UserControl
         });
     }
 
+    private void IssueLotBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_doorPhase != DoorWaitPhase.None)
+            return;
+        if (string.IsNullOrWhiteSpace(IssueLotBox.Text))
+        {
+            _issueLotValidated = false;
+            ClearIssueLotResults();
+        }
+        ApplyStepGating();
+    }
+
+    private void IssueLotBox_KeyDown(object sender, KeyEventArgs e) =>
+        OnScanEnterKeyDown(e, ValidateIssueLotBtn, ValidateIssueLotBtn_Click);
+
+    private async void ValidateIssueLotBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(IssueLotBox.Text))
+            return;
+
+        if (!App.Bootstrap.MesReady)
+        {
+            ShowFlowError("MES 未配置，无法校验领用工单批次号。", IssueLotBox);
+            return;
+        }
+
+        if (!App.Flows.IsFlowActive)
+        {
+            ShowFlowError("请先完成归还焊丝存入。", IssueLotBox);
+            return;
+        }
+
+        var lot = IssueLotBox.Text.Trim();
+        await RunFlowActionAsync(async () =>
+        {
+            var (ok, msg, reason) = await Task.Run(() => App.Flows.AdvanceOpIssueLotValidate(lot));
+            if (!ok)
+            {
+                ClearIssueLotResults();
+                return (false, msg);
+            }
+
+            if (reason != FlowPauseReason.AwaitingAction)
+            {
+                ClearIssueLotResults();
+                return (false, msg);
+            }
+
+            BindIssueLotQueryResults();
+            _issueLotValidated = true;
+            return (true, "领用批次校验通过。请点「提交领用焊丝」。");
+        }, IssueLotBox);
+    }
+
     private async void SubmitIssueBtn_Click(object sender, RoutedEventArgs e)
     {
         if (_doorPhase == DoorWaitPhase.IssueSlot)
@@ -586,7 +649,7 @@ public partial class OpView : UserControl
             ShowReturnResult(true, "归还成功");
             BindIssueSlotActionText();
             ApplyStepGating();
-            SetStatus("归还已提交。请点「提交领用焊丝」。");
+            SetStatus("归还已提交。请手动输入领用工单批次号并点「校验」。");
             return;
         }
 
@@ -723,7 +786,19 @@ public partial class OpView : UserControl
     private void BindEqpQueryResults()
     {
         var lot = App.Flows.GetField("queryLastProductLotNo.lot")?.ToString();
-        ProductLotText.Text = string.IsNullOrWhiteSpace(lot) ? "—" : lot;
+        var display = string.IsNullOrWhiteSpace(lot) ? "—" : lot;
+        ProductLotText.Text = display;
+        ReturnLotCompareText.Text = display;
+    }
+
+    private void BindIssueLotQueryResults()
+    {
+        IssueProductStepText.Text = FormatFieldText(App.Flows.GetField("queryProductByLotNo.step"));
+        IssueProductQtyText.Text = FormatFieldText(App.Flows.GetField("queryProductByLotNo.qty"));
+        IssueLotPreviewPanel.Visibility = Visibility.Visible;
+
+        var lot = IssueLotBox.Text.Trim();
+        IssueLotCompareText.Text = string.IsNullOrWhiteSpace(lot) ? "—" : lot;
     }
 
     private void BindQuotaResults()
@@ -828,6 +903,8 @@ public partial class OpView : UserControl
         {
             IssueSlotText.Text = "—";
             ClearIssueResult();
+            _issueLotValidated = false;
+            ClearIssueLotResults();
         }
 
         if (stepIndex == 1)
@@ -854,6 +931,15 @@ public partial class OpView : UserControl
     private void ClearEqpResults()
     {
         ProductLotText.Text = "—";
+        ReturnLotCompareText.Text = "—";
+    }
+
+    private void ClearIssueLotResults()
+    {
+        IssueProductStepText.Text = "—";
+        IssueProductQtyText.Text = "—";
+        IssueLotPreviewPanel.Visibility = Visibility.Collapsed;
+        IssueLotCompareText.Text = "—";
     }
 
     private void ClearQuotaResults()

@@ -1,6 +1,6 @@
 namespace WireCabinet.Hmi.Services;
 
-/// <summary>MH 存料流程到站门禁：物料员页面已不限制必须在物料间站点，仅校验车辆已到站、非充电中。</summary>
+/// <summary>MH 存料流程到站门禁：物料员页面不限制必须在物料间站点，充电中也可操作，仅拦截车辆真正行驶中的情况。</summary>
 public static class MhStationAccess
 {
     public const string LoadFlowId = "material_handler_load_available_wire";
@@ -18,14 +18,8 @@ public static class MhStationAccess
 
         await App.Agv.RefreshStatusAsync();
 
-        var (isMoving, isCharging) = App.UiGate.GetVehicleMotionState();
-        if (isCharging)
-            return (false, "充电中禁止焊丝开锁与写库。");
-        if (isMoving)
-            return (false, "车辆移动中，请等待到站。");
-
-        return AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv)
-            ? (true, "")
-            : (false, "请先等待车辆到站。");
+        return App.UiGate.IsVehicleBusyForMh()
+            ? (false, "车辆移动中，请等待到站。")
+            : (true, "");
     }
 }

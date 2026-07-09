@@ -184,6 +184,13 @@ public sealed class FlowCoordinator
             ["remaining_qty"] = qty
         });
 
+    /// <summary>领用批次号：操作员手动输入，不与步骤③归还批次号联动/预填。</summary>
+    public void FillOpIssueProductLotNo(string lotNo) =>
+        _runner?.SetUserInput("inputIssueProductLotNo", new Dictionary<string, string>
+        {
+            ["issue_product_lot_no"] = lotNo
+        });
+
     /// <summary>步骤①：校验操作员后暂停在归还批号输入。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpOperatorValidate()
     {
@@ -244,6 +251,9 @@ public sealed class FlowCoordinator
 
     private void RewindOpToRemainingQtyInput() =>
         _runner?.RewindToNode("inputRemainingQty");
+
+    private void RewindOpToIssueLotInput() =>
+        _runner?.RewindToNode("inputIssueProductLotNo");
 
     public static bool IsReturnQtyRejectMessage(string? message) =>
         FlowEngine.IsReturnQtyReject(message);
@@ -329,17 +339,34 @@ public sealed class FlowCoordinator
         return (false, MapOpFlowMessage(), FlowPauseReason.Error);
     }
 
-    /// <summary>归还格口已关：写库并推进到领用提交前。</summary>
+    /// <summary>归还格口已关：写库并推进到领用批次号手动输入前。</summary>
     public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpAfterReturnDoorClosed()
     {
         _runner?.SetUserInput("closeReturnSlotDoor", new Dictionary<string, string> { ["closed"] = "true" });
-        var result = AdvanceUntilPauseAutoAck(pauseBeforeNodeId: "submitWireIssue", endFlowOnTerminal: false);
+        var result = AdvanceUntilPauseAutoAck(pauseBeforeNodeId: "inputIssueProductLotNo", endFlowOnTerminal: false);
         if (!result.Ok)
             return result;
         if (result.Reason == FlowPauseReason.AwaitingAction
-            && string.Equals(CurrentNodeId, "submitWireIssue", StringComparison.OrdinalIgnoreCase))
-            return (true, "归还已提交。请点「提交领用焊丝」。", result.Reason);
+            && string.Equals(CurrentNodeId, "inputIssueProductLotNo", StringComparison.OrdinalIgnoreCase))
+            return (true, "归还已提交。请手动输入领用工单批次号并点「校验」。", result.Reason);
         EndFlow();
+        return (false, MapOpFlowMessage(), FlowPauseReason.Error);
+    }
+
+    /// <summary>领用批次号校验：与步骤③归还批次号相互独立，不自动预填/复用；通过后暂停在领用提交前。</summary>
+    public (bool Ok, string Message, FlowPauseReason Reason) AdvanceOpIssueLotValidate(string issueProductLotNo)
+    {
+        FillOpIssueProductLotNo(issueProductLotNo);
+        var result = AdvanceUntilPauseAutoAck(pauseBeforeNodeId: "submitWireIssue", endFlowOnTerminal: false);
+        if (!result.Ok)
+        {
+            RewindOpToIssueLotInput();
+            return result;
+        }
+        if (result.Reason == FlowPauseReason.AwaitingAction
+            && string.Equals(CurrentNodeId, "submitWireIssue", StringComparison.OrdinalIgnoreCase))
+            return (true, "领用批次校验通过。请点「提交领用焊丝」。", result.Reason);
+        RewindOpToIssueLotInput();
         return (false, MapOpFlowMessage(), FlowPauseReason.Error);
     }
 

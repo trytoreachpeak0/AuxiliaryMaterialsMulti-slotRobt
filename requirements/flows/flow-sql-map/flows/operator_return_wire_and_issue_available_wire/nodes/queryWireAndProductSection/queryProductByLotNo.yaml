@@ -18,9 +18,9 @@ output_fields:
     source_text: 产品工序。
 input_mappings:
   - name: productLot
-    source_node: queryLastProductLotNo
-    source_field: lot
-    source_text: 机台最近生产产品批号。
+    source_node: inputIssueProductLotNo
+    source_field: issue_product_lot_no
+    source_text: 操作员手动输入的领用工单批次号；与步骤 1.2.5 归还用的机台最近生产批次号相互独立，不自动复用。
 outcome_routing:
   single:
     next: checkProductInfoExists

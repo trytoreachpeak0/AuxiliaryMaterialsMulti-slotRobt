@@ -199,6 +199,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
@@ -220,12 +221,19 @@
                                 Margin="8,0,0,0" MinWidth="84" IsEnabled="False" Click="ValidateEqpBtn_Click"/>
                     </Grid>
 
-                    <TextBlock Grid.Row="3" Text="工单批次号" Style="{StaticResource LabelText}" Margin="0,10,0,4"/>
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,4">
+                        <Border Background="{StaticResource AccentBrush}" CornerRadius="3" Padding="6,1" Margin="0,0,6,0">
+                            <TextBlock Text="归还" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                        </Border>
+                        <TextBlock Text="工单批次号（系统自动查询，只读）" Style="{StaticResource LabelText}"/>
+                    </StackPanel>
                     <Border Grid.Row="4" Background="#FFF1F7FF" BorderBrush="#FFB8D6FB" BorderThickness="1"
                             Height="34" Padding="10,0">
                         <TextBlock x:Name="ProductLotText" Text="—" Style="{StaticResource ValueText}"
                                    VerticalAlignment="Center"/>
                     </Border>
+                    <TextBlock Grid.Row="5" Text="由机台号自动带出，仅用于本次归还，领用时需另行手动输入批次号。"
+                               Style="{StaticResource HintText}" FontSize="12" Margin="0,4,0,0"/>
                 </Grid>
             </Border>
 
@@ -312,6 +320,50 @@
                         </Border>
                         <TextBlock Text="取出可用焊丝" Style="{StaticResource StepTitleText}"/>
                     </StackPanel>
+
+                    <!-- ⑥-A 领用工单批次号：强制手动输入，与步骤③归还批次号相互独立 -->
+                    <StackPanel Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Border Background="{StaticResource WarningBrush}" CornerRadius="3" Padding="6,1" Margin="0,0,6,0">
+                                <TextBlock Text="领用" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="领用工单批次号（请手动输入，与归还批次号无关）" Style="{StaticResource LabelText}"/>
+                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="IssueLotBox" Grid.Column="0" Style="{StaticResource IndustrialTextBox}"
+                                     BorderBrush="{StaticResource WarningBrush}"
+                                     IsEnabled="False" TextChanged="IssueLotBox_TextChanged" KeyDown="IssueLotBox_KeyDown"/>
+                            <Button x:Name="ValidateIssueLotBtn" Grid.Column="1" Content="校验" Style="{StaticResource SecondaryButton}"
+                                    Margin="8,0,0,0" MinWidth="84" IsEnabled="False" Click="ValidateIssueLotBtn_Click"/>
+                        </Grid>
+                        <Border x:Name="IssueLotPreviewPanel" Visibility="Collapsed"
+                                Background="#FFFFF7E6" BorderBrush="{StaticResource WarningBrush}" BorderThickness="1"
+                                Padding="8,6" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="产品工序：" Style="{StaticResource LabelText}"/>
+                                <TextBlock x:Name="IssueProductStepText" Text="—" Style="{StaticResource ValueText}" Margin="0,0,14,0"/>
+                                <TextBlock Text="未关闭数量：" Style="{StaticResource LabelText}"/>
+                                <TextBlock x:Name="IssueProductQtyText" Text="—" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- 批次核对对比条：提交前最后一次视觉核对，避免混淆 -->
+                    <Border Background="#FFF6F7F9" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            Padding="8,6" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="归还批次：" Style="{StaticResource LabelText}"/>
+                            <TextBlock x:Name="ReturnLotCompareText" Text="—" Style="{StaticResource ValueText}"
+                                       Foreground="{StaticResource AccentBrush}" Margin="0,0,16,0"/>
+                            <TextBlock Text="领用批次：" Style="{StaticResource LabelText}"/>
+                            <TextBlock x:Name="IssueLotCompareText" Text="—" Style="{StaticResource ValueText}"
+                                       Foreground="{StaticResource WarningBrush}"/>
+                        </StackPanel>
+                    </Border>
 
                     <StackPanel Margin="0,0,0,10">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">

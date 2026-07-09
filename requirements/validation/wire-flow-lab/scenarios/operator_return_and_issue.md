@@ -12,8 +12,11 @@
 | 剩余芯片数量 | `3000` |
 | MES 配额差值 | `0`（米，任意数值即通过） |
 | MES 提交结果 | `SUCCESS` |
+| 领用工单批次号（操作员手动输入） | 可与机台最近产品批号相同，如 `1QH029-BATCH01`；也可为不同批次，两种取值均应正常通过 |
 
-期望：依次通过操作员校验→批号/规格→匹配可用焊丝→归还重量→机台→产品批号→配额校验通过→提交归还成功→**开归还格口/存料/关门**→领用 MES/产品信息→提交领用成功→**开领用格口/取料/关门**→`endSuccess`。
+期望：依次通过操作员校验→批号/规格→匹配可用焊丝→归还重量→机台→（归还用）产品批号→配额校验通过→提交归还成功→**开归还格口/存料/关门**→**操作员手动输入领用工单批次号**（不预填/不复用归还批号）→领用 MES/产品信息→提交领用成功→**开领用格口/取料/关门**→`endSuccess`。
+
+补充验证点：分别用「领用批次号 = 归还批次号」与「领用批次号 ≠ 归还批次号」各跑一遍，确认两种取值都能正常查到产品信息（`queryProductByLotNo`）并提交领用成功，且 `submitWireIssue.v_PrdLot` 使用的是操作员本次手动输入的领用批次号，而非步骤③自动查询的归还批次号。
 
 ## 异常分支
 
@@ -34,7 +37,7 @@
 | 领用提交校验未通过 | 归还成功后把提交结果改为具体错误文本再继续 | `showCheckSubmitWireIssueFailMessage`（界面展示该文本） |
 | 查询可用焊丝信息异常 | `queryWireByLotNo` MES 查询 error | `showQueryWireByLotNoErrorMessage` |
 | 查询产品批次信息异常 | `queryProductByLotNo` MES 查询 error | `showQueryProductByLotNoErrorMessage` |
-| 产品信息校验不通过 | 产品 qty/step 为空 | `showCheckProductInfoNotExistsMessage` |
+| 产品信息校验不通过 | 产品 qty/step 为空（含操作员手动输入的领用批次号查无对应产品信息，如填 `NOEXIST-LOT`） | `showCheckProductInfoNotExistsMessage` |
 | 无法打开领用格口 | `openIssueSlot` error | `showOpenIssueSlotErrorMessage` |
 | 领用格口库存更新失败 | `updateIssueSlotAfterUnload` error | `showUpdateIssueSlotAfterUnloadErrorMessage` |
 | 可用焊丝批号多条记录 | MES 同一批号返回多行 | `showWireByLotNoMultipleRecordsMessage` |

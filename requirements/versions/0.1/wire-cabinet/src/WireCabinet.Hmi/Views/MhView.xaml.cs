@@ -721,7 +721,7 @@ public partial class MhView : UserControl
                       && !App.DoorOps.IsBusy
                       && !depositBusy
                       && !blocked
-                      && !App.UiGate.BlocksSlotDoorControls;
+                      && !App.UiGate.BlocksMhSlotDoorControls;
         BtnOpenAvailable.IsEnabled = enabled;
         BtnOpenReturned.IsEnabled = enabled;
         BtnOpenAll.IsEnabled = enabled;

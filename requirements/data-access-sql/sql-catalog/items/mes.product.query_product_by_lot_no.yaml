@@ -11,7 +11,7 @@ inputs:
   - name: productLot
     type: string
     required: true
-    source: 机台最近生产的产品批次号
+    source: 操作员在领用步骤手动输入的领用工单批次号（与归还步骤自动查询的机台最近生产批次号相互独立，可能相同也可能不同）
     example: 123
 outputs:
   - name: qty

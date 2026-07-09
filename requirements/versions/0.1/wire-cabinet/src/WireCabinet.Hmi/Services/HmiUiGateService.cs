@@ -54,6 +54,9 @@ public sealed class HmiUiGateService
         }
     }
 
+    /// <summary>物料员 MH 页面专用的开门门控：充电中不再拦截，仅在车辆真正行驶时拦截。</summary>
+    public bool BlocksMhSlotDoorControls => !SkipStationGates && IsVehicleBusyForMh();
+
     public bool CanUseOpPage => CanUseRolePage("OP");
 
     public bool CanUseMhPage => CanUseRolePage("MH");
@@ -63,12 +66,12 @@ public sealed class HmiUiGateService
         if (SkipStationGates)
             return true;
 
+        // 物料员 MH 页面不再限制必须在物料间站点，也不再受充电中拦截，任意站点、充电中均可使用（仍需车辆已停稳）。
+        if (string.Equals(role, "MH", StringComparison.OrdinalIgnoreCase))
+            return !IsVehicleBusyForMh();
+
         if (IsVehicleCharging())
             return false;
-
-        // 物料员 MH 页面不再限制必须在物料间站点，任意站点均可使用（仍需已到站、非充电中）。
-        if (string.Equals(role, "MH", StringComparison.OrdinalIgnoreCase))
-            return AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv);
 
         if (!IsAtRoleStation(role))
             return false;
@@ -125,6 +128,27 @@ public sealed class HmiUiGateService
     {
         if (App.Agv.Move?.State == MoveUiState.Moving)
             return true;
+
+        if (App.Agv.HasBlockingOrder && !AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))
+            return true;
+
+        if (AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))
+            return false;
+
+        var move = App.Agv.LastMoveState ?? "";
+        return !string.Equals(move, "0", StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(move, "Idle", StringComparison.OrdinalIgnoreCase)
+               && move != "—";
+    }
+
+    /// <summary>物料员 MH 页面专用：车辆是否仍在行驶（未停稳）。充电中视为静止，不阻塞 MH 操作。</summary>
+    public bool IsVehicleBusyForMh()
+    {
+        if (App.Agv.Move?.State == MoveUiState.Moving)
+            return true;
+
+        if (IsVehicleCharging())
+            return false;
 
         if (App.Agv.HasBlockingOrder && !AgvStationArrivalHelper.IsAgvArrivedForStationUi(App.Agv))
             return true;

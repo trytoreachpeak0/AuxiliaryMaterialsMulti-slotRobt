@@ -19,6 +19,6 @@ decision_rule:
       meaning: 未查询到可用焊丝信息时提示焊丝信息不存在。
 outcome_routing:
   yes:
-    next: queryProductByLotNo
+    next: inputIssueProductLotNo
   no:
     next: showWireInfoNotExists

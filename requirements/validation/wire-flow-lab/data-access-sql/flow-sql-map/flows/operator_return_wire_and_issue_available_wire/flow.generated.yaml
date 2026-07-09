@@ -34,6 +34,7 @@ node_order:
 - updateReturnSlotDB
 - queryWireByLotNo
 - checkWireInfoExists
+- inputIssueProductLotNo
 - queryProductByLotNo
 - checkProductInfoExists
 - submitWireIssue
@@ -126,7 +127,7 @@ nodes:
       kind: exists
       node: queryWireByLotNo
     routing:
-      'yes': queryProductByLotNo
+      'yes': inputIssueProductLotNo
       'no': showWireInfoNotExists
   checkWireLotNoExists:
     text: 焊丝批号是否存在
@@ -178,6 +179,14 @@ nodes:
       label: 操作员输入机台号。
     routing:
       success: queryEqpByEqpNo
+  inputIssueProductLotNo:
+    text: 操作员手动输入领用工单批次号
+    type: user_input
+    outputs:
+    - name: issue_product_lot_no
+      label: 操作员手动输入的领用工单批次号，不可复用归还批次号自动填充。
+    routing:
+      success: queryProductByLotNo
   inputOperatorWorkInfo:
     text: 操作员输入工号、班组和班次
     type: user_input
@@ -294,7 +303,7 @@ nodes:
     sql_id: mes.product.query_product_by_lot_no
     inputs:
     - name: productLot
-      from: node:queryLastProductLotNo.lot
+      from: node:inputIssueProductLotNo.issue_product_lot_no
     routing:
       single: checkProductInfoExists
       error: showQueryProductByLotNoErrorMessage
@@ -524,7 +533,7 @@ nodes:
     - name: v_Count
       from: const:1
     - name: v_PrdLot
-      from: node:queryLastProductLotNo.lot
+      from: node:inputIssueProductLotNo.issue_product_lot_no
     - name: v_PrdQty
       from: node:queryProductByLotNo.qty
     - name: V_ShelfLife
