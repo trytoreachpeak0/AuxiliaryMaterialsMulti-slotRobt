@@ -5,15 +5,19 @@ operation: read
 business_meaning: >-
   操作员归还焊丝后，按归还焊丝规格在发货柜内查找一卷可领用的同规格可用焊丝及其格口，
   用于后续领用阶段（queryMatchedAvailableWire）。
+  同规格存在多卷可用焊丝时，按 FEFO（First-Expired-First-Out）原则优先选择 shelflife（过期时间）
+  最早的一卷；shelflife 为空（未知过期时间）的记录视为优先级最高，排在最前发放。
+  shelflife 相同或同为空时，按 slot_no 升序兜底，保证结果确定。
 sql: |
   SELECT wire_lot_no AS matched_available_wire_lot_no,
          slot_id,
          slot_no,
-         wire_spec
+         wire_spec,
+         shelflife
   FROM app_slot
   WHERE wire_spec = :returned_wire_spec
     AND biz_state = 'available_wire'
-  ORDER BY slot_no
+  ORDER BY shelflife ASC, slot_no ASC
   LIMIT 1;
 params:
   - name: returned_wire_spec
@@ -23,9 +27,15 @@ outputs:
   - slot_id
   - slot_no
   - wire_spec
+  - shelflife
 result_cardinality: 0..1
 sample_result:
   - matched_available_wire_lot_no: 14Z1888-0888
     slot_id: 5
     slot_no: A05
     wire_spec: φ42(MAXSOFT)
+    shelflife: '2026-12-31 00:00:00'
+notes: |
+  - 排序依据客户要求的 FEFO 规则：同规格多卷可用焊丝时优先发放最先过期的一卷。
+  - SQLite 中 ORDER BY ... ASC 默认将 NULL 排在最前，天然满足“shelflife 为空视为最先发放”的业务约定，
+    无需额外 CASE 处理；若迁移到其他 dialect 需确认 NULL 排序行为是否一致。

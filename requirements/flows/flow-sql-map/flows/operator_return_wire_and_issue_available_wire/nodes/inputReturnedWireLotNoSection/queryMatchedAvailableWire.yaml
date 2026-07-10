@@ -6,13 +6,15 @@ catalog_status: pending_catalog
 sql_ids: []
 business_meaning: >-
   根据归还焊丝规格查询发货柜库存，选择一卷可领用焊丝和对应格口。
+  同规格存在多卷可用焊丝时，按 FEFO 原则优先选择过期时间（shelflife）最早的一卷发放；
+  shelflife 为空（未知过期时间）的记录视为优先级最高，排在最前发放。
   查询成功（有/无行）均进入 checkMatchedWireExists 分支；SQL/连接等执行失败由应用层统一异常提示并中止流程，不在流程图中配置 error 出边。
 output_fields:
   - name: matched_available_wire_lot_no
     source_type: sql_catalog
     source_ref: app.wire_inventory.find_matched_available
     catalog_field: matched_available_wire_lot_no
-    source_text: 匹配规格的可用焊丝批号。
+    source_text: 匹配规格且按 FEFO 选出的可用焊丝批号。
   - name: slot_id
     source_type: sql_catalog
     source_ref: app.wire_inventory.find_matched_available
@@ -28,6 +30,11 @@ output_fields:
     source_ref: app.wire_inventory.find_matched_available
     catalog_field: wire_spec
     source_text: 焊丝规格（与归还规格一致）。
+  - name: shelflife
+    source_type: sql_catalog
+    source_ref: app.wire_inventory.find_matched_available
+    catalog_field: shelflife
+    source_text: 该焊丝过期时间；用于 FEFO 排序依据，为空视为最先发放。
 input_mappings:
   - name: returned_wire_spec
     source_node: queryWireSpecByLotNo

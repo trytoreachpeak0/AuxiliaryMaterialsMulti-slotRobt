@@ -22,7 +22,7 @@ outputs:
     meaning: 焊丝编码
   - name: shelflife
     type: datetime
-    meaning: 焊丝保质期
+    meaning: 焊丝过期时间
   - name: matlot
     type: string
     meaning: 主批次

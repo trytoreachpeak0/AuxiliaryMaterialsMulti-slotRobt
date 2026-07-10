@@ -254,21 +254,6 @@ public sealed class OracleMesGateway : IMesGateway
 
                     var submitResult = MatTransResult.ReadSubmitOutValue(outParam.Value);
 
-                    // #region agent log
-                    if (isMatTrans)
-                    {
-                        DebugAgentLog.Write("A", "MesGateway.Run:matTransOut",
-                            "FUN_MAT_TRANS_NEW OUT param",
-                            new
-                            {
-                                rawType = outParam.Value?.GetType().FullName,
-                                rawToString = outParam.Value?.ToString(),
-                                normalized = submitResult,
-                                isSuccess = MatTransResult.IsSuccess(submitResult)
-                            });
-                    }
-                    // #endregion
-
                     if (isMatTrans)
 
                     {
