@@ -259,8 +259,7 @@ public sealed class FlowCoordinator
         FlowEngine.IsReturnQtyReject(message);
 
     public static bool IsQuotaRejectMessage(string? message) =>
-        !string.IsNullOrWhiteSpace(message)
-        && message.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
+        FlowEngine.IsQuotaReject(message);
 
     public static string AppendManualReturnGuidance(string message)
     {
@@ -302,11 +301,13 @@ public sealed class FlowCoordinator
     {
         FillOpRemainingQty(remainingQty);
         var result = AdvanceUntilPause(pauseBeforeNodeId: "submitWireReturn", endFlowOnTerminal: false);
-        if (!result.Ok)
-            return result;
 
-        if (TraceHasOutcome("queryWireQuotaCheck", "quota_reject")
-            || string.Equals(CurrentNodeId, "showRemainingQtyWrongHint", StringComparison.OrdinalIgnoreCase))
+        // 按最近一次配额结果判定，避免首次 reject 后第二次正确输入仍被历史 trace 误判。
+        var latestQuota = GetLatestTraceOutcome("queryWireQuotaCheck");
+        if (string.Equals(latestQuota, "quota_reject", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(CurrentNodeId, "showRemainingQtyWrongHint", StringComparison.OrdinalIgnoreCase)
+            || IsQuotaRejectMessage(result.Message)
+            || IsQuotaRejectMessage(TryPickTraceSqlError("queryWireQuotaCheck")))
         {
             RewindOpToRemainingQtyInput();
             var quotaErr = TryPickTraceSqlError("queryWireQuotaCheck");
@@ -314,6 +315,9 @@ public sealed class FlowCoordinator
                 quotaErr ?? "剩余待焊芯片数量不正确（剩余产量不能大于待完工产量），请重新输入。",
                 FlowPauseReason.Error);
         }
+
+        if (!result.Ok)
+            return result;
 
         if (result.Reason == FlowPauseReason.AwaitingAction
             && string.Equals(CurrentNodeId, "submitWireReturn", StringComparison.OrdinalIgnoreCase))

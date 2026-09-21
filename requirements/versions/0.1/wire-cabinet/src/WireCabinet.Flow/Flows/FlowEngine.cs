@@ -474,9 +474,18 @@ public sealed class FlowEngine
 
     private static bool IsSubmitSuccess(string? v) => MatTransResult.IsSuccess(v);
 
-    private static bool IsQuotaReject(string? error) =>
-        !string.IsNullOrWhiteSpace(error)
-        && error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// MES 配额数量错误（可重输）：精确文案，或同时含「剩余产量」与「待完工」的等价表述。
+    /// </summary>
+    public static bool IsQuotaReject(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return false;
+        if (error.Contains("剩余产量不能大于待完工产量", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return error.Contains("剩余产量", StringComparison.OrdinalIgnoreCase)
+               && error.Contains("待完工", StringComparison.OrdinalIgnoreCase);
+    }
 
     public static bool IsReturnQtyReject(string? text) =>
         !string.IsNullOrWhiteSpace(text)

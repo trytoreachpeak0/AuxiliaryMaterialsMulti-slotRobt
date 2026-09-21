@@ -447,12 +447,18 @@ public partial class OpView : UserControl
 
             if (!ok)
             {
+                // 数量错误等可重试失败：保持步骤④可编辑，不必点「重新开始」。
+                ResetFromStep(3);
                 ClearQuotaResults();
                 return (false, msg);
             }
 
             if (reason != FlowPauseReason.AwaitingAction)
+            {
+                ResetFromStep(3);
+                ClearQuotaResults();
                 return (false, msg);
+            }
 
             BindQuotaResults();
             _steps.CompleteStep(3);
@@ -856,24 +862,28 @@ public partial class OpView : UserControl
         _actionInProgress = true;
         ApplyStepGating();
         var succeeded = false;
+        string? failureMessage = null;
         try
         {
             var (ok, msg) = await action();
             succeeded = ok;
             if (!ok)
-                ShowFlowError(msg, refocusOnFailure);
+                failureMessage = msg;
             else
                 SetStatus(msg);
         }
         catch (Exception ex)
         {
-            ShowFlowError($"操作失败：{ex.Message}", refocusOnFailure);
+            failureMessage = $"操作失败：{ex.Message}";
         }
         finally
         {
+            // 先解除 busy 并恢复分步使能，再弹错/聚焦，避免弹窗期间整段置灰、无法重输。
             _actionInProgress = false;
             ApplyStepGating();
-            if (succeeded)
+            if (failureMessage is not null)
+                ShowFlowError(failureMessage, refocusOnFailure);
+            else if (succeeded)
                 TryFocusNextStepAfterSuccess();
         }
     }
